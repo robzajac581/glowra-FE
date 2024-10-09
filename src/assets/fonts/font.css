@@ -1,0 +1,62 @@
+@font-face {
+	font-family: "Louize";
+	src: url("Nonpareille-205TF\ -\ Louize.otf") format("opentype");
+	font-style: normal;
+	font-display: swap;
+	font-weight: 400;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-Book.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+	font-weight: 400;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-Light.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+	font-weight: 300;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-Heavy.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+	font-weight: 700;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-Heavy.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+	font-weight: 800;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-Heavy.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+	font-weight: 900;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-LightOblique.ttf") format("truetype");
+	font-style: italic;
+	font-display: swap;
+	font-weight: 300;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-Roman.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Avenir";
+	src: url("Avenir-Medium.ttf") format("truetype");
+	font-style: normal;
+	font-display: swap;
+	font-weight: 500;
+}
