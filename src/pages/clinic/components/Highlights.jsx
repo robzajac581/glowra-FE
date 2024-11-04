@@ -44,7 +44,7 @@ const data = [
 	{
 		id: 4,
 		icons: highlightIcons.waittimes2,
-		title: "Minimal Wait Times",
+		title: "Personal Treatment",
 		text: "We understand that beauty is unique. That's why at Glowra, we prioritize a personalized approach.",
 	},
 ];
