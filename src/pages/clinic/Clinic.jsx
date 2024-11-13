@@ -12,7 +12,6 @@ import Gallery from "./components/Gallery";
 import Highlights from "./components/Highlights";
 import InstagramPosts from "./components/InstagramPosts";
 import Location from "./components/Location";
-import PaymentAccepted from "./components/PaymentAccepted";
 import ReviewsForCosmetics from "./components/ReviewsForCosmetics";
 import SpecialOffers from "./components/SpecialOffers";
 
@@ -104,17 +103,17 @@ const Clinic = () => {
                                     selectedData={selectedData}
                                     setSelectedData={setSelectedData}
                                 />
-																<SpecialOffers
+																{/* Removed temporarily: GLOW-22 */}
+																{/* <SpecialOffers
 																	selectedData={selectedData}
 																	setSelectedData={setSelectedData}
-																/>
+																/> */}
 																<Highlights />
 																<ReviewsForCosmetics />
 																<Location />
 																<InstagramPosts />
 																<About />
 																<AboutProviders />
-																<PaymentAccepted />
 																<Faqs />
                             </div>
                         </div>

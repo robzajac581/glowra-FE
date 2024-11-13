@@ -13,19 +13,19 @@ const ProcedureCard = ({ item, search }) => {
 		}).format(price);
 	};
 
-	// Ensure website URL has proper format
-	const formatWebsiteUrl = (url) => {
-		if (!url) return null;
-		if (!url.startsWith('http://') && !url.startsWith('https://')) {
-			return `https://${url}`;
-		}
-		return url;
-	};
+	// // Ensure website URL has proper format
+	// const formatWebsiteUrl = (url) => {
+	// 	if (!url) return null;
+	// 	if (!url.startsWith('http://') && !url.startsWith('https://')) {
+	// 		return `https://${url}`;
+	// 	}
+	// 	return url;
+	// };
 
 	return (
 		<div className="procedure-card group">
 			<Link 
-				to={`/clinic/${item.id}`} 
+				to={`/clinic/${item.clinicId}`} 
 				className="absolute z-[1] inset-0" 
 			/>
 			<div className="procedure-card-top">
@@ -71,8 +71,7 @@ const ProcedureCard = ({ item, search }) => {
 						</span>
 					</div>
 				</div>
-				{/* TODO: currently goes to the website if it has it. We probably want it to go to the clinic site instead */}
-				{item.website ? (
+				{/*{item.website ? (
 					<a 
 						className="btn relative z-10" 
 						href={formatWebsiteUrl(item.website)}
@@ -82,14 +81,14 @@ const ProcedureCard = ({ item, search }) => {
 					>
 						Visit Website {procedure.arrowLink}
 					</a>
-				) : (
+				) : ( */}
 					<Link 
 						className="btn" 
-						to={`/clinic/${item.id}`}
+						to={`/clinic/${item.clinicId}}`}
 					>
 						View Details {procedure.arrowLink}
 					</Link>
-				)}
+				{/* )} */}
 			</div>
 		</div>
 	);

@@ -59,6 +59,7 @@ const Procedures = () => {
       // Transform the API response to match our product format
       const transformedProducts = data.procedures.map(procedure => ({
         id: procedure.ProcedureID,
+        clinicId: procedure.ClinicID,
         img: `/img/procedures/${(procedure.ProcedureID % 6) + 1}.png`,
         doctor: procedure.ProviderName,
         doctorInfo: procedure.ClinicName,
