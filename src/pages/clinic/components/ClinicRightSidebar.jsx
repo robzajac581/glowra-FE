@@ -36,24 +36,6 @@ const ClinicRightSidebar = ({ selectedData }) => {
 		<div className="right-form">
 			<h5 className="text-2xl mb-5">Request a consultation</h5>
 			<form onSubmit={handleSubmit}>
-				<div className="tab-menu mb-4">
-					<button
-						type="button"
-						className={`tab-link ${newPatient ? "active" : ""}`}
-						onClick={() => setNewPatient(true)}
-					>
-						{clinicIcons.check}
-						New patient
-					</button>
-					<button
-						type="button"
-						className={`tab-link ${newPatient ? "" : "active"}`}
-						onClick={() => setNewPatient(false)}
-					>
-						{clinicIcons.check}
-						Returning patient
-					</button>
-				</div>
 				<div className="flex flex-col gap-3">
 					<CustomInput label="Name" placeholder="Enter your name" />
 					<CustomInput
