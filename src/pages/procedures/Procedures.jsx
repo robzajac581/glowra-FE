@@ -4,9 +4,12 @@ import React, { useState, useEffect } from "react";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
 import ProcedureCard from "../../components/ProcedureCard";
+import Pagination from "../../components/Pagination";
 import useScreen from "../../hooks/useScreen";
 
 const API_BASE_URL = 'http://localhost:3001';
+
+const ITEMS_PER_PAGE = 9;
 
 const Procedures = () => {
   const screen = useScreen();
@@ -22,41 +25,30 @@ const Procedures = () => {
   const [page, setPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
 
-  const fetchProcedures = async () => {
+  const fetchProcedures = async (pageNumber = page) => {
     try {
       setLoading(true);
       setError(null);
-
-      // Construct query parameters
+  
       const params = new URLSearchParams();
-      if (location) params.append('location', location.split(',')[0]); // Only send city
+      if (location) params.append('location', location.split(',')[0]);
       if (category) params.append('category', category);
       if (specialty) params.append('specialty', specialty);
       if (price) params.append('minPrice', price);
-      params.append('page', page);
-      params.append('limit', 10);
-
+      params.append('page', pageNumber.toString());
+      params.append('limit', ITEMS_PER_PAGE.toString());
+  
       const url = `${API_BASE_URL}/api/procedures?${params.toString()}`;
-      console.log('Fetching from URL:', url);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
+      console.log('Fetching page:', pageNumber, 'URL:', url); // Debug log
+  
+      const response = await fetch(url);
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const data = await response.json();
-      console.log('Received data:', data);
+      console.log('Received data for page:', pageNumber, data); // Debug log
       
-      // Transform the API response to match our product format
       const transformedProducts = data.procedures.map(procedure => ({
         id: procedure.ProcedureID,
         clinicId: procedure.ClinicID,
@@ -69,22 +61,35 @@ const Procedures = () => {
         State: procedure.State,
         website: procedure.Website
       }));
-
-      console.log('Transformed products:', transformedProducts);
+  
       setProducts(transformedProducts);
       setTotalResults(data.pagination.total);
     } catch (err) {
-      console.error('Detailed error:', err);
+      console.error('Error fetching procedures:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+  
+  const handlePageChange = (newPage) => {
+    console.log('Changing to page:', newPage); // Debug log
+    setPage(newPage);
+    fetchProcedures(newPage);
+    window.scrollTo(0, 0);
+  };
+  
+  const handleFilterChange = () => {
+    console.log('Filters changed, resetting to page 1'); // Debug log
+    setPage(1);
+    fetchProcedures(1);
+  };
 
-  // Fetch procedures when filters change
+  // Effect for filter changes
   useEffect(() => {
-    fetchProcedures();
-  }, [location, category, specialty, price, page]);
+    handleFilterChange();
+  }, [location, category, specialty, price]);
+  
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -237,24 +242,29 @@ const Procedures = () => {
               </button>
             </div>
             <div className="w-0 flex-grow">
-              {loading ? (
-                <div>Loading...</div>
-              ) : error ? (
-                <div>
-                  <p>Error: {error}</p>
-                  <p>Please check the console for more details.</p>
-                </div>
-              ) : products.length === 0 ? (
-                <div>No procedures found matching your criteria.</div>
-              ) : (
+            {loading ? (
+              <div>Loading...</div>
+            ) : error ? (
+              <div>
+                <p>Error: {error}</p>
+                <p>Please check the console for more details.</p>
+              </div>
+            ) : products.length === 0 ? (
+              <div>No procedures found matching your criteria.</div>
+            ) : (
+              <>
                 <div className="bottom-product-grid">
-                  {products
-                    .slice(0, screen < 1024 ? (screen < 640 ? 3 : 4) : 6)
-                    .map((item) => (
-                      <ProcedureCard search item={item} key={item.id} />
-                    ))}
+                  {products.map((item) => (
+                    <ProcedureCard search item={item} key={item.id} />
+                  ))}
                 </div>
-              )}
+                <Pagination
+                  currentPage={page}
+                  totalPages={Math.ceil(totalResults / 10)}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
             </div>
           </div>
         </div>
