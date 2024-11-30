@@ -47,7 +47,7 @@ const Header = ({ fixed }) => {
 							<div className="flex gap-6 items-center">
 								<input
 									type="text"
-									placeholder="Search Want you thing ..."
+									placeholder="Search your procedures..."
 								/>
 								<button type="submit">{icons.searchIcon4}</button>
 							</div>

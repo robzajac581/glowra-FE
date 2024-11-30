@@ -1,4 +1,5 @@
 // Procedures.jsx
+// AKA: search page
 import { Option, Radio, Select } from "@material-tailwind/react";
 import React, { useState, useEffect } from "react";
 import { icons } from "../../components/Icons";
@@ -6,6 +7,7 @@ import Layout from "../../components/Layout";
 import ProcedureCard from "../../components/ProcedureCard";
 import Pagination from "../../components/Pagination";
 import useScreen from "../../hooks/useScreen";
+import PriceRangeSelector from './components/PriceRangeSelector';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -16,7 +18,7 @@ const Procedures = () => {
   const [search, setSearch] = useState("Botox");
   const [category, setCategory] = useState("Breast");
   const [location, setLocation] = useState("Dallas, TX");
-  const [price, setPrice] = useState("3500");
+  const [priceRange, setPriceRange] = useState({ minPrice: '', maxPrice: '' });
   const [specialty, setSpecialty] = useState("Plastic Surgery");
   const [rating, setRating] = useState("5 star");
   const [products, setProducts] = useState([]);
@@ -34,8 +36,8 @@ const Procedures = () => {
       if (location) params.append('location', location.split(',')[0]);
       if (category) params.append('category', category);
       if (specialty) params.append('specialty', specialty);
-      if (price) params.append('minPrice', price);
-      params.append('page', pageNumber.toString());
+      if (priceRange.minPrice) params.append('minPrice', priceRange.minPrice);
+      if (priceRange.maxPrice) params.append('maxPrice', priceRange.maxPrice);      params.append('page', pageNumber.toString());
       params.append('limit', ITEMS_PER_PAGE.toString());
   
       const url = `${API_BASE_URL}/api/procedures?${params.toString()}`;
@@ -87,9 +89,9 @@ const Procedures = () => {
 
   // Effect for filter changes
   useEffect(() => {
-    handleFilterChange();
-  }, [location, category, specialty, price]);
-  
+    fetchProcedures();
+  }, [location, category, specialty, priceRange.minPrice, priceRange.maxPrice, page]);
+
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -159,22 +161,10 @@ const Procedures = () => {
                 <Option value="Chicago, IL">Chicago, IL</Option>
               </Select>
             </div>
-            <div className="border bg-white rounded-md">
-              <Select
-                variant="static"
-                className="border-none h-[52px] rounded-xl"
-                label="Price Range"
-                containerProps={{
-                  className: "!min-w-0 w-full select",
-                }}
-                value={price}
-                onChange={setPrice}
-              >
-                <Option value="3500">$3500</Option>
-                <Option value="4500">$4500</Option>
-                <Option value="5500">$5500</Option>
-                <Option value="6500">$6500</Option>
-              </Select>
+            <div className="border bg-white rounded-md p-3">
+              <PriceRangeSelector
+                onPriceChange={setPriceRange}
+              />
             </div>
             <div className="border bg-white rounded-md">
               <Select
