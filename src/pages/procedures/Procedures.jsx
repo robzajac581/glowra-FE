@@ -1,5 +1,6 @@
 // Procedures.jsx
 import { Option, Radio, Select } from "@material-tailwind/react";
+import { useSearchParams } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
@@ -13,12 +14,24 @@ const ITEMS_PER_PAGE = 9;
 
 const Procedures = () => {
   const screen = useScreen();
-  const [search, setSearch] = useState("Botox");
-  const [category, setCategory] = useState("Breast");
-  const [location, setLocation] = useState("Dallas, TX");
-  const [price, setPrice] = useState("3500");
-  const [specialty, setSpecialty] = useState("Plastic Surgery");
-  const [rating, setRating] = useState("5 star");
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Helper function to get param with fallback
+  const getParamWithFallback = (param, fallback) => {
+    // Check if the param exists in URL before using fallback
+    const value = searchParams.get(param);
+    return value !== null ? value : fallback;
+  };
+
+  // Initialize state from URL params, only using fallbacks if params don't exist
+  const [search, setSearch] = useState(getParamWithFallback('search', "Botox"));
+  const [category, setCategory] = useState(getParamWithFallback('category', "Breast"));
+  const [location, setLocation] = useState(getParamWithFallback('location', "Dallas, TX"));
+  const [price, setPrice] = useState(getParamWithFallback('price', "3500"));
+  const [specialty, setSpecialty] = useState(getParamWithFallback('specialty', "Plastic Surgery"));
+  const [rating, setRating] = useState(getParamWithFallback('rating', "5 star"));
+  
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -87,8 +100,19 @@ const Procedures = () => {
 
   // Effect for filter changes
   useEffect(() => {
+    // Update URL params
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (category) params.set('category', category);
+    if (location) params.set('location', location);
+    if (price) params.set('price', price);
+    if (specialty) params.set('specialty', specialty);
+    if (rating) params.set('rating', rating);
+    
+    setSearchParams(params, { replace: true });
+
     handleFilterChange();
-  }, [location, category, specialty, price]);
+  }, [search, category, location, price, specialty, rating]);
   
 
   const handleSearch = (e) => {

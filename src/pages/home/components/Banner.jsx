@@ -1,7 +1,7 @@
 import { Option, Select } from "@material-tailwind/react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import img2 from "../../../assets/img/banner/banner-bg.png";
+import img2 from "../../../assets/img/banner/DarkenedImage3.png";
 import img1 from "../../../assets/img/banner/banner-mobile.png";
 import { icons } from "../../../components/Icons";
 import useScreen from "../../../hooks/useScreen";
@@ -17,7 +17,7 @@ const Banner = () => {
 	};
 	return (
 		<section
-			className="banner-section"
+			className="banner-section border-none"
 			style={{
 				background: `url(${
 					screen < 768 ? img1 : img2
@@ -105,7 +105,7 @@ const Banner = () => {
 						</button>
 					</div>
 				</form>
-				<div className="hidden lg:block text-center font-medium mt-[33px] text-black">
+				<div className="hidden lg:block text-center font-medium mt-[33px] text-white">
 					Search by Condition, Select Locations, or Category.{" "}
 					<span className="font-extrabold text-primary">Learn More</span>
 				</div>
