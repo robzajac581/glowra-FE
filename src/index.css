@@ -500,7 +500,7 @@
 		@apply hidden md:block text-secondary text-xl  font-extrabold;
 	}
 	.single-procedure-card .search-grid {
-		@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mt-[15px] gap-[15px];
+		@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mt-[15px] gap-[15px];
 	}
 	.bottom-product-grid {
 		@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[30px];

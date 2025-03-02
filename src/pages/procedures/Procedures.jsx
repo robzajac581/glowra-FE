@@ -1,67 +1,65 @@
 // Procedures.jsx
 import { Option, Radio, Select } from "@material-tailwind/react";
-import { useSearchParams } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
 import ProcedureCard from "../../components/ProcedureCard";
-import Pagination from "../../components/Pagination";
 import useScreen from "../../hooks/useScreen";
 
 const API_BASE_URL = 'http://localhost:3001';
 
-const ITEMS_PER_PAGE = 9;
-
 const Procedures = () => {
   const screen = useScreen();
-
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // Helper function to get param with fallback
-  const getParamWithFallback = (param, fallback) => {
-    // Check if the param exists in URL before using fallback
-    const value = searchParams.get(param);
-    return value !== null ? value : fallback;
-  };
-
-  // Initialize state from URL params, only using fallbacks if params don't exist
-  const [search, setSearch] = useState(getParamWithFallback('search', "Botox"));
-  const [category, setCategory] = useState(getParamWithFallback('category', "Breast"));
-  const [location, setLocation] = useState(getParamWithFallback('location', "Dallas, TX"));
-  const [price, setPrice] = useState(getParamWithFallback('price', "3500"));
-  const [specialty, setSpecialty] = useState(getParamWithFallback('specialty', "Plastic Surgery"));
-  const [rating, setRating] = useState(getParamWithFallback('rating', "5 star"));
-  
+  const [search, setSearch] = useState("Botox");
+  const [category, setCategory] = useState("Breast");
+  const [location, setLocation] = useState("Dallas, TX");
+  // Replace single price state with minPrice and maxPrice
+  const [minPrice, setMinPrice] = useState("3500");
+  const [maxPrice, setMaxPrice] = useState("8000");
+  const [specialty, setSpecialty] = useState("Plastic Surgery");
+  const [rating, setRating] = useState("5 star");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
 
-  const fetchProcedures = async (pageNumber = page) => {
+  const fetchProcedures = async () => {
     try {
       setLoading(true);
       setError(null);
-  
+
+      // Construct query parameters with separate min and max price
       const params = new URLSearchParams();
-      if (location) params.append('location', location.split(',')[0]);
+      if (location) params.append('location', location.split(',')[0]); // Only send city
       if (category) params.append('category', category);
       if (specialty) params.append('specialty', specialty);
-      if (price) params.append('minPrice', price);
-      params.append('page', pageNumber.toString());
-      params.append('limit', ITEMS_PER_PAGE.toString());
-  
+      if (minPrice) params.append('minPrice', minPrice);
+      if (maxPrice) params.append('maxPrice', maxPrice);
+      params.append('page', page);
+      params.append('limit', 10);
+
       const url = `${API_BASE_URL}/api/procedures?${params.toString()}`;
-      console.log('Fetching page:', pageNumber, 'URL:', url); // Debug log
-  
-      const response = await fetch(url);
+      console.log('Fetching from URL:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const data = await response.json();
-      console.log('Received data for page:', pageNumber, data); // Debug log
+      console.log('Received data:', data);
       
+      // Transform the API response to match our product format
       const transformedProducts = data.procedures.map(procedure => ({
         id: procedure.ProcedureID,
         clinicId: procedure.ClinicID,
@@ -74,46 +72,22 @@ const Procedures = () => {
         State: procedure.State,
         website: procedure.Website
       }));
-  
+
+      console.log('Transformed products:', transformedProducts);
       setProducts(transformedProducts);
       setTotalResults(data.pagination.total);
     } catch (err) {
-      console.error('Error fetching procedures:', err);
+      console.error('Detailed error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-  
-  const handlePageChange = (newPage) => {
-    console.log('Changing to page:', newPage); // Debug log
-    setPage(newPage);
-    fetchProcedures(newPage);
-    window.scrollTo(0, 0);
-  };
-  
-  const handleFilterChange = () => {
-    console.log('Filters changed, resetting to page 1'); // Debug log
-    setPage(1);
-    fetchProcedures(1);
-  };
 
-  // Effect for filter changes
+  // Fetch procedures when filters change
   useEffect(() => {
-    // Update URL params
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (category) params.set('category', category);
-    if (location) params.set('location', location);
-    if (price) params.set('price', price);
-    if (specialty) params.set('specialty', specialty);
-    if (rating) params.set('rating', rating);
-    
-    setSearchParams(params, { replace: true });
-
-    handleFilterChange();
-  }, [search, category, location, price, specialty, rating]);
-  
+    fetchProcedures();
+  }, [location, category, specialty, minPrice, maxPrice, page]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -145,6 +119,7 @@ const Procedures = () => {
               </button>
             </div>
           </form>
+          {/* Modified grid with adjusted styles */}
           <div className="search-grid">
             <div className="border bg-white rounded-md">
               <Select
@@ -152,7 +127,7 @@ const Procedures = () => {
                 className="border-none h-[52px] rounded-xl"
                 label="Category"
                 containerProps={{
-                  className: "!min-w-0 w-full select",
+                  className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={category}
                 onChange={setCategory}
@@ -171,7 +146,7 @@ const Procedures = () => {
                 className="border-none h-[52px] rounded-xl"
                 label="Location"
                 containerProps={{
-                  className: "!min-w-0 w-full select",
+                  className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={location}
                 onChange={setLocation}
@@ -183,21 +158,42 @@ const Procedures = () => {
                 <Option value="Chicago, IL">Chicago, IL</Option>
               </Select>
             </div>
+            {/* Min price dropdown with narrower styling */}
             <div className="border bg-white rounded-md">
               <Select
                 variant="static"
                 className="border-none h-[52px] rounded-xl"
-                label="Price Range"
+                label="Price Min"
                 containerProps={{
-                  className: "!min-w-0 w-full select",
+                  className: "!min-w-0 w-full select max-w-full",
                 }}
-                value={price}
-                onChange={setPrice}
+                value={minPrice}
+                onChange={setMinPrice}
               >
-                <Option value="3500">$3500</Option>
-                <Option value="4500">$4500</Option>
-                <Option value="5500">$5500</Option>
-                <Option value="6500">$6500</Option>
+                <Option value="1000">$1,000</Option>
+                <Option value="2000">$2,000</Option>
+                <Option value="3500">$3,500</Option>
+                <Option value="5000">$5,000</Option>
+                <Option value="7500">$7,500</Option>
+              </Select>
+            </div>
+            {/* Max price dropdown with narrower styling */}
+            <div className="border bg-white rounded-md">
+              <Select
+                variant="static"
+                className="border-none h-[52px] rounded-xl"
+                label="Price Max"
+                containerProps={{
+                  className: "!min-w-0 w-full select max-w-full",
+                }}
+                value={maxPrice}
+                onChange={setMaxPrice}
+              >
+                <Option value="5000">$5,000</Option>
+                <Option value="8000">$8,000</Option>
+                <Option value="10000">$10,000</Option>
+                <Option value="15000">$15,000</Option>
+                <Option value="20000">$20,000</Option>
               </Select>
             </div>
             <div className="border bg-white rounded-md">
@@ -206,7 +202,7 @@ const Procedures = () => {
                 className="border-none h-[52px] rounded-xl"
                 label="Specialty"
                 containerProps={{
-                  className: "!min-w-0 w-full select",
+                  className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={specialty}
                 onChange={setSpecialty}
@@ -266,29 +262,24 @@ const Procedures = () => {
               </button>
             </div>
             <div className="w-0 flex-grow">
-            {loading ? (
-              <div>Loading...</div>
-            ) : error ? (
-              <div>
-                <p>Error: {error}</p>
-                <p>Please check the console for more details.</p>
-              </div>
-            ) : products.length === 0 ? (
-              <div>No procedures found matching your criteria.</div>
-            ) : (
-              <>
-                <div className="bottom-product-grid">
-                  {products.map((item) => (
-                    <ProcedureCard search item={item} key={item.id} />
-                  ))}
+              {loading ? (
+                <div>Loading...</div>
+              ) : error ? (
+                <div>
+                  <p>Error: {error}</p>
+                  <p>Please check the console for more details.</p>
                 </div>
-                <Pagination
-                  currentPage={page}
-                  totalPages={Math.ceil(totalResults / 10)}
-                  onPageChange={handlePageChange}
-                />
-              </>
-            )}
+              ) : products.length === 0 ? (
+                <div>No procedures found matching your criteria.</div>
+              ) : (
+                <div className="bottom-product-grid">
+                  {products
+                    .slice(0, screen < 1024 ? (screen < 640 ? 3 : 4) : 6)
+                    .map((item) => (
+                      <ProcedureCard search item={item} key={item.id} />
+                    ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
