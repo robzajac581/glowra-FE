@@ -1,105 +1,176 @@
 // Procedures.jsx
 import { Option, Radio, Select } from "@material-tailwind/react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { createSearchIndex, performSearch, applyFilters, paginateResults } from "../../utils/searchUtils";
+import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
-import ProcedureCard from "../../components/ProcedureCard";
+import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
 
 const API_BASE_URL = 'http://localhost:3001';
 
 const Procedures = () => {
   const screen = useScreen();
-  const [search, setSearch] = useState("Botox");
-  const [category, setCategory] = useState("Breast");
-  const [location, setLocation] = useState("Dallas, TX");
-  // Replace single price state with minPrice and maxPrice
-  const [minPrice, setMinPrice] = useState("3500");
-  const [maxPrice, setMaxPrice] = useState("8000");
-  const [specialty, setSpecialty] = useState("Plastic Surgery");
   const [rating, setRating] = useState("5 star");
+  
+  // Use our custom hook for search state management
+  const { 
+    searchState, 
+    updateSearchState 
+  } = useSearchState({
+    searchQuery: "",
+    category: "Breast",
+    location: "Dallas, TX",
+    minPrice: "3500",
+    maxPrice: "8000",
+    specialty: "Plastic Surgery",
+    page: 1
+  });
+  
+  const { 
+    searchQuery, 
+    category, 
+    location, 
+    minPrice, 
+    maxPrice, 
+    specialty, 
+    page 
+  } = searchState;
+  
+  // State for full data and displayed products
+  const [allProcedures, setAllProcedures] = useState([]);
   const [products, setProducts] = useState([]);
+  const [searchIndex, setSearchIndex] = useState(null);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
 
-  const fetchProcedures = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Construct query parameters with separate min and max price
-      const params = new URLSearchParams();
-      if (location) params.append('location', location.split(',')[0]); // Only send city
-      if (category) params.append('category', category);
-      if (specialty) params.append('specialty', specialty);
-      if (minPrice) params.append('minPrice', minPrice);
-      if (maxPrice) params.append('maxPrice', maxPrice);
-      params.append('page', page);
-      params.append('limit', 10);
-
-      const url = `${API_BASE_URL}/api/procedures?${params.toString()}`;
-      console.log('Fetching from URL:', url);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Received data:', data);
-      
-      // Transform the API response to match our product format
-      const transformedProducts = data.procedures.map(procedure => ({
-        id: procedure.ProcedureID,
-        clinicId: procedure.ClinicID,
-        img: `/img/procedures/${(procedure.ProcedureID % 6) + 1}.png`,
-        doctor: procedure.ProviderName,
-        doctorInfo: procedure.ClinicName,
-        name: procedure.ProcedureName,
-        price: procedure.AverageCost,
-        City: procedure.City,
-        State: procedure.State,
-        website: procedure.Website
-      }));
-
-      console.log('Transformed products:', transformedProducts);
-      setProducts(transformedProducts);
-      setTotalResults(data.pagination.total);
-    } catch (err) {
-      console.error('Detailed error:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch procedures when filters change
+  // Fetch all procedures for indexing
   useEffect(() => {
-    fetchProcedures();
-  }, [location, category, specialty, minPrice, maxPrice, page]);
-
+    const fetchAllProcedures = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_BASE_URL}/api/procedures/search-index`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('API returned data:', data);
+        
+        // Transform the data for our component format
+        const transformedData = data.map(procedure => ({
+          id: procedure.ProcedureID,
+          clinicId: procedure.ClinicID,
+          img: `/img/procedures/${(procedure.ProcedureID % 6) + 1}.png`, // Cycle through available images
+          doctor: procedure.ProviderName,
+          doctorInfo: procedure.ClinicName,
+          name: procedure.ProcedureName,
+          price: procedure.AverageCost,
+          City: procedure.City,
+          State: procedure.State,
+          website: procedure.Website,
+          category: procedure.Category,
+          specialty: procedure.Specialty
+        }));
+        
+        setAllProcedures(transformedData);
+        
+        // Build the Lunr search index using our utility function
+        const idx = createSearchIndex(transformedData, {
+          fields: {
+            name: { boost: 10 },       // Procedure name is most important
+            doctorInfo: { boost: 5 },  // Clinic name
+            doctor: { boost: 3 },      // Provider name
+            category: { boost: 7 },    // Give category high importance
+            specialty: { boost: 5 },
+            City: { boost: 2 },
+            State: { boost: 1 }
+          }
+        });
+        
+        setSearchIndex(idx);
+        
+        // Initial filtering without search
+        filterProcedures(transformedData);
+      } catch (error) {
+        console.error('Error fetching procedures for search index:', error);
+        setError(error.message);
+        
+        // Fallback to sample data if API fails
+        const fallbackData = getFallbackData();
+        setAllProcedures(fallbackData);
+        const idx = createSearchIndex(fallbackData);
+        setSearchIndex(idx);
+        filterProcedures(fallbackData);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAllProcedures();
+  }, []); // Add empty dependency array to prevent infinite loop
+  
+  // Filter procedures based on current filters using our utility function
+  const filterProcedures = useCallback((procedures) => {
+    // Apply filters using our utility function
+    const filtered = applyFilters(procedures, {
+      category,
+      location,
+      specialty,
+      minPrice,
+      maxPrice
+    });
+    
+    // Handle pagination using our utility function
+    const paginationData = paginateResults(filtered, page, 10);
+    
+    setTotalResults(paginationData.total);
+    setProducts(paginationData.results);
+  }, [category, location, specialty, minPrice, maxPrice, page]);
+  
+  // Apply filters when they change
+  useEffect(() => {
+    if (allProcedures.length > 0) {
+      filterProcedures(allProcedures);
+    }
+  }, [allProcedures, filterProcedures]);
+  
+  // Handle search submission using our utility function
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchProcedures();
+    
+    if (!searchIndex || !searchQuery.trim()) {
+      // If no search query, just apply filters to all procedures
+      filterProcedures(allProcedures);
+      return;
+    }
+    
+    // Use the performSearch utility, which includes error handling and fallbacks
+    const searchResults = performSearch(searchIndex, allProcedures, searchQuery);
+    
+    // Apply filters to search results
+    filterProcedures(searchResults);
   };
-
+  
+  // Handle page change
+  const changePage = (newPage) => {
+    updateSearchState('page', newPage);
+    window.scrollTo(0, 0);
+  };
+  
   return (
     <Layout>
       <div className="single-procedure-card">
         <div className="container xl:max-w-[1226px]">
-          <h1 className="title">Search results for "{search}":</h1>
+          <h1 className="title">
+            {searchQuery ? `Search results for "${searchQuery}":` : "All Procedures:"}
+          </h1>
           <div className="subtitle">{totalResults} Procedures Found</div>
+          
           <form onSubmit={handleSearch}>
             <div className="relative">
               <input
@@ -110,8 +181,8 @@ const Procedures = () => {
                     : "Type the procedure you want here"
                 }
                 className="search-input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchQuery}
+                onChange={(e) => updateSearchState('searchQuery', e.target.value)}
               />
               <button type="submit" className="search-btn">
                 <span>Search</span>
@@ -119,7 +190,8 @@ const Procedures = () => {
               </button>
             </div>
           </form>
-          {/* Modified grid with adjusted styles */}
+          
+          {/* Filters */}
           <div className="search-grid">
             <div className="border bg-white rounded-md">
               <Select
@@ -130,8 +202,9 @@ const Procedures = () => {
                   className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={category}
-                onChange={setCategory}
+                onChange={(val) => updateSearchState('category', val)}
               >
+                <Option value="">All Categories</Option>
                 <Option value="Breast">Breast</Option>
                 <Option value="Body">Body</Option>
                 <Option value="Face">Face</Option>
@@ -149,7 +222,7 @@ const Procedures = () => {
                   className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={location}
-                onChange={setLocation}
+                onChange={(val) => updateSearchState('location', val)}
               >
                 <Option value="Dallas, TX">Dallas, TX</Option>
                 <Option value="Los Angeles, CA">Los Angeles, CA</Option>
@@ -158,7 +231,6 @@ const Procedures = () => {
                 <Option value="Chicago, IL">Chicago, IL</Option>
               </Select>
             </div>
-            {/* Min price dropdown with narrower styling */}
             <div className="border bg-white rounded-md">
               <Select
                 variant="static"
@@ -168,7 +240,7 @@ const Procedures = () => {
                   className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={minPrice}
-                onChange={setMinPrice}
+                onChange={(val) => updateSearchState('minPrice', val)}
               >
                 <Option value="1000">$1,000</Option>
                 <Option value="2000">$2,000</Option>
@@ -177,7 +249,6 @@ const Procedures = () => {
                 <Option value="7500">$7,500</Option>
               </Select>
             </div>
-            {/* Max price dropdown with narrower styling */}
             <div className="border bg-white rounded-md">
               <Select
                 variant="static"
@@ -187,7 +258,7 @@ const Procedures = () => {
                   className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={maxPrice}
-                onChange={setMaxPrice}
+                onChange={(val) => updateSearchState('maxPrice', val)}
               >
                 <Option value="5000">$5,000</Option>
                 <Option value="8000">$8,000</Option>
@@ -205,15 +276,30 @@ const Procedures = () => {
                   className: "!min-w-0 w-full select max-w-full",
                 }}
                 value={specialty}
-                onChange={setSpecialty}
+                onChange={(val) => updateSearchState('specialty', val)}
               >
                 <Option value="Plastic Surgery">Plastic Surgery</Option>
                 <Option value="Dermatology">Dermatology</Option>
               </Select>
             </div>
+            
+            {/* Apply filters button for mobile */}
+            <div className="xl:hidden col-span-full mt-4">
+              <button 
+                type="button" 
+                className="btn min-h-[47px] w-full"
+                onClick={() => filterProcedures(allProcedures)}
+              >
+                Apply Filters
+              </button>
+            </div>
           </div>
-          <div className="flex gap-8 mt-[34px] md:mt-[63px]">
-            <div className="w-[208px] hidden xl:block">
+          
+          {/* Results and sidebar section */}
+          <div className="flex flex-col xl:flex-row gap-8 mt-[34px] md:mt-[63px]">
+            {/* Sidebar */}
+            <div className="w-full xl:w-[208px] xl:flex-shrink-0 order-2 xl:order-1">
+              {/* Rating filters */}
               <div className="mb-8">
                 <h5 className="font-medium mb-2 font-Avenir">
                   Customer Rating
@@ -243,42 +329,97 @@ const Procedures = () => {
                   ))}
                 </div>
               </div>
+              
+              {/* Map */}
               <div className="mb-8">
                 <h5 className="font-medium mb-2 font-Avenir">
                   Nearest Locations
                 </h5>
                 <iframe
+                  title="Search Map"
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7298.9601660514245!2d90.36501104466463!3d23.837080364445423!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755c14a3366b005%3A0x901b07016468944c!2sMirpur%20DOHS%2C%20Dhaka!5e0!3m2!1sen!2sbd!4v1721925768310!5m2!1sen!2sbd"
                   height="250"
                   style={{ border: "none", width: "100%" }}
                 ></iframe>
               </div>
+              
+              {/* Apply filters button */}
               <button 
                 type="button" 
                 className="btn min-h-[47px] w-full"
-                onClick={fetchProcedures}
+                onClick={() => filterProcedures(allProcedures)}
               >
                 Apply Filters
               </button>
             </div>
-            <div className="w-0 flex-grow">
+            
+            {/* Results section */}
+            <div className="flex-grow order-1 xl:order-2">
               {loading ? (
-                <div>Loading...</div>
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                </div>
               ) : error ? (
-                <div>
-                  <p>Error: {error}</p>
-                  <p>Please check the console for more details.</p>
+                <div className="py-8">
+                  <p className="text-red-500 font-medium">Error: {error}</p>
+                  <p>Please try again or contact support if the problem persists.</p>
                 </div>
               ) : products.length === 0 ? (
-                <div>No procedures found matching your criteria.</div>
-              ) : (
-                <div className="bottom-product-grid">
-                  {products
-                    .slice(0, screen < 1024 ? (screen < 640 ? 3 : 4) : 6)
-                    .map((item) => (
-                      <ProcedureCard search item={item} key={item.id} />
-                    ))}
+                <div className="py-8 text-center">
+                  <p className="text-xl font-medium">No procedures found matching your criteria.</p>
+                  <p className="mt-2 text-gray-600">Try adjusting your filters or search terms.</p>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+                    {products.map((item) => (
+                      <div className="procedure-card-wrapper" key={item.id}>
+                        <SearchResultCard 
+                          item={item}
+                          searchQuery={searchQuery}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination controls */}
+                  {totalResults > 10 && (
+                    <div className="flex justify-center mt-8">
+                      <div className="flex gap-2">
+                        <button
+                          className={`btn ${page === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => page > 1 && changePage(page - 1)}
+                          disabled={page === 1}
+                        >
+                          Previous
+                        </button>
+                        
+                        {/* Page numbers */}
+                        {Array.from({ length: Math.ceil(totalResults / 10) }).map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => changePage(idx + 1)}
+                            className={`w-10 h-10 rounded-md ${
+                              page === idx + 1 
+                                ? 'bg-primary text-white' 
+                                : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                          >
+                            {idx + 1}
+                          </button>
+                        )).slice(Math.max(0, page - 3), Math.min(page + 2, Math.ceil(totalResults / 10)))}
+                        
+                        <button
+                          className={`btn ${page === Math.ceil(totalResults / 10) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => page < Math.ceil(totalResults / 10) && changePage(page + 1)}
+                          disabled={page === Math.ceil(totalResults / 10)}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -288,22 +429,70 @@ const Procedures = () => {
   );
 };
 
+// Fallback data function
+const getFallbackData = () => {
+  return [
+    {
+      id: "1",
+      clinicId: "1",
+      img: "/img/procedures/1.png",
+      doctor: "Dr. Jane Smith",
+      doctorInfo: "Board-Certified Dermatologist",
+      name: "Botox Cosmetic (Wrinkle Reduction)",
+      price: 650,
+      City: "Dallas",
+      State: "TX",
+      category: "Injectables",
+      specialty: "Dermatology"
+    },
+    {
+      id: "2",
+      clinicId: "1",
+      img: "/img/procedures/2.png",
+      doctor: "Dr. Michael Johnson",
+      doctorInfo: "Plastic Surgeon",
+      name: "Breast Augmentation",
+      price: 5500,
+      City: "Dallas",
+      State: "TX",
+      category: "Breast",
+      specialty: "Plastic Surgery"
+    },
+    {
+      id: "3",
+      clinicId: "2",
+      img: "/img/procedures/3.png",
+      doctor: "Dr. Sarah Lee",
+      doctorInfo: "Cosmetic Surgeon",
+      name: "Liposuction",
+      price: 3800,
+      City: "Miami",
+      State: "FL",
+      category: "Body",
+      specialty: "Plastic Surgery"
+    },
+    {
+      id: "4",
+      clinicId: "2",
+      img: "/img/procedures/4.png",
+      doctor: "Dr. Robert Chen",
+      doctorInfo: "Dermatologist",
+      name: "Chemical Peel",
+      price: 950,
+      City: "Los Angeles",
+      State: "CA",
+      category: "Skin",
+      specialty: "Dermatology"
+    }
+  ];
+};
+
 const ratingList = [
-  {
-    name: "5 star",
-  },
-  {
-    name: "4 star (& above)",
-  },
-  {
-    name: "3 star (& above)",
-  },
-  {
-    name: "2 star (& above)",
-  },
-  {
-    name: "1 star (& above)",
-  },
+  { name: "5 star" },
+  { name: "4 star (& above)" },
+  { name: "3 star (& above)" },
+  { name: "2 star (& above)" },
+  { name: "1 star (& above)" },
 ];
 
 export default Procedures;

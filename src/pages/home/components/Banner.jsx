@@ -20,7 +20,7 @@ const Banner = () => {
 			className="banner-section border-none"
 			style={{
 				background: `url(${
-					screen < 768 ? img1 : img2
+					screen < 768 ? img2 : img2
 				}) no-repeat center center / cover`,
 			}}
 		>

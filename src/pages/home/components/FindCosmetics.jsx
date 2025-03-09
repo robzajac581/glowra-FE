@@ -1,13 +1,85 @@
 import { Collapse, Option, Select } from "@material-tailwind/react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { icons } from "../../../components/Icons";
 import ProcedureCard from "../../../components/ProcedureCard";
 import useScreen from "../../../hooks/useScreen";
+import useSearchState from "../../../hooks/useSearchState";
+
+const API_BASE_URL = 'http://localhost:3001';
 
 const FindCosmetics = () => {
 	const [open, setOpen] = useState(false);
 	const screen = useScreen();
+	const [searchInput, setSearchInput] = useState('');
+	const [featuredProcedures, setFeaturedProcedures] = useState([]);
+	const [loading, setLoading] = useState(true);
+	
+	// Use our custom search hook
+	const { 
+		searchState, 
+		updateSearchState, 
+		navigateToSearch 
+	} = useSearchState({
+		searchQuery: "",
+		category: "",
+		location: "",
+		minPrice: "",
+		maxPrice: "",
+		specialty: "",
+		page: 1
+	});
+
+	// Fetch featured procedures on component mount
+	useEffect(() => {
+		const fetchFeaturedProcedures = async () => {
+			try {
+				setLoading(true);
+				const response = await fetch(`${API_BASE_URL}/api/procedures?limit=6`);
+				
+				if (!response.ok) {
+					throw new Error('Failed to fetch featured procedures');
+				}
+				
+				const data = await response.json();
+				
+				// Transform the data for our component format
+				const transformedData = data.procedures.map(procedure => ({
+					id: procedure.ProcedureID,
+					clinicId: procedure.ClinicID || "1", // Fallback if not available
+					img: `/img/procedures/${(procedure.ProcedureID % 6) + 1}.png`, // Cycle through available images
+					doctor: procedure.ProviderName,
+					doctorInfo: procedure.ClinicName,
+					name: procedure.ProcedureName,
+					price: procedure.AverageCost,
+					City: procedure.City,
+					State: procedure.State,
+					website: procedure.Website
+				}));
+				
+				setFeaturedProcedures(transformedData);
+			} catch (error) {
+				console.error('Error fetching featured procedures:', error);
+				// Fallback to hardcoded data if API fails
+				setFeaturedProcedures(products);
+			} finally {
+				setLoading(false);
+			}
+		};
+		
+		fetchFeaturedProcedures();
+	}, []);
+
+	// Handle search form submission
+	const handleSearchSubmit = (e) => {
+		e.preventDefault();
+		
+		// Update search state with input value
+		updateSearchState('searchQuery', searchInput);
+		
+		// Navigate to search page with query
+		navigateToSearch();
+	};
 
 	return (
 		<section className="find-cosmetic">
@@ -15,7 +87,7 @@ const FindCosmetics = () => {
 				<h2 className="find-cosmetic-title">
 					Find Your Cosmetic Procedure
 				</h2>
-				<form action="">
+				<form onSubmit={handleSearchSubmit}>
 					<div className="flex md:gap-[30px] mb-[13px] md:mb-[30px]">
 						<div className="w-0 flex-grow relative -mr-4 md:mr-0">
 							<input
@@ -26,24 +98,35 @@ const FindCosmetics = () => {
 										: "Type the procedure you want here"
 								}
 								className="find-cosmetic-input"
+								value={searchInput}
+								onChange={(e) => setSearchInput(e.target.value)}
 							/>
 							<button type="submit" className="find-cosmetic-search-btn">
 								<span>Search {icons.searchIcon3}</span>
 							</button>
 						</div>
-						<Link to="" className="find-cosmetic-btn">
+						<Link to="/procedures" className="find-cosmetic-btn">
 							<span className="hidden md:block">See All</span>{" "}
 							{icons.rightArrow}
 						</Link>
 					</div>
 				</form>
+				
+				{/* Advanced filter section */}
 				{screen >= 1024 ? (
-					<AdvancedFilter />
+					<AdvancedFilter 
+						searchState={searchState}
+						updateSearchState={updateSearchState}
+					/>
 				) : (
 					<Collapse open={open}>
-						<AdvancedFilter />
+						<AdvancedFilter 
+							searchState={searchState}
+							updateSearchState={updateSearchState}
+						/>
 					</Collapse>
 				)}
+				
 				<button
 					type="button"
 					onClick={() => setOpen(!open)}
@@ -54,12 +137,29 @@ const FindCosmetics = () => {
 					{icons.filter}
 					Advanced filters
 				</button>
+				
+				{/* Featured procedures grid */}
 				<div className="products-grid">
-					{products
-						?.map((item, index) => (
-							<ProcedureCard item={item} key={item.id} />
+					{loading ? (
+						// Show skeleton loaders when loading
+						Array(screen < 1024 ? (screen < 640 ? 3 : 4) : 6).fill(0).map((_, idx) => (
+							<div key={idx} className="procedure-card animate-pulse">
+								<div className="procedure-card-top bg-gray-200 h-48"></div>
+								<div className="p-5">
+									<div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+									<div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+									<div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+									<div className="h-10 bg-gray-200 rounded w-full"></div>
+								</div>
+							</div>
 						))
-						.slice(0, screen < 1024 ? (screen < 640 ? 3 : 4) : 6)}
+					) : (
+						featuredProcedures
+							.slice(0, screen < 1024 ? (screen < 640 ? 3 : 4) : 6)
+							.map((item) => (
+								<ProcedureCard item={item} key={item.id} />
+							))
+					)}
 				</div>
 			</div>
 			<div className="start-search-btn">
@@ -71,14 +171,15 @@ const FindCosmetics = () => {
 	);
 };
 
-const AdvancedFilter = () => {
-	const [search, setSearch] = useState("Botox");
-	const [type, setType] = useState("Botox");
-	const [country, setCountry] = useState("Australia");
-	// Replace single price state with minPrice and maxPrice
-	const [minPrice, setMinPrice] = useState("$3,500");
-	const [maxPrice, setMaxPrice] = useState("$8,000");
-	const [doctor, setDoctor] = useState("Surgeon");
+const AdvancedFilter = ({ searchState, updateSearchState }) => {
+	const { 
+		category = "", 
+		location = "", 
+		minPrice = "", 
+		maxPrice = "", 
+		specialty = "" 
+	} = searchState;
+	
 	return (
 		<div className="advanced-search-flex">
 			<div className="select-item">
@@ -92,14 +193,15 @@ const AdvancedFilter = () => {
 					labelProps={{
 						className: "hidden",
 					}}
-					value={type}
-					onChange={setType}
+					value={category}
+					onChange={(value) => updateSearchState('category', value)}
 				>
-					<Option value="Botox">Botox</Option>
-					<Option value="Belax">Belax</Option>
-					<Option value="Troops">Troops</Option>
-					<Option value="Angular">Angular</Option>
-					<Option value="Svelte">Svelte</Option>
+					<Option value="">All Categories</Option>
+					<Option value="Breast">Breast</Option>
+					<Option value="Body">Body</Option>
+					<Option value="Face">Face</Option>
+					<Option value="Injectibles">Injectibles</Option>
+					<Option value="Skin">Skin</Option>
 				</Select>
 			</div>
 			<div className="select-item">
@@ -113,20 +215,20 @@ const AdvancedFilter = () => {
 					labelProps={{
 						className: "hidden",
 					}}
-					value={country}
-					onChange={setCountry}
+					value={location}
+					onChange={(value) => updateSearchState('location', value)}
 				>
-					<Option value="Australia">Australia</Option>
-					<Option value="Bangladesh">Bangladesh</Option>
-					<Option value="India">India</Option>
-					<Option value="England">England</Option>
-					<Option value="Germany">Germany</Option>
+					<Option value="">Any Location</Option>
+					<Option value="Dallas, TX">Dallas, TX</Option>
+					<Option value="Los Angeles, CA">Los Angeles, CA</Option>
+					<Option value="Miami, FL">Miami, FL</Option>
+					<Option value="Denver, CO">Denver, CO</Option>
+					<Option value="Chicago, IL">Chicago, IL</Option>
 				</Select>
 			</div>
-			{/* Replace single price dropdown with min price */}
 			<div className="select-item">
 				{icons.dollar}
-				<label className="text-text">Price Min:</label>
+				<label className="text-text">Price Range:</label>
 				<Select
 					className="border-none rounded-xl"
 					containerProps={{
@@ -136,40 +238,18 @@ const AdvancedFilter = () => {
 						className: "hidden",
 					}}
 					value={minPrice}
-					onChange={setMinPrice}
+					onChange={(value) => updateSearchState('minPrice', value)}
 				>
-					<Option value="$1,000">$1,000</Option>
-					<Option value="$2,000">$2,000</Option>
-					<Option value="$3,500">$3,500</Option>
-					<Option value="$5,000">$5,000</Option>
-					<Option value="$7,500">$7,500</Option>
-				</Select>
-			</div>
-			{/* Add max price dropdown */}
-			<div className="select-item">
-				{icons.dollar}
-				<label className="text-text">Price Max:</label>
-				<Select
-					className="border-none rounded-xl"
-					containerProps={{
-						className: "!min-w-20 w-full select-4",
-					}}
-					labelProps={{
-						className: "hidden",
-					}}
-					value={maxPrice}
-					onChange={setMaxPrice}
-				>
-					<Option value="$5,000">$5,000</Option>
-					<Option value="$8,000">$8,000</Option>
-					<Option value="$10,000">$10,000</Option>
-					<Option value="$15,000">$15,000</Option>
-					<Option value="$20,000">$20,000</Option>
+					<Option value="">Any Price</Option>
+					<Option value="1000">From $1,000</Option>
+					<Option value="3500">From $3,500</Option>
+					<Option value="5000">From $5,000</Option>
+					<Option value="7500">From $7,500</Option>
 				</Select>
 			</div>
 			<div className="select-item">
 				{icons.doctor}
-				<label className="text-text">Doctor:</label>
+				<label className="text-text">Specialty:</label>
 				<Select
 					className="border-none rounded-xl"
 					containerProps={{
@@ -178,11 +258,12 @@ const AdvancedFilter = () => {
 					labelProps={{
 						className: "hidden",
 					}}
-					value={doctor}
-					onChange={setDoctor}
+					value={specialty}
+					onChange={(value) => updateSearchState('specialty', value)}
 				>
-					<Option value="Surgeon">Surgeon</Option>
-					<Option value="Medicine">Medicine</Option>
+					<Option value="">Any Specialty</Option>
+					<Option value="Plastic Surgery">Plastic Surgery</Option>
+					<Option value="Dermatology">Dermatology</Option>
 				</Select>
 			</div>
 		</div>
