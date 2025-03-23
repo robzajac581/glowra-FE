@@ -10,6 +10,8 @@ import useScreen from "../../hooks/useScreen";
 
 const API_BASE_URL = 'http://localhost:3001';
 
+const NUMBER_OF_CARDS_PER_PAGE = 9;
+
 const Procedures = () => {
   const screen = useScreen();
   const [rating, setRating] = useState("5 star");
@@ -126,7 +128,7 @@ const Procedures = () => {
     });
     
     // Handle pagination using our utility function
-    const paginationData = paginateResults(filtered, page, 10);
+    const paginationData = paginateResults(filtered, page, NUMBER_OF_CARDS_PER_PAGE);
     
     setTotalResults(paginationData.total);
     setProducts(paginationData.results);
@@ -383,7 +385,7 @@ const Procedures = () => {
                   </div>
                   
                   {/* Pagination controls */}
-                  {totalResults > 10 && (
+                  {totalResults > NUMBER_OF_CARDS_PER_PAGE && (
                     <div className="flex justify-center mt-8">
                       <div className="flex gap-2">
                         <button
@@ -395,7 +397,7 @@ const Procedures = () => {
                         </button>
                         
                         {/* Page numbers */}
-                        {Array.from({ length: Math.ceil(totalResults / 10) }).map((_, idx) => (
+                        {Array.from({ length: Math.ceil(totalResults / NUMBER_OF_CARDS_PER_PAGE) }).map((_, idx) => (
                           <button
                             key={idx}
                             onClick={() => changePage(idx + 1)}
@@ -407,12 +409,12 @@ const Procedures = () => {
                           >
                             {idx + 1}
                           </button>
-                        )).slice(Math.max(0, page - 3), Math.min(page + 2, Math.ceil(totalResults / 10)))}
+                        )).slice(Math.max(0, page - 3), Math.min(page + 2, Math.ceil(totalResults / NUMBER_OF_CARDS_PER_PAGE)))}
                         
                         <button
-                          className={`btn ${page === Math.ceil(totalResults / 10) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={() => page < Math.ceil(totalResults / 10) && changePage(page + 1)}
-                          disabled={page === Math.ceil(totalResults / 10)}
+                          className={`btn ${page === Math.ceil(totalResults / NUMBER_OF_CARDS_PER_PAGE) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => page < Math.ceil(totalResults / NUMBER_OF_CARDS_PER_PAGE) && changePage(page + 1)}
+                          disabled={page === Math.ceil(totalResults / NUMBER_OF_CARDS_PER_PAGE)}
                         >
                           Next
                         </button>
