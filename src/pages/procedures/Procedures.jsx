@@ -102,12 +102,6 @@ const Procedures = () => {
         console.error('Error fetching procedures for search index:', error);
         setError(error.message);
         
-        // Fallback to sample data if API fails
-        const fallbackData = getFallbackData();
-        setAllProcedures(fallbackData);
-        const idx = createSearchIndex(fallbackData);
-        setSearchIndex(idx);
-        filterProcedures(fallbackData);
       } finally {
         setLoading(false);
       }
@@ -429,64 +423,6 @@ const Procedures = () => {
       </div>
     </Layout>
   );
-};
-
-// Fallback data function
-const getFallbackData = () => {
-  return [
-    {
-      id: "1",
-      clinicId: "1",
-      img: "/img/procedures/1.png",
-      doctor: "Dr. Jane Smith",
-      doctorInfo: "Board-Certified Dermatologist",
-      name: "Botox Cosmetic (Wrinkle Reduction)",
-      price: 650,
-      City: "Dallas",
-      State: "TX",
-      category: "Injectables",
-      specialty: "Dermatology"
-    },
-    {
-      id: "2",
-      clinicId: "1",
-      img: "/img/procedures/2.png",
-      doctor: "Dr. Michael Johnson",
-      doctorInfo: "Plastic Surgeon",
-      name: "Breast Augmentation",
-      price: 5500,
-      City: "Dallas",
-      State: "TX",
-      category: "Breast",
-      specialty: "Plastic Surgery"
-    },
-    {
-      id: "3",
-      clinicId: "2",
-      img: "/img/procedures/3.png",
-      doctor: "Dr. Sarah Lee",
-      doctorInfo: "Cosmetic Surgeon",
-      name: "Liposuction",
-      price: 3800,
-      City: "Miami",
-      State: "FL",
-      category: "Body",
-      specialty: "Plastic Surgery"
-    },
-    {
-      id: "4",
-      clinicId: "2",
-      img: "/img/procedures/4.png",
-      doctor: "Dr. Robert Chen",
-      doctorInfo: "Dermatologist",
-      name: "Chemical Peel",
-      price: 950,
-      City: "Los Angeles",
-      State: "CA",
-      category: "Skin",
-      specialty: "Dermatology"
-    }
-  ];
 };
 
 const ratingList = [
