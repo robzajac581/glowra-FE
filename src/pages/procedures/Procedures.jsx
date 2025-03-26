@@ -5,6 +5,7 @@ import { createSearchIndex, performSearch, applyFilters, paginateResults } from 
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
+import PriceRangeFilter from '../../components/PriceRangeFilter';
 import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
 
@@ -227,41 +228,47 @@ const Procedures = () => {
                 <Option value="Chicago, IL">Chicago, IL</Option>
               </Select>
             </div>
-            <div className="border bg-white rounded-md">
-              <Select
-                variant="static"
-                className="border-none h-[52px] rounded-xl"
+            {/* Price Range Filters */}
+            <div>
+              <PriceRangeFilter
                 label="Price Min"
-                containerProps={{
-                  className: "!min-w-0 w-full select max-w-full",
-                }}
                 value={minPrice}
                 onChange={(val) => updateSearchState('minPrice', val)}
-              >
-                <Option value="1000">$1,000</Option>
-                <Option value="2000">$2,000</Option>
-                <Option value="3500">$3,500</Option>
-                <Option value="5000">$5,000</Option>
-                <Option value="7500">$7,500</Option>
-              </Select>
+                placeholder="Min Price"
+                type="min"
+                options={[
+                  { value: "", label: "Any Price" },
+                  { value: "0", label: "$0" },
+                  { value: "2000", label: "$2,000" },
+                  { value: "5000", label: "$5,000" },
+                  { value: "7500", label: "$7,500" },
+                  { value: "10000", label: "$10,000" },
+                  { value: "12500", label: "$12,500" },
+                  { value: "15000", label: "$15,000" },
+                  { value: "17500", label: "$17,500" },
+                  { value: "20000", label: "$20,000" }
+                ]}
+              />
             </div>
-            <div className="border bg-white rounded-md">
-              <Select
-                variant="static"
-                className="border-none h-[52px] rounded-xl"
+            <div>
+              <PriceRangeFilter
                 label="Price Max"
-                containerProps={{
-                  className: "!min-w-0 w-full select max-w-full",
-                }}
                 value={maxPrice}
                 onChange={(val) => updateSearchState('maxPrice', val)}
-              >
-                <Option value="5000">$5,000</Option>
-                <Option value="8000">$8,000</Option>
-                <Option value="10000">$10,000</Option>
-                <Option value="15000">$15,000</Option>
-                <Option value="20000">$20,000</Option>
-              </Select>
+                placeholder="Max Price"
+                type="max"
+                options={[
+                  { value: "", label: "No Max" },
+                  { value: "5000", label: "$5,000" },
+                  { value: "7500", label: "$7,500" },
+                  { value: "10000", label: "$10,000" },
+                  { value: "12500", label: "$12,500" },
+                  { value: "15000", label: "$15,000" },
+                  { value: "20000", label: "$20,000" },
+                  { value: "30000", label: "$30,000" },
+                  { value: "50000", label: "$50,000" }
+                ]}
+              />
             </div>
             <div className="border bg-white rounded-md">
               <Select

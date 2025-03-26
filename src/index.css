@@ -513,3 +513,50 @@
 .swiper-pagination .swiper-pagination-bullet {
 	@apply w-[14px] h-[14px] mx-1 rounded-full opacity-100 border-[2px] border-dark bg-transparent [&.swiper-pagination-bullet-active]:bg-dark;
 }
+
+/* Price filter specific styles */
+.price-filter-container {
+  @apply relative w-full;
+}
+
+.price-filter-input {
+  @apply w-full h-[52px] border border-border rounded-[10px] px-4 pt-4 text-sm font-extrabold text-black outline-none;
+}
+
+.price-filter-popover {
+  @apply z-50 bg-white border border-border rounded-[10px] shadow-lg max-h-48 overflow-y-auto;
+}
+
+.price-filter-option {
+  @apply px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm;
+}
+
+.price-filter-option:hover {
+  @apply bg-gray-100;
+}
+
+.price-filter-separator {
+  @apply mx-2 text-gray-400;
+}
+
+/* Improved focus states */
+.price-filter-input:focus {
+  @apply border-primary;
+}
+
+/* Custom scrollbar for dropdown */
+.price-filter-popover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.price-filter-popover::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.price-filter-popover::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+.price-filter-popover::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
