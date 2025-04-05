@@ -56,19 +56,6 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo }) => {
           <div className="space-y-3">
             <p><strong>Address:</strong> {clinicInfo.Address}</p>
             {clinicInfo.Phone && <p><strong>Phone:</strong> {clinicInfo.Phone}</p>}
-            {clinicInfo.Website && (
-              <p>
-                <strong>Website:</strong>{" "}
-                <a 
-                  href={clinicInfo.Website.startsWith('http') ? clinicInfo.Website : `https://${clinicInfo.Website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  {clinicInfo.Website}
-                </a>
-              </p>
-            )}
           </div>
         </div>
       )}

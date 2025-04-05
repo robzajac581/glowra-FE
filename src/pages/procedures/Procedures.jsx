@@ -285,17 +285,6 @@ const Procedures = () => {
                 <Option value="Dermatology">Dermatology</Option>
               </Select>
             </div>
-            
-            {/* Apply filters button for mobile */}
-            <div className="xl:hidden col-span-full mt-4">
-              <button 
-                type="button" 
-                className="btn min-h-[47px] w-full"
-                onClick={() => filterProcedures(allProcedures)}
-              >
-                Apply Filters
-              </button>
-            </div>
           </div>
           
           {/* Results and sidebar section */}
@@ -345,15 +334,6 @@ const Procedures = () => {
                   style={{ border: "none", width: "100%" }}
                 ></iframe>
               </div>
-              
-              {/* Apply filters button */}
-              <button 
-                type="button" 
-                className="btn min-h-[47px] w-full"
-                onClick={() => filterProcedures(allProcedures)}
-              >
-                Apply Filters
-              </button>
             </div>
             
             {/* Results section */}
