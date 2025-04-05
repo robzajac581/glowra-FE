@@ -23,7 +23,7 @@ const Procedures = () => {
     updateSearchState 
   } = useSearchState({
     searchQuery: "",
-    category: "Breast",
+    category: "",
     location: "Dallas, TX",
     minPrice: "3500",
     maxPrice: "8000",

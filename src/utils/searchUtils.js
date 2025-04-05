@@ -19,15 +19,16 @@ export const createSearchIndex = (documents, options = {}) => {
     State: { boost: 1 }
   };
 
-  // Create the Lunr index
+  // Create the Lunr index with enhanced configuration
   const idx = lunr(function() {
+    // Configure the pipeline for better fuzzy matching
+    this.pipeline.remove(lunr.stemmer);
+    this.searchPipeline.remove(lunr.stemmer);
+    
     // Add the fields to the index
     Object.entries(fields).forEach(([fieldName, config]) => {
       this.field(fieldName, config);
     });
-
-    // Register a pipeline function for word stemming (optional, Lunr does this by default)
-    // Add a custom tokenizer to improve matching or handling special characters if needed
     
     // Add documents to the index
     documents.forEach((doc, index) => {
@@ -56,32 +57,105 @@ export const performSearch = (searchIndex, documents, query) => {
   }
 
   try {
-    // Try the Lunr search first (handles complex queries better)
-    const searchResults = searchIndex.search(query);
+    // Strategy 1: Try exact search first
+    let searchResults = searchIndex.search(query);
     
-    // If we have results, map them back to the original documents
+    // Strategy 2: If no results, try with fuzzy matching
+    if (searchResults.length === 0) {
+      // Add fuzzy matching operator to each term
+      const fuzzyQuery = query
+        .trim()
+        .split(/\s+/)
+        .map(term => `${term}~1`) // ~1 specifies edit distance of 1 (more fuzzy with ~2)
+        .join(' ');
+      
+      searchResults = searchIndex.search(fuzzyQuery);
+    }
+    
+    // Strategy 3: If still no results, try with wildcard matching
+    if (searchResults.length === 0) {
+      // Add wildcard operator to each term
+      const wildcardQuery = query
+        .trim()
+        .split(/\s+/)
+        .map(term => `${term}*`) // * is wildcard for prefix matching
+        .join(' ');
+      
+      searchResults = searchIndex.search(wildcardQuery);
+    }
+
+    // Strategy 4: If still no results, try removing extra characters (like "breasts" -> "breast")
+    if (searchResults.length === 0) {
+      // Try progressively shortening each term by 1-3 characters from the end
+      const terms = query.trim().split(/\s+/);
+      
+      for (const term of terms) {
+        if (term.length < 5) continue; // Only process longer terms that might have suffixes
+        
+        // Try removing 1, 2, or 3 characters from the end
+        for (let i = 1; i <= Math.min(3, term.length - 2); i++) {
+          const shortenedTerm = term.substring(0, term.length - i);
+          if (shortenedTerm.length < 3) continue; // Keep terms reasonably long
+          
+          const shortenedResults = searchIndex.search(shortenedTerm);
+          if (shortenedResults.length > 0) {
+            searchResults = [...searchResults, ...shortenedResults];
+          }
+        }
+      }
+      
+      // Remove duplicates if we found results
+      if (searchResults.length > 0) {
+        const uniqueRefs = new Set();
+        searchResults = searchResults.filter(result => {
+          if (uniqueRefs.has(result.ref)) return false;
+          uniqueRefs.add(result.ref);
+          return true;
+        });
+      }
+    }
+    
+    // Strategy 5: If still no results, try individual terms with fuzzy matching
+    if (searchResults.length === 0 && query.includes(' ')) {
+      const terms = query.trim().split(/\s+/);
+      
+      // Search for each term individually with fuzzy matching
+      for (const term of terms) {
+        if (term.length < 2) continue; // Skip very short terms
+        
+        const termResults = searchIndex.search(`${term}~1`);
+        searchResults = [...searchResults, ...termResults];
+      }
+      
+      // Remove duplicates
+      const uniqueRefs = new Set();
+      searchResults = searchResults.filter(result => {
+        if (uniqueRefs.has(result.ref)) return false;
+        uniqueRefs.add(result.ref);
+        return true;
+      });
+    }
+    
+    // If we have results from any strategy, map them back to the original documents
     if (searchResults.length > 0) {
       return searchResults.map(result => documents[parseInt(result.ref)]);
     }
     
-    // If no results from Lunr search, try simple contains search
-    // This helps with partial or fuzzy matches that Lunr might miss
-    const processedQuery = query.toLowerCase().trim();
+    // Final fallback: simple contains search
     return documents.filter(doc => 
-      (doc.name && doc.name.toLowerCase().includes(processedQuery)) ||
-      (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(processedQuery)) ||
-      (doc.doctor && doc.doctor.toLowerCase().includes(processedQuery)) ||
-      (doc.category && doc.category.toLowerCase().includes(processedQuery)) ||
-      (doc.specialty && doc.specialty.toLowerCase().includes(processedQuery))
+      (doc.name && doc.name.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.doctor && doc.doctor.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.category && doc.category.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.specialty && doc.specialty.toLowerCase().includes(query.toLowerCase()))
     );
   } catch (error) {
     console.error('Search error:', error);
     
     // Fall back to simple text matching if Lunr search fails
-    const processedQuery = query.toLowerCase().trim();
     return documents.filter(doc => 
-      (doc.name && doc.name.toLowerCase().includes(processedQuery)) ||
-      (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(processedQuery))
+      (doc.name && doc.name.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(query.toLowerCase()))
     );
   }
 };
