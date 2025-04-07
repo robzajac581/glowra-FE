@@ -13,7 +13,6 @@ const useSearchState = (defaultValues = {}) => {
   const [searchState, setSearchState] = useState({
     searchQuery: searchParams.get('q') || defaultValues.searchQuery || '',
     category: searchParams.get('category') || defaultValues.category || '',
-    location: searchParams.get('location') || defaultValues.location || '',
     minPrice: searchParams.get('minPrice') || defaultValues.minPrice || '',
     maxPrice: searchParams.get('maxPrice') || defaultValues.maxPrice || '',
     specialty: searchParams.get('specialty') || defaultValues.specialty || '',
@@ -50,7 +49,6 @@ const useSearchState = (defaultValues = {}) => {
     setSearchState({
       searchQuery: '',
       category: defaultValues.category || '',
-      location: defaultValues.location || '',
       minPrice: defaultValues.minPrice || '',
       maxPrice: defaultValues.maxPrice || '',
       specialty: defaultValues.specialty || '',

@@ -17,15 +17,18 @@ const SearchResultCard = ({ item, searchQuery }) => {
 		}).format(price);
 	};
 
-	// Highlight search term in title if present
-	const highlightSearchTerm = (title, term) => {
-		if (!term || !title) return title;
+	// Highlight search term in text if present (title, location, etc.)
+	const highlightSearchTerm = (text, term) => {
+		if (!term || !text) return text;
 		
 		// Case insensitive search
 		const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
 		
+		// Skip highlighting if no match
+		if (!regex.test(text)) return text;
+		
 		// Split by the regex and then map the parts, adding highlight to matches
-		const parts = title.split(regex);
+		const parts = text.split(regex);
 		
 		return (
 			<>
@@ -70,20 +73,20 @@ const SearchResultCard = ({ item, searchQuery }) => {
 				</h5>
 				<div className="text-sm">
 					<div className="procedure-card-doc-info">
-						<span>{item.doctor}</span>
+						<span>{searchQuery ? highlightSearchTerm(item.doctor, searchQuery) : item.doctor}</span>
 						{item.specialty && (
-							<span className="ml-1 text-gray-500">({item.specialty})</span>
+							<span className="ml-1 text-gray-500">({searchQuery ? highlightSearchTerm(item.specialty, searchQuery) : item.specialty})</span>
 						)}
 					</div>
 					<div className="mb-[10px] clinic-name font-medium text-xs">
-						{item.doctorInfo}
+						{searchQuery ? highlightSearchTerm(item.doctorInfo, searchQuery) : item.doctorInfo}
 					</div>
 					<div className="location mb-[10px] text-xs flex items-center">
 						<strong className="mr-1">{procedure.mapmarker2}</strong>
 						<span>
-							{item.City || "Location unavailable"},{" "}
+							{searchQuery && item.City ? highlightSearchTerm(item.City, searchQuery) : (item.City || "Location unavailable")},{" "}
 							<strong className="text-primary font-black">
-								{item.State}
+								{searchQuery && item.State ? highlightSearchTerm(item.State, searchQuery) : item.State}
 							</strong>
 						</span>
 					</div>

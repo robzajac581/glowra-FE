@@ -10,13 +10,13 @@ import lunr from 'lunr';
 export const createSearchIndex = (documents, options = {}) => {
   // Default field configurations
   const fields = options.fields || {
-    name: { boost: 10 },
-    doctorInfo: { boost: 5 },
-    doctor: { boost: 3 },
-    category: { boost: 7 },
-    specialty: { boost: 5 },
-    City: { boost: 2 },
-    State: { boost: 1 }
+      name: { boost: 7 },       // Procedure name
+      doctorInfo: { boost: 4 },  // Clinic name
+      doctor: { boost: 2 },      // Provider name
+      category: { boost: 7 },
+      specialty: { boost: 4 },
+      City: { boost: 8 },
+      State: { boost: 9 }
   };
 
   // Create the Lunr index with enhanced configuration
@@ -144,6 +144,8 @@ export const performSearch = (searchIndex, documents, query) => {
     // Final fallback: simple contains search
     return documents.filter(doc => 
       (doc.name && doc.name.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.City && doc.City.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.State && doc.State.toLowerCase().includes(query.toLowerCase())) ||
       (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(query.toLowerCase())) ||
       (doc.doctor && doc.doctor.toLowerCase().includes(query.toLowerCase())) ||
       (doc.category && doc.category.toLowerCase().includes(query.toLowerCase())) ||
@@ -155,6 +157,8 @@ export const performSearch = (searchIndex, documents, query) => {
     // Fall back to simple text matching if Lunr search fails
     return documents.filter(doc => 
       (doc.name && doc.name.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.City && doc.City.toLowerCase().includes(query.toLowerCase())) ||
+      (doc.State && doc.State.toLowerCase().includes(query.toLowerCase())) ||
       (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(query.toLowerCase()))
     );
   }
@@ -179,13 +183,7 @@ export const applyFilters = (procedures, filters) => {
       return false;
     }
     
-    // Location filter
-    if (filters.location) {
-      const [city] = filters.location.split(',');
-      if (!proc.City || !proc.City.toLowerCase().includes(city.toLowerCase())) {
-        return false;
-      }
-    }
+    // Location filter is removed - now handled through search query
     
     // Specialty filter
     if (filters.specialty && 

@@ -184,6 +184,10 @@
 	.advanced-search-flex {
 		@apply flex flex-col lg:flex-row lg:items-center justify-between sm:text-[20px] lg:text-[14px] xl:text-[18px] text-nowrap gap-[20px];
 	}
+	
+	.advanced-search-flex .select-item {
+		@apply lg:flex-1;
+	}
 	.local-doctor {
 		@apply relative overflow-hidden pt-[98px] pb-16 md:py-[120px];
 	}

@@ -158,13 +158,13 @@ The search index is configured with field weights to prioritize certain content:
 ```javascript
 const idx = createSearchIndex(transformedData, {
   fields: {
-    name: { boost: 10 },       // Procedure name is most important
-    doctorInfo: { boost: 5 },  // Clinic name
-    doctor: { boost: 3 },      // Provider name
-    category: { boost: 7 },    // Category is important
-    specialty: { boost: 5 },   // Specialty
-    City: { boost: 2 },        // City
-    State: { boost: 1 }        // State
+    name: { boost: 7 },       // Procedure name
+    doctorInfo: { boost: 4 },  // Clinic name
+    doctor: { boost: 2 },      // Provider name
+    category: { boost: 7 },
+    specialty: { boost: 4 },
+    City: { boost: 8 },
+    State: { boost: 9 }
   }
 });
 ```

@@ -23,7 +23,6 @@ const FindCosmetics = () => {
 	} = useSearchState({
 		searchQuery: "",
 		category: "",
-		location: "",
 		minPrice: "",
 		maxPrice: "",
 		specialty: "",
@@ -94,8 +93,8 @@ const FindCosmetics = () => {
 								type="text"
 								placeholder={
 									screen < 768
-										? "Search procedure"
-										: "Type the procedure you want here"
+										? "Search procedure or location"
+										: "Search by procedure name, city, state, or doctor"
 								}
 								className="find-cosmetic-input"
 								value={searchInput}
@@ -174,7 +173,6 @@ const FindCosmetics = () => {
 const AdvancedFilter = ({ searchState, updateSearchState }) => {
 	const { 
 		category = "", 
-		location = "", 
 		minPrice = "", 
 		maxPrice = "", 
 		specialty = "" 
@@ -204,28 +202,7 @@ const AdvancedFilter = ({ searchState, updateSearchState }) => {
 					<Option value="Skin">Skin</Option>
 				</Select>
 			</div>
-			<div className="select-item">
-				{icons.mapmarker}
-				<label className="text-text">Select Locations:</label>
-				<Select
-					className="border-none rounded-xl"
-					containerProps={{
-						className: "!min-w-20 w-full select-4",
-					}}
-					labelProps={{
-						className: "hidden",
-					}}
-					value={location}
-					onChange={(value) => updateSearchState('location', value)}
-				>
-					<Option value="">Any Location</Option>
-					<Option value="Dallas, TX">Dallas, TX</Option>
-					<Option value="Los Angeles, CA">Los Angeles, CA</Option>
-					<Option value="Miami, FL">Miami, FL</Option>
-					<Option value="Denver, CO">Denver, CO</Option>
-					<Option value="Chicago, IL">Chicago, IL</Option>
-				</Select>
-			</div>
+			{/* Location filter removed - now handled through search bar */}
 			<div className="select-item">
 				{icons.dollar}
 				<label className="text-text">Price Range:</label>

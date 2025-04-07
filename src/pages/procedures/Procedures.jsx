@@ -24,7 +24,6 @@ const Procedures = () => {
   } = useSearchState({
     searchQuery: "",
     category: "",
-    location: "Dallas, TX",
     minPrice: "3500",
     maxPrice: "8000",
     specialty: "Plastic Surgery",
@@ -34,7 +33,6 @@ const Procedures = () => {
   const { 
     searchQuery, 
     category, 
-    location, 
     minPrice, 
     maxPrice, 
     specialty, 
@@ -85,13 +83,13 @@ const Procedures = () => {
         // Build the Lunr search index using our utility function
         const idx = createSearchIndex(transformedData, {
           fields: {
-            name: { boost: 10 },       // Procedure name is most important
-            doctorInfo: { boost: 5 },  // Clinic name
-            doctor: { boost: 3 },      // Provider name
-            category: { boost: 7 },    // Give category high importance
-            specialty: { boost: 5 },
-            City: { boost: 2 },
-            State: { boost: 1 }
+            name: { boost: 7 },       // Procedure name
+            doctorInfo: { boost: 4 },  // Clinic name
+            doctor: { boost: 2 },      // Provider name
+            category: { boost: 7 },
+            specialty: { boost: 4 },
+            City: { boost: 8 },
+            State: { boost: 9 }
           }
         });
         
@@ -116,7 +114,6 @@ const Procedures = () => {
     // Apply filters using our utility function
     const filtered = applyFilters(procedures, {
       category,
-      location,
       specialty,
       minPrice,
       maxPrice
@@ -127,7 +124,7 @@ const Procedures = () => {
     
     setTotalResults(paginationData.total);
     setProducts(paginationData.results);
-  }, [category, location, specialty, minPrice, maxPrice, page]);
+  }, [category, specialty, minPrice, maxPrice, page]);
   
   // Apply filters when they change
   useEffect(() => {
@@ -164,20 +161,20 @@ const Procedures = () => {
       <div className="single-procedure-card">
         <div className="container xl:max-w-[1226px]">
           <h1 className="title">
-            {searchQuery ? `Search results for "${searchQuery}":` : "All Procedures:"}
+            {searchQuery ? `Search results for "${searchQuery}":` : "Search Locations or Procedures:"}
           </h1>
           <div className="subtitle">{totalResults} Procedures Found</div>
           
           <form onSubmit={handleSearch}>
-            <div className="relative">
+            <div className="relative w-full max-w-full">
               <input
                 type="text"
                 placeholder={
                   screen < 768
-                    ? "Search procedure"
-                    : "Type the procedure you want here"
+                    ? "Search location or procedure"
+                    : "Search by city, state, procedure name, or doctor"
                 }
-                className="search-input"
+                className="search-input w-full"
                 value={searchQuery}
                 onChange={(e) => updateSearchState('searchQuery', e.target.value)}
               />
@@ -189,8 +186,8 @@ const Procedures = () => {
           </form>
           
           {/* Filters */}
-          <div className="search-grid">
-            <div className="border bg-white rounded-md">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mt-[15px] gap-[15px]">
+            <div className="border bg-white rounded-md lg:col-span-1">
               <Select
                 variant="static"
                 className="border-none h-[52px] rounded-xl"
@@ -210,26 +207,24 @@ const Procedures = () => {
                 <Option value="Other">Other</Option>
               </Select>
             </div>
-            <div className="border bg-white rounded-md">
+            <div className="border bg-white rounded-md lg:col-span-1">
               <Select
                 variant="static"
                 className="border-none h-[52px] rounded-xl"
-                label="Location"
+                label="Specialty"
                 containerProps={{
                   className: "!min-w-0 w-full select max-w-full",
                 }}
-                value={location}
-                onChange={(val) => updateSearchState('location', val)}
+                value={specialty}
+                onChange={(val) => updateSearchState('specialty', val)}
               >
-                <Option value="Dallas, TX">Dallas, TX</Option>
-                <Option value="Los Angeles, CA">Los Angeles, CA</Option>
-                <Option value="Miami, FL">Miami, FL</Option>
-                <Option value="Denver, CO">Denver, CO</Option>
-                <Option value="Chicago, IL">Chicago, IL</Option>
+                <Option value="">Any Specialty</Option>
+                <Option value="Plastic Surgery">Plastic Surgery</Option>
+                <Option value="Dermatology">Dermatology</Option>
               </Select>
             </div>
             {/* Price Range Filters */}
-            <div>
+            <div className="lg:col-span-1">
               <PriceRangeFilter
                 label="Price Min"
                 value={minPrice}
@@ -250,7 +245,7 @@ const Procedures = () => {
                 ]}
               />
             </div>
-            <div>
+            <div className="lg:col-span-1">
               <PriceRangeFilter
                 label="Price Max"
                 value={maxPrice}
@@ -269,21 +264,6 @@ const Procedures = () => {
                   { value: "50000", label: "$50,000" }
                 ]}
               />
-            </div>
-            <div className="border bg-white rounded-md">
-              <Select
-                variant="static"
-                className="border-none h-[52px] rounded-xl"
-                label="Specialty"
-                containerProps={{
-                  className: "!min-w-0 w-full select max-w-full",
-                }}
-                value={specialty}
-                onChange={(val) => updateSearchState('specialty', val)}
-              >
-                <Option value="Plastic Surgery">Plastic Surgery</Option>
-                <Option value="Dermatology">Dermatology</Option>
-              </Select>
             </div>
           </div>
           
