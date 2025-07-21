@@ -186,8 +186,8 @@ const Procedures = () => {
           </form>
           
           {/* Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mt-[15px] gap-[15px]">
-            <div className="border bg-white rounded-md lg:col-span-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mt-[15px] gap-[15px] relative z-10">
+            <div className="border bg-white rounded-md lg:col-span-1 relative z-10">
               <Select
                 variant="static"
                 className="border-none h-[52px] rounded-xl"
@@ -207,7 +207,7 @@ const Procedures = () => {
                 <Option value="Other">Other</Option>
               </Select>
             </div>
-            <div className="border bg-white rounded-md lg:col-span-1">
+            <div className="border bg-white rounded-md lg:col-span-1 relative z-10">
               <Select
                 variant="static"
                 className="border-none h-[52px] rounded-xl"

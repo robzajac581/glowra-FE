@@ -528,7 +528,7 @@
 }
 
 .price-filter-popover {
-  @apply z-50 bg-white border border-border rounded-[10px] shadow-lg max-h-48 overflow-y-auto;
+  @apply z-[9999] bg-white border border-border rounded-[10px] shadow-lg max-h-48 overflow-y-auto;
 }
 
 .price-filter-option {

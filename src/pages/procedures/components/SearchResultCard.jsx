@@ -47,10 +47,10 @@ const SearchResultCard = ({ item, searchQuery }) => {
 
 	return (
 		<div className="procedure-card group h-full">
-			<Link 
-				to={`/clinic/${item.clinicId}`} 
-				className="absolute z-[1] inset-0" 
-			/>
+					<Link 
+			to={`/clinic/${item.clinicId}`} 
+			className="absolute z-[1] inset-0" 
+		/>
 			<div className="procedure-card-top">
 				<img src={item.img} alt={item.name} className="object-cover w-full h-full" />
 				<div className="rating">

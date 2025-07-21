@@ -121,7 +121,7 @@ const PriceRangeFilter = ({
           </div>
         </PopoverHandler>
         
-        <PopoverContent className="p-0 max-h-48 overflow-y-auto border border-gray-200 rounded-md">
+        <PopoverContent className="p-0 max-h-48 overflow-y-auto border border-gray-200 rounded-md z-[9999]">
           <ul className="py-1">
             {options.map((option) => (
               <li
