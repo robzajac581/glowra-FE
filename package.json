@@ -50,5 +50,8 @@
 	},
 	"devDependencies": {
 		"tailwindcss": "^3.4.7"
+	},
+	"overrides": {
+		"nth-check": "^2.1.1"
 	}
 }
