@@ -6,9 +6,9 @@ import img1 from "../../../assets/img/banner/banner-mobile.png";
 import { icons } from "../../../components/Icons";
 import useScreen from "../../../hooks/useScreen";
 const Banner = () => {
-	const [type, setType] = useState("Botox");
-	const [price, setPrice] = useState("$3500");
-	const [country, setCountry] = useState("Australia");
+	const [type, setType] = useState("");
+	const [price, setPrice] = useState("");
+	const [country, setCountry] = useState("");
 	const screen = useScreen();
 	const navigate = useNavigate();
 	const handleSubmit = (e) => {
@@ -49,6 +49,7 @@ const Banner = () => {
 								}}
 								value={type}
 								onChange={setType}
+								placeholder="Type Here"
 							>
 								<Option value="Botox">Botox</Option>
 								<Option value="Belax">Belax</Option>
@@ -71,6 +72,7 @@ const Banner = () => {
 								}}
 								value={country}
 								onChange={setCountry}
+								placeholder="Type Here"
 							>
 								<Option value="Australia">Australia</Option>
 								<Option value="Bangladesh">Bangladesh</Option>
@@ -93,6 +95,7 @@ const Banner = () => {
 								}}
 								value={price}
 								onChange={setPrice}
+								placeholder="Type Here"
 							>
 								<Option value="$3500">$3500</Option>
 								<Option value="$4500">$4500</Option>

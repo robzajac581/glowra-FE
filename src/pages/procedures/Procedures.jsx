@@ -24,9 +24,9 @@ const Procedures = () => {
   } = useSearchState({
     searchQuery: "",
     category: "",
-    minPrice: "3500",
-    maxPrice: "8000",
-    specialty: "Plastic Surgery",
+    minPrice: "",
+    maxPrice: "",
+    specialty: "",
     page: 1
   });
   
@@ -229,7 +229,7 @@ const Procedures = () => {
                 label="Price Min"
                 value={minPrice}
                 onChange={(val) => updateSearchState('minPrice', val)}
-                placeholder="Min Price"
+                placeholder="Type Here"
                 type="min"
                 options={[
                   { value: "", label: "Any Price" },
@@ -250,7 +250,7 @@ const Procedures = () => {
                 label="Price Max"
                 value={maxPrice}
                 onChange={(val) => updateSearchState('maxPrice', val)}
-                placeholder="Max Price"
+                placeholder="Type Here"
                 type="max"
                 options={[
                   { value: "", label: "No Max" },
