@@ -234,7 +234,7 @@ const Procedures = () => {
                 options={[
                   { value: "", label: "Any Price" },
                   { value: "0", label: "$0" },
-                  { value: "2000", label: "$2,000" },
+                  { value: "2500", label: "$2,500" },
                   { value: "5000", label: "$5,000" },
                   { value: "7500", label: "$7,500" },
                   { value: "10000", label: "$10,000" },
