@@ -5,7 +5,7 @@ import { createSearchIndex, performSearch, applyFilters, paginateResults } from 
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
-import PriceRangeFilter from '../../components/PriceRangeFilter';
+import CombinedPriceFilter from '../../components/CombinedPriceFilter';
 import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
 
@@ -246,46 +246,13 @@ const Procedures = () => {
                 <Option value="Dermatology">Dermatology</Option>
               </Select>
             </div>
-            {/* Price Range Filters */}
-            <div className="lg:col-span-1">
-              <PriceRangeFilter
-                label="Price Min"
-                value={minPrice}
-                onChange={(val) => updateSearchState('minPrice', val)}
-                placeholder="Type Here"
-                type="min"
-                options={[
-                  { value: "", label: "Any Price" },
-                  { value: "0", label: "$0" },
-                  { value: "2500", label: "$2,500" },
-                  { value: "5000", label: "$5,000" },
-                  { value: "7500", label: "$7,500" },
-                  { value: "10000", label: "$10,000" },
-                  { value: "12500", label: "$12,500" },
-                  { value: "15000", label: "$15,000" },
-                  { value: "17500", label: "$17,500" },
-                  { value: "20000", label: "$20,000" }
-                ]}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <PriceRangeFilter
-                label="Price Max"
-                value={maxPrice}
-                onChange={(val) => updateSearchState('maxPrice', val)}
-                placeholder="Type Here"
-                type="max"
-                options={[
-                  { value: "", label: "No Max" },
-                  { value: "5000", label: "$5,000" },
-                  { value: "7500", label: "$7,500" },
-                  { value: "10000", label: "$10,000" },
-                  { value: "12500", label: "$12,500" },
-                  { value: "15000", label: "$15,000" },
-                  { value: "20000", label: "$20,000" },
-                  { value: "30000", label: "$30,000" },
-                  { value: "50000", label: "$50,000" }
-                ]}
+            {/* Combined Price Range Filter */}
+            <div className="lg:col-span-2">
+              <CombinedPriceFilter
+                minValue={minPrice}
+                maxValue={maxPrice}
+                onMinChange={(val) => updateSearchState('minPrice', val)}
+                onMaxChange={(val) => updateSearchState('maxPrice', val)}
               />
             </div>
           </div>
