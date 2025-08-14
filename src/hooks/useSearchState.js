@@ -11,7 +11,7 @@ const useSearchState = (defaultValues = {}) => {
   
   // Initialize state from URL params or default values
   const [searchState, setSearchState] = useState({
-    searchQuery: searchParams.get('q') || defaultValues.searchQuery || '',
+    searchQuery: searchParams.get('searchQuery') || defaultValues.searchQuery || '',
     category: searchParams.get('category') || defaultValues.category || '',
     minPrice: searchParams.get('minPrice') || defaultValues.minPrice || '',
     maxPrice: searchParams.get('maxPrice') || defaultValues.maxPrice || '',
@@ -19,6 +19,27 @@ const useSearchState = (defaultValues = {}) => {
     page: parseInt(searchParams.get('page')) || defaultValues.page || 1
   });
   
+  // Sync state when URL params change (for direct URL access or browser back/forward)
+  useEffect(() => {
+    const urlState = {
+      searchQuery: searchParams.get('searchQuery') || '',
+      category: searchParams.get('category') || '',
+      minPrice: searchParams.get('minPrice') || '',
+      maxPrice: searchParams.get('maxPrice') || '',
+      specialty: searchParams.get('specialty') || '',
+      page: parseInt(searchParams.get('page')) || 1
+    };
+    
+    // Only update state if URL params are different from current state
+    const hasChanges = Object.keys(urlState).some(key => {
+      return String(urlState[key]) !== String(searchState[key]);
+    });
+    
+    if (hasChanges) {
+      setSearchState(urlState);
+    }
+  }, [searchParams]); // Remove searchState from dependencies to avoid infinite loops
+
   // Update URL when search state changes
   useEffect(() => {
     const params = new URLSearchParams();

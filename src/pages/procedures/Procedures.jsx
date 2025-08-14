@@ -41,6 +41,7 @@ const Procedures = () => {
   
   // State for full data and displayed products
   const [allProcedures, setAllProcedures] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
   const [products, setProducts] = useState([]);
   const [searchIndex, setSearchIndex] = useState(null);
   
@@ -111,8 +112,11 @@ const Procedures = () => {
   
   // Filter procedures based on current filters using our utility function
   const filterProcedures = useCallback((procedures) => {
+    // Use search results if we have a search query, otherwise use all procedures
+    const dataToFilter = searchQuery.trim() ? searchResults : procedures;
+    
     // Apply filters using our utility function
-    const filtered = applyFilters(procedures, {
+    const filtered = applyFilters(dataToFilter, {
       category,
       specialty,
       minPrice,
@@ -124,7 +128,30 @@ const Procedures = () => {
     
     setTotalResults(paginationData.total);
     setProducts(paginationData.results);
-  }, [category, specialty, minPrice, maxPrice, page]);
+  }, [category, specialty, minPrice, maxPrice, page, searchQuery, searchResults]);
+
+  // Perform search operation (can be called from form submit or URL param changes)
+  const performSearchOperation = useCallback(() => {
+    if (!searchIndex) {
+      return;
+    }
+
+    if (!searchQuery.trim()) {
+      // If no search query, clear search results and apply filters to all procedures
+      setSearchResults([]);
+      filterProcedures(allProcedures);
+      return;
+    }
+    
+    // Use the performSearch utility, which includes error handling and fallbacks
+    const results = performSearch(searchIndex, allProcedures, searchQuery);
+    
+    // Store search results in state
+    setSearchResults(results);
+    
+    // Apply filters to search results
+    filterProcedures(allProcedures); // This will use searchResults due to the updated logic
+  }, [searchIndex, searchQuery, allProcedures, filterProcedures]);
   
   // Apply filters when they change
   useEffect(() => {
@@ -132,22 +159,18 @@ const Procedures = () => {
       filterProcedures(allProcedures);
     }
   }, [allProcedures, filterProcedures]);
+
+  // Perform search when URL parameters change (especially searchQuery)
+  useEffect(() => {
+    if (searchIndex && allProcedures.length > 0) {
+      performSearchOperation();
+    }
+  }, [searchQuery, performSearchOperation, searchIndex, allProcedures]);
   
   // Handle search submission using our utility function
   const handleSearch = (e) => {
     e.preventDefault();
-    
-    if (!searchIndex || !searchQuery.trim()) {
-      // If no search query, just apply filters to all procedures
-      filterProcedures(allProcedures);
-      return;
-    }
-    
-    // Use the performSearch utility, which includes error handling and fallbacks
-    const searchResults = performSearch(searchIndex, allProcedures, searchQuery);
-    
-    // Apply filters to search results
-    filterProcedures(searchResults);
+    performSearchOperation();
   };
   
   // Handle page change
