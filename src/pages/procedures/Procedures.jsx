@@ -1,5 +1,5 @@
 // Procedures.jsx
-import { Option, Radio, Select } from "@material-tailwind/react";
+import { Radio, Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect, useCallback } from "react";
 import { createSearchIndex, performSearch, applyFilters, paginateResults } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
@@ -16,6 +16,7 @@ const NUMBER_OF_CARDS_PER_PAGE = 9;
 const Procedures = () => {
   const screen = useScreen();
   const [rating, setRating] = useState("5 star");
+  const [categoryOpen, setCategoryOpen] = useState(false);
   
   // Use our custom hook for search state management
   const { 
@@ -188,72 +189,143 @@ const Procedures = () => {
           </h1>
           <div className="subtitle">{totalResults} Procedures Found</div>
           
-          <form onSubmit={handleSearch}>
-            <div className="relative w-full max-w-full">
-              <input
-                type="text"
-                placeholder={
-                  screen < 768
-                    ? "Search location or procedure"
-                    : "Search by city, state, procedure name, or doctor"
-                }
-                className="search-input w-full"
-                value={searchQuery}
-                onChange={(e) => updateSearchState('searchQuery', e.target.value)}
-              />
-              <button type="submit" className="search-btn">
-                <span>Search</span>
-                {icons.searchIcon3}
-              </button>
-            </div>
-          </form>
-          
-          {/* Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mt-[15px] gap-[15px] relative z-10">
-            <div className="border bg-white rounded-md lg:col-span-1 relative z-10">
-              <Select
-                variant="static"
-                className="border-none h-[52px] rounded-xl"
-                label="Category"
-                containerProps={{
-                  className: "!min-w-0 w-full select max-w-full",
-                }}
-                value={category}
-                onChange={(val) => updateSearchState('category', val)}
-              >
-                <Option value="">All Categories</Option>
-                <Option value="Breast">Breast</Option>
-                <Option value="Body">Body</Option>
-                <Option value="Face">Face</Option>
-                <Option value="Injectibles">Injectibles</Option>
-                <Option value="Skin">Skin</Option>
-                <Option value="Other">Other</Option>
-              </Select>
-            </div>
-            <div className="border bg-white rounded-md lg:col-span-1 relative z-10">
-              <Select
-                variant="static"
-                className="border-none h-[52px] rounded-xl"
-                label="Specialty"
-                containerProps={{
-                  className: "!min-w-0 w-full select max-w-full",
-                }}
-                value={specialty}
-                onChange={(val) => updateSearchState('specialty', val)}
-              >
-                <Option value="">Any Specialty</Option>
-                <Option value="Plastic Surgery">Plastic Surgery</Option>
-                <Option value="Dermatology">Dermatology</Option>
-              </Select>
-            </div>
-            {/* Combined Price Range Filter */}
-            <div className="lg:col-span-2">
+          <div className="flex gap-4 items-start relative z-10">
+            {/* Search Bar - 60% width */}
+            <form onSubmit={handleSearch} className="w-[60%]">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={
+                    screen < 768
+                      ? "Search location or procedure"
+                      : "Search by city, state, procedure name, or doctor"
+                  }
+                  className="search-input"
+                  value={searchQuery}
+                  onChange={(e) => updateSearchState('searchQuery', e.target.value)}
+                />
+                <button type="submit" className="search-btn">
+                  <span>Search</span>
+                  {icons.searchIcon3}
+                </button>
+              </div>
+            </form>
+
+            {/* Price Filter - 20% width */}
+            <div className="w-[20%]">
               <CombinedPriceFilter
                 minValue={minPrice}
                 maxValue={maxPrice}
                 onMinChange={(val) => updateSearchState('minPrice', val)}
                 onMaxChange={(val) => updateSearchState('maxPrice', val)}
               />
+            </div>
+
+            {/* Category Filter - 20% width */}
+            <div className="w-[20%]">
+              <Popover 
+                open={categoryOpen} 
+                handler={() => setCategoryOpen(!categoryOpen)}
+                placement="bottom-start"
+                offset={5}
+              >
+                <PopoverHandler>
+                  <div className="relative w-full h-[63px] border border-border rounded-[10px] bg-white cursor-pointer hover:bg-opacity-5 transition-colors">
+                    <label className="absolute text-xs text-black text-opacity-50 top-[6px] left-4">
+                      Category
+                    </label>
+                    <div className="h-full w-full pt-4 px-4 flex items-center justify-between">
+                      <span className="text-sm font-extrabold text-black">
+                        {category || "Category"}
+                      </span>
+                      <div className="pointer-events-none text-black">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className={`h-4 w-4 transition-transform ${categoryOpen ? 'rotate-180' : ''}`}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverHandler>
+                
+                <PopoverContent className="p-0 border border-border rounded-[10px] z-[9999] bg-white shadow-lg w-[230px]" style={{ width: '100%', maxWidth: '100%' }}>
+                  <div className="py-2">
+                    <div 
+                      className="px-4 py-2 text-sm font-extrabold hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        updateSearchState('category', '');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      All Categories
+                    </div>
+                    <div 
+                      className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        updateSearchState('category', 'Breast');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      Breast
+                    </div>
+                    <div 
+                      className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        updateSearchState('category', 'Body');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      Body
+                    </div>
+                    <div 
+                      className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        updateSearchState('category', 'Face');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      Face
+                    </div>
+                    <div 
+                      className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        updateSearchState('category', 'Injectibles');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      Injectibles
+                    </div>
+                    <div 
+                      className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        updateSearchState('category', 'Skin');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      Skin
+                    </div>
+                    <div 
+                      className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        updateSearchState('category', 'Other');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      Other
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           
@@ -263,7 +335,7 @@ const Procedures = () => {
             <div className="w-full xl:w-[208px] xl:flex-shrink-0 order-2 xl:order-1">
               {/* Rating filters */}
               <div className="mb-8">
-                <h5 className="font-medium mb-2 font-Avenir">
+                <h5 className="font-bold mb-2 font-Avenir">
                   Customer Rating
                 </h5>
                 <div className="flex flex-col gap-3">

@@ -98,7 +98,7 @@ const CombinedPriceFilter = ({
         offset={5}
       >
         <PopoverHandler>
-          <div className="relative w-full h-[52px] border border-border rounded-[10px] bg-white cursor-pointer hover:bg-opacity-5 transition-colors">
+          <div className="relative w-full h-[63px] border border-border rounded-[10px] bg-white cursor-pointer hover:bg-opacity-5 transition-colors">
             <label className="absolute text-xs text-black text-opacity-50 top-[6px] left-4">
               Price
             </label>
@@ -137,17 +137,35 @@ const CombinedPriceFilter = ({
                   Minimum
                 </label>
                 <div className="relative">
-                  <select
-                    className="w-full h-[52px] px-4 border border-border rounded-[10px] bg-white text-sm font-extrabold text-black focus:outline-none focus:border-primary"
-                    value={tempMinValue}
-                    onChange={(e) => setTempMinValue(e.target.value)}
-                  >
-                    {minOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      className="w-full h-[52px] px-4 pr-8 border border-border rounded-[10px] bg-white text-sm font-extrabold text-black focus:outline-none focus:border-primary appearance-none"
+                      value={tempMinValue}
+                      onChange={(e) => setTempMinValue(e.target.value)}
+                    >
+                      {minOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="h-4 w-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -157,17 +175,35 @@ const CombinedPriceFilter = ({
                   Maximum
                 </label>
                 <div className="relative">
-                  <select
-                    className="w-full h-[52px] px-4 border border-border rounded-[10px] bg-white text-sm font-extrabold text-black focus:outline-none focus:border-primary"
-                    value={tempMaxValue}
-                    onChange={(e) => setTempMaxValue(e.target.value)}
-                  >
-                    {maxOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      className="w-full h-[52px] px-4 pr-8 border border-border rounded-[10px] bg-white text-sm font-extrabold text-black focus:outline-none focus:border-primary appearance-none"
+                      value={tempMaxValue}
+                      onChange={(e) => setTempMaxValue(e.target.value)}
+                    >
+                      {maxOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="h-4 w-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
