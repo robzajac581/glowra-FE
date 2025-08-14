@@ -46,12 +46,12 @@ const SearchResultCard = ({ item, searchQuery }) => {
 	};
 
 	return (
-		<div className="procedure-card group h-full">
-					<Link 
-			to={`/clinic/${item.clinicId}`} 
-			className="absolute z-[1] inset-0" 
-		/>
-			<div className="procedure-card-top">
+		<div className="procedure-card group h-full flex flex-col">
+			<Link 
+				to={`/clinic/${item.clinicId}`} 
+				className="absolute z-[1] inset-0" 
+			/>
+			<div className="procedure-card-top flex-shrink-0">
 				<img src={item.img} alt={item.name} className="object-cover w-full h-full" />
 				<div className="rating">
 					<span className="translate-y-[1px]">4.8</span> {procedure.star}
@@ -67,45 +67,56 @@ const SearchResultCard = ({ item, searchQuery }) => {
 					</div>
 				)}
 			</div>
-			<div className="p-4">
-				<h5 className="name text-base leading-tight mb-2">
-					{searchQuery ? highlightSearchTerm(item.name, searchQuery) : item.name}
-				</h5>
-				<div className="text-sm">
-					<div className="procedure-card-doc-info">
-						<span>{searchQuery ? highlightSearchTerm(item.doctor, searchQuery) : item.doctor}</span>
-						{item.specialty && (
-							<span className="ml-1 text-gray-500">({searchQuery ? highlightSearchTerm(item.specialty, searchQuery) : item.specialty})</span>
-						)}
+			<div className="p-4 flex-1 flex flex-col">
+				{/* Fixed height title area to accommodate 1-2 lines consistently */}
+				<div className="h-16 mb-3 flex items-start">
+					<h5 className="name text-base leading-tight line-clamp-2">
+						{searchQuery ? highlightSearchTerm(item.name, searchQuery) : item.name}
+					</h5>
+				</div>
+				
+				{/* Content area with consistent spacing */}
+				<div className="text-sm flex-1 flex flex-col justify-between">
+					<div className="space-y-2">
+						<div className="procedure-card-doc-info">
+							<span>{searchQuery ? highlightSearchTerm(item.doctor, searchQuery) : item.doctor}</span>
+							{item.specialty && (
+								<span className="ml-1 text-gray-500">({searchQuery ? highlightSearchTerm(item.specialty, searchQuery) : item.specialty})</span>
+							)}
+						</div>
+						<div className="clinic-name font-medium text-xs">
+							{searchQuery ? highlightSearchTerm(item.doctorInfo, searchQuery) : item.doctorInfo}
+						</div>
+						<div className="location text-xs flex items-center">
+							<strong className="mr-1">{procedure.mapmarker2}</strong>
+							<span>
+								{searchQuery && item.City ? highlightSearchTerm(item.City, searchQuery) : (item.City || "Location unavailable")},{" "}
+								<strong className="text-primary font-black">
+									{searchQuery && item.State ? highlightSearchTerm(item.State, searchQuery) : item.State}
+								</strong>
+							</span>
+						</div>
+						<div className="location text-xs flex items-center">
+							<strong className="mr-1">{procedure.dollar2}</strong>
+							<span>
+								Starting at{" "}
+								<strong className="text-primary font-black">
+									{formatPrice(item.price)}
+								</strong>
+							</span>
+						</div>
 					</div>
-					<div className="mb-[10px] clinic-name font-medium text-xs">
-						{searchQuery ? highlightSearchTerm(item.doctorInfo, searchQuery) : item.doctorInfo}
-					</div>
-					<div className="location mb-[10px] text-xs flex items-center">
-						<strong className="mr-1">{procedure.mapmarker2}</strong>
-						<span>
-							{searchQuery && item.City ? highlightSearchTerm(item.City, searchQuery) : (item.City || "Location unavailable")},{" "}
-							<strong className="text-primary font-black">
-								{searchQuery && item.State ? highlightSearchTerm(item.State, searchQuery) : item.State}
-							</strong>
-						</span>
-					</div>
-					<div className="location text-xs flex items-center">
-						<strong className="mr-1">{procedure.dollar2}</strong>
-						<span>
-							Starting at{" "}
-							<strong className="text-primary font-black">
-								{formatPrice(item.price)}
-							</strong>
-						</span>
+					
+					{/* Button area - always at bottom */}
+					<div className="mt-1">
+						<Link 
+							className="btn btn-sm w-full text-xs py-2" 
+							to={`/clinic/${item.clinicId}`}
+						>
+							View Details {procedure.arrowLink}
+						</Link>
 					</div>
 				</div>
-				<Link 
-					className="btn btn-sm w-full mt-3 text-xs py-2" 
-					to={`/clinic/${item.clinicId}`}
-				>
-					View Details {procedure.arrowLink}
-				</Link>
 			</div>
 		</div>
 	);

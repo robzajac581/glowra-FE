@@ -23,12 +23,12 @@ const ProcedureCard = ({ item, search }) => {
 	// };
 
 	return (
-		<div className="procedure-card group">
+		<div className="procedure-card group h-full flex flex-col">
 			<Link 
 				to={`/clinic/${item.clinicId}`} 
 				className="absolute z-[1] inset-0" 
 			/>
-			<div className="procedure-card-top">
+			<div className="procedure-card-top flex-shrink-0">
 				<img src={item.img} alt={item.name} />
 				<div className="rating">
 					<span className="translate-y-[1px]">4.8</span> {procedure.star}
@@ -40,55 +40,66 @@ const ProcedureCard = ({ item, search }) => {
 					</span>
 				</div>
 			</div>
-			<div className="p-5">
-				<h5 className="name">{item.name}</h5>
-				<div className="text-sm">
-					<div className="procedure-card-doc-info">
-						{/* <Link
-							to={`/clinic/${item.id}`}
-							className="text-primary font-extrabold relative z-10"
-						>
-							{item.doctor}
-						</Link> */}
-						<span>{item.doctorInfo}</span>
+			<div className="p-5 flex-1 flex flex-col">
+				{/* Fixed height title area to accommodate 1-2 lines consistently */}
+				<div className="h-20 mb-4 flex items-start">
+					<h5 className="name line-clamp-2">{item.name}</h5>
+				</div>
+				
+				{/* Content area with consistent spacing */}
+				<div className="text-sm flex-1 flex flex-col justify-between">
+					<div className="space-y-3">
+						<div className="procedure-card-doc-info">
+							{/* <Link
+								to={`/clinic/${item.id}`}
+								className="text-primary font-extrabold relative z-10"
+							>
+								{item.doctor}
+							</Link> */}
+							<span>{item.doctorInfo}</span>
+						</div>
+						<div className="location">
+							<strong>{procedure.mapmarker2}</strong>
+							<span>
+								{item.City || "Location unavailable"},{" "}
+								<strong className="text-primary font-black">
+									{item.State}
+								</strong>
+							</span>
+						</div>
+						<div className="location">
+							<strong>{procedure.dollar2}</strong>
+							<span>
+								Starting at{" "}
+								<strong className="text-primary font-black">
+									{formatPrice(item.price)}
+								</strong>
+							</span>
+						</div>
 					</div>
-					<div className="location mb-[10px]">
-						<strong>{procedure.mapmarker2}</strong>
-						<span>
-							{item.City || "Location unavailable"},{" "}
-							<strong className="text-primary font-black">
-								{item.State}
-							</strong>
-						</span>
-					</div>
-					<div className="location">
-						<strong>{procedure.dollar2}</strong>
-						<span>
-							Starting at{" "}
-							<strong className="text-primary font-black">
-								{formatPrice(item.price)}
-							</strong>
-						</span>
+					
+					{/* Button area - always at bottom */}
+					<div className="mt-1">
+						{/*{item.website ? (
+							<a 
+								className="btn relative z-10" 
+								href={formatWebsiteUrl(item.website)}
+								target="_blank" 
+								rel="noopener noreferrer"
+								onClick={(e) => e.stopPropagation()} // Prevent triggering the card's link
+							>
+								Visit Website {procedure.arrowLink}
+							</a>
+						) : ( */}
+							<Link 
+								className="btn" 
+								to={`/clinic/${item.clinicId}}`}
+							>
+								View Details {procedure.arrowLink}
+							</Link>
+						{/* )} */}
 					</div>
 				</div>
-				{/*{item.website ? (
-					<a 
-						className="btn relative z-10" 
-						href={formatWebsiteUrl(item.website)}
-						target="_blank" 
-						rel="noopener noreferrer"
-						onClick={(e) => e.stopPropagation()} // Prevent triggering the card's link
-					>
-						Visit Website {procedure.arrowLink}
-					</a>
-				) : ( */}
-					<Link 
-						className="btn" 
-						to={`/clinic/${item.clinicId}}`}
-					>
-						View Details {procedure.arrowLink}
-					</Link>
-				{/* )} */}
 			</div>
 		</div>
 	);

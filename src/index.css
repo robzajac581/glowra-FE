@@ -293,6 +293,25 @@
 	.procedure-card .name {
 		@apply text-2xl mb-2 leading-[34px] text-black;
 	}
+	/* Override for SearchResultCard to ensure consistent title height and line clamping */
+	.procedure-card .name.text-base.line-clamp-2 {
+		@apply leading-tight text-black mb-0 overflow-hidden;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		line-height: 1.4;
+		max-height: 2.8em; /* 2 lines * 1.4 line-height */
+	}
+	/* Line clamp for main ProcedureCard component */
+	.procedure-card .name.line-clamp-2 {
+		@apply overflow-hidden mb-0;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		max-height: 4.5em; /* 2 lines * 2.25em (from text-2xl) */
+	}
 	.procedure-card-doc-info {
 		@apply flex flex-wrap gap-2 justify-between mb-3 py-[6px];
 	}
