@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "../../components/Layout";
+import { procedure } from "../../components/Icons";
 import About from "./components/About";
 import AboutProviders from "./components/AboutProviders";
 import ClinicBanner from "./components/ClinicBanner";
@@ -12,7 +13,7 @@ import Highlights from "./components/Highlights";
 import InstagramPosts from "./components/InstagramPosts";
 import Location from "./components/Location";
 import ReviewsForCosmetics from "./components/ReviewsForCosmetics";
-import SpecialOffers from "./components/SpecialOffers";
+// import SpecialOffers from "./components/SpecialOffers";
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -124,6 +125,19 @@ const Clinic = () => {
 								<About />
 								<AboutProviders />
 								<Faqs />
+								{/* Visit Website Button */}
+								{clinicInfo?.Website && (
+									<div className="mt-6 p-6 bg-gray-50 rounded-lg text-center">
+										<a 
+											href={clinicInfo.Website.startsWith('http') ? clinicInfo.Website : `https://${clinicInfo.Website}`} 
+											target="_blank" 
+											rel="noopener noreferrer"
+											className="btn"
+										>
+											Visit Clinic Website {procedure.arrowLink}
+										</a>
+									</div>
+								)}
 							</div>
 						</div>
 						<div className="w-full lg:w-1/4 flex-grow xl:max-w-[400px]">

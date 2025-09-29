@@ -62,19 +62,6 @@ const ClinicBanner = ({ clinicInfo, providers }) => {
 				rating={clinicInfo.rating} 
 				reviewCount={clinicInfo.reviewCount} 
 			/>
-			
-			{clinicInfo.Website && (
-				<div className="mt-4">
-					<a 
-						href={clinicInfo.Website.startsWith('http') ? clinicInfo.Website : `https://${clinicInfo.Website}`} 
-						target="_blank" 
-						rel="noopener noreferrer"
-						className="btn"
-					>
-						Visit Website {procedure.arrowLink}
-					</a>
-				</div>
-			)}
 		</div>
 	);
 };
