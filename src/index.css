@@ -139,6 +139,12 @@
 	.divider-1 {
 		@apply hidden lg:block h-[21px] w-[1px] bg-[#CECECE];
 	}
+	.search-input-container {
+		@apply flex items-center ps-4 gap-2 whitespace-nowrap flex-grow;
+	}
+	.banner-search-input {
+		@apply h-[63px] w-full border-none bg-transparent text-base font-medium text-black placeholder:text-black placeholder:text-opacity-50 outline-none;
+	}
 	.cta-grid {
 		@apply grid md:grid-cols-2 grid-cols-1;
 	}

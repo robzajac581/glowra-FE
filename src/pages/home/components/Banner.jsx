@@ -1,24 +1,27 @@
-import { Option, Select } from "@material-tailwind/react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import img2 from "../../../assets/img/banner/DarkenedImage3.png";
-import img1 from "../../../assets/img/banner/banner-mobile.png";
 import { icons } from "../../../components/Icons";
 import useScreen from "../../../hooks/useScreen";
+
 const Banner = () => {
-	const [type, setType] = useState("");
-	const [price, setPrice] = useState("");
-	const [country, setCountry] = useState("");
+	const [searchQuery, setSearchQuery] = useState("");
 	const screen = useScreen();
 	const navigate = useNavigate();
+	
 	const handleSubmit = (e) => {
 		e.preventDefault();
-		navigate("/procedures");
+		if (searchQuery.trim()) {
+			navigate(`/procedures?searchQuery=${encodeURIComponent(searchQuery.trim())}`);
+		} else {
+			navigate("/procedures");
+		}
 	};
 	return (
 		<section
 			className="banner-section border-none"
 			style={{
+				// TODO: add mobile image for this ternary
 				background: `url(${
 					screen < 768 ? img2 : img2
 				}) no-repeat center center / cover`,
@@ -36,72 +39,19 @@ const Banner = () => {
 				</div>
 				<form onSubmit={handleSubmit}>
 					<div className="banner-form">
-						<div className="select-item-2">
+						<div className="search-input-container">
 							{icons.searchicon}
-							<label className="text-text">Procedure Type:</label>
-							<Select
-								className="border-none rounded-xl"
-								containerProps={{
-									className: "!min-w-20 w-full select-4",
-								}}
-								labelProps={{
-									className: "hidden",
-								}}
-								value={type}
-								onChange={setType}
-								placeholder="Type Here"
-							>
-								<Option value="Botox">Botox</Option>
-								<Option value="Belax">Belax</Option>
-								<Option value="Troops">Troops</Option>
-								<Option value="Angular">Angular</Option>
-								<Option value="Svelte">Svelte</Option>
-							</Select>
-						</div>
-						<div className="divider-1"></div>
-						<div className="select-item-2">
-							{icons.mapmarker}
-							<label className="text-text">Select Locations:</label>
-							<Select
-								className="border-none rounded-xl"
-								containerProps={{
-									className: "!min-w-20 w-full select-4",
-								}}
-								labelProps={{
-									className: "hidden",
-								}}
-								value={country}
-								onChange={setCountry}
-								placeholder="Type Here"
-							>
-								<Option value="Australia">Australia</Option>
-								<Option value="Bangladesh">Bangladesh</Option>
-								<Option value="India">India</Option>
-								<Option value="England">England</Option>
-								<Option value="Germany">Germany</Option>
-							</Select>
-						</div>
-						<div className="divider-1"></div>
-						<div className="select-item-2">
-							{icons.dollar}
-							<label className="text-text">Price Range:</label>
-							<Select
-								className="border-none rounded-xl"
-								containerProps={{
-									className: "!min-w-20 w-full select-4",
-								}}
-								labelProps={{
-									className: "hidden",
-								}}
-								value={price}
-								onChange={setPrice}
-								placeholder="Type Here"
-							>
-								<Option value="$3500">$3500</Option>
-								<Option value="$4500">$4500</Option>
-								<Option value="$5500">$5500</Option>
-								<Option value="$6500">$6500</Option>
-							</Select>
+							<input
+								type="text"
+								placeholder={
+									screen < 768
+										? "Search locations, procedures..."
+										: "Search by city, state, procedure, doctor, or clinic"
+								}
+								className="banner-search-input"
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+							/>
 						</div>
 						<button type="submit" className="submit-btn-1">
 							Search {icons.searchicon2}
