@@ -393,6 +393,46 @@
 	.table-btn-2 {
 		@apply bg-primary border-primary text-white hover:bg-[#ED4D4D] hover:border-[#ED4D4D];
 	}
+	
+	/* Procedure pricing table normalization styles */
+	.procedure-pricing-table {
+		table-layout: fixed;
+	}
+	
+	.procedure-pricing-table .procedure-name-cell {
+		width: 60%;
+		@apply pr-4;
+	}
+	
+	.procedure-pricing-table .price-cell {
+		width: 20%;
+		@apply text-right whitespace-nowrap;
+	}
+	
+	.procedure-pricing-table .action-cell {
+		width: 20%;
+		@apply text-right;
+	}
+	
+	.procedure-name-text {
+		@apply truncate block;
+		max-width: 100%;
+	}
+	
+	/* Responsive adjustments */
+	@media (max-width: 768px) {
+		.procedure-pricing-table .procedure-name-cell {
+			width: 50%;
+		}
+		
+		.procedure-pricing-table .price-cell {
+			width: 25%;
+		}
+		
+		.procedure-pricing-table .action-cell {
+			width: 25%;
+		}
+	}
 	.submitted-card {
 		@apply border border-[#3DB884] rounded-[10px] p-4 bg-[#EAFFF6];
 	}

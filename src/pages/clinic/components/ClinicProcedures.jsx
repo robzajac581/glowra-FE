@@ -79,17 +79,22 @@ const ClinicProcedureTable = ({
 					<span className="sm:mx-auto">Clinic Price Estimate</span>
 				</div>
 				<div className="">
-					<table className="table">
+					<table className="table procedure-pricing-table">
 						<tbody>
 							{data.map((item) => (
 								<tr key={item.id}>
-									<td>
-										<div className="capitalize">{item.name}</div>
+									<td className="procedure-name-cell">
+										<div 
+											className="capitalize procedure-name-text" 
+											title={item.name}
+										>
+											{item.name}
+										</div>
 									</td>
-									<td className="text-right text-black text-opacity-70">
+									<td className="text-right text-black text-opacity-70 price-cell">
 										{formatPrice(item.price)}
 									</td>
-									<td className="md:px-2">
+									<td className="md:px-2 action-cell">
 										<div className="flex justify-end">
 											{addedData.find(added => added.id === item.id) ? (
 												<button
