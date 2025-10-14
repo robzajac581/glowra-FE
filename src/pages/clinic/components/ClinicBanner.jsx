@@ -74,10 +74,12 @@ const Rating = ({ className, rating = 0, reviewCount = 0 }) => {
 	return (
 		<>
 			<div
-				className={cn("flex text-dark text-sm rating mt-5", {
+				className={cn("flex items-center text-dark text-sm rating mt-5", {
 					[className]: className,
 				})}
 			>
+				<span className="mr-1">{rating.toFixed(1)}</span>
+				
 				{/* Render full stars */}
 				{[...Array(fullStars)].map((_, i) => (
 					<span key={`star-${i}`}>{procedure.star}</span>
@@ -91,7 +93,7 @@ const Rating = ({ className, rating = 0, reviewCount = 0 }) => {
 					<span key={`empty-${i}`} className="opacity-30">{procedure.star}</span>
 				))}
 				
-				<span>({reviewCount.toLocaleString()} reviews)</span>
+				<span className="ml-1">({reviewCount.toLocaleString()} reviews)</span>
 			</div>
 		</>
 	);
