@@ -61,7 +61,7 @@ const Clinic = () => {
 				const providersData = await providersResponse.json();
 				const proceduresData = await proceduresResponse.json();
 
-				// DEBUG: Log clinic data to check Description, Logo, and Reviews fields
+				// DEBUG: Log clinic data to check Description, Logo, Reviews, and Category fields
 				console.log('=== CLINIC DATA DEBUG ===');
 				console.log('Full clinic data:', clinicData);
 				console.log('Description field:', clinicData.Description);
@@ -70,6 +70,8 @@ const Clinic = () => {
 				console.log('Logo exists?', !!clinicData.Logo);
 				console.log('Photo field:', clinicData.Photo);
 				console.log('Photo exists?', !!clinicData.Photo);
+				console.log('Category field:', clinicData.Category);
+				console.log('Category exists?', !!clinicData.Category);
 				console.log('GoogleReviewsJSON field:', clinicData.GoogleReviewsJSON);
 				console.log('GoogleReviewsJSON exists?', !!clinicData.GoogleReviewsJSON);
 				console.log('GoogleReviewsJSON type:', typeof clinicData.GoogleReviewsJSON);

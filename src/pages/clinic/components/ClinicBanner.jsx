@@ -17,7 +17,7 @@ const toTitleCase = (str) => {
 
 /**
  * ClinicBanner Component
- * Displays clinic header with logo, name, address, rating, verified badge, and open/closed status
+ * Displays clinic header with logo, name, address, rating, verified badge, category, and open/closed status
  */
 const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) => {
 	if (!clinicInfo) {
@@ -54,7 +54,7 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 						}}
 					/>
 					<div className="w-0 flex-grow">
-						<div className="flex items-center gap-2 mb-3">
+						<div className="flex items-center gap-2 mb-2">
 							<h1 className="text-4xl">{displayName}</h1>
 							{clinicInfo.Verified && (
 								<span 
@@ -66,6 +66,16 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 								</span>
 							)}
 						</div>
+						
+						{/* Category Badge */}
+						{clinicInfo.Category && (
+							<div className="mb-2">
+								<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+									{clinicInfo.Category}
+								</span>
+							</div>
+						)}
+						
 						<div className="text-black text-opacity-70">
 							<div className="mb-1">
 								{clinicInfo.Address}
