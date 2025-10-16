@@ -13,6 +13,8 @@ import Highlights from "./components/Highlights";
 import InstagramPosts from "./components/InstagramPosts";
 import Location from "./components/Location";
 import ReviewsForCosmetics from "./components/ReviewsForCosmetics";
+import WorkingHours from "./components/WorkingHours";
+import { useClinicData } from "../../hooks/useClinicData";
 // import SpecialOffers from "./components/SpecialOffers";
 
 const API_BASE_URL = 'http://localhost:3001';
@@ -25,6 +27,15 @@ const Clinic = () => {
 	const [procedures, setProcedures] = useState({});
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+
+	// Parse Google Places data efficiently with memoization
+	const { 
+		workingHours, 
+		isOpenNow, 
+		closingTime,
+		photos,
+		logo 
+	} = useClinicData(clinicInfo);
 
 	// Fetch clinic data on component mount
 	useEffect(() => {
@@ -49,6 +60,20 @@ const Clinic = () => {
 				const clinicData = await clinicResponse.json();
 				const providersData = await providersResponse.json();
 				const proceduresData = await proceduresResponse.json();
+
+				// DEBUG: Log clinic data to check Description, Logo, and Reviews fields
+				console.log('=== CLINIC DATA DEBUG ===');
+				console.log('Full clinic data:', clinicData);
+				console.log('Description field:', clinicData.Description);
+				console.log('Description exists?', !!clinicData.Description);
+				console.log('Logo field:', clinicData.Logo);
+				console.log('Logo exists?', !!clinicData.Logo);
+				console.log('Photo field:', clinicData.Photo);
+				console.log('Photo exists?', !!clinicData.Photo);
+				console.log('GoogleReviewsJSON field:', clinicData.GoogleReviewsJSON);
+				console.log('GoogleReviewsJSON exists?', !!clinicData.GoogleReviewsJSON);
+				console.log('GoogleReviewsJSON type:', typeof clinicData.GoogleReviewsJSON);
+				console.log('========================');
 
 				// Update state with fetched data
 				setClinicInfo(clinicData);
@@ -105,9 +130,15 @@ const Clinic = () => {
 							<div className="flex flex-col gap-6">
 								<ClinicBanner 
 									clinicInfo={clinicInfo} 
-									providers={providers} 
+									providers={providers}
+									logo={logo}
+									isOpenNow={isOpenNow}
+									closingTime={closingTime}
 								/>
-								<Gallery />
+								<Gallery 
+									photos={photos}
+									clinicName={clinicInfo?.ClinicName}
+								/>
 								<ClinicProcedures
 									procedures={procedures}
 									selectedData={selectedData}
@@ -118,12 +149,23 @@ const Clinic = () => {
 									selectedData={selectedData}
 									setSelectedData={setSelectedData}
 								/> */}
-								<Highlights />
-								<ReviewsForCosmetics />
-								<Location />
+								<About 
+									description={clinicInfo?.Description}
+									clinicName={clinicInfo?.ClinicName}
+								/>
+							<WorkingHours 
+								workingHours={workingHours}
+								isOpenNow={isOpenNow}
+							/>
+							<ReviewsForCosmetics 
+								reviews={clinicInfo?.GoogleReviewsJSON}
+								clinicName={clinicInfo?.ClinicName}
+								totalReviewCount={clinicInfo?.GoogleReviewCount}
+							/>
+							<Location clinicInfo={clinicInfo} />
 								<InstagramPosts />
-								<About />
-								<AboutProviders />
+								<AboutProviders /> 
+								{/* TODO: Add providers data or remove this */}
 								<Faqs />
 								{/* Visit Website Button */}
 								{clinicInfo?.Website && (

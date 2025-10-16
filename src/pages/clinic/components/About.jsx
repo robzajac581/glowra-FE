@@ -1,26 +1,34 @@
 import React from "react";
 import AccordionCard from "./AccordionCard";
 
-const About = () => {
+/**
+ * About Component
+ * Displays clinic description from Google Places data
+ */
+const About = ({ description, clinicName }) => {
+	// DEBUG: Log props received
+	console.log('=== ABOUT COMPONENT DEBUG ===');
+	console.log('Description prop:', description);
+	console.log('Clinic name:', clinicName);
+	console.log('Description exists?', !!description);
+	console.log('Description length:', description?.length);
+	console.log('===========================');
+
+	// Don't render if no description available
+	if (!description) {
+		console.warn('About component: No description provided, not rendering');
+		return null;
+	}
+
 	return (
-		<AccordionCard title="About">
+		<AccordionCard title={`About ${clinicName || 'This Clinic'}`}>
 			<div className="about-text">
-				<div>
-					At GlowUp, we believe beauty is a journey, and yours starts with
-					a personalized approach. We don't offer a one-size-fits-all
-					solution. During your in-depth consultation, our experienced
-					professionals will listen to your unique goals and concerns to
-					craft a customized Botox treatment plan.
-				</div>
-				<div>
-					We utilize the latest, most effective Botox injection methods to
-					achieve natural-looking results with minimal discomfort. Our team
-					is passionate about staying at the forefront of aesthetic
-					advancements, ensuring you receive the most precise and
-					comfortable experience possible.
-				</div>
+				<p className="text-base leading-relaxed text-gray-700 whitespace-pre-line">
+					{description}
+				</p>
 			</div>
 		</AccordionCard>
 	);
 };
-export default About;
+
+export default React.memo(About);

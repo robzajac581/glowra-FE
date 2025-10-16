@@ -76,25 +76,27 @@ const ClinicProcedureTable = ({
 				<div className="name">{name}</div>
 				<div className="procedure-table-card-name">
 					<span>Procedure</span>
-					<span className="sm:mx-auto">Clinic Price Estimate</span>
+					<span>Clinic Price Estimate</span>
 				</div>
-				<div className="">
-					<table className="table procedure-pricing-table">
+				<div className="overflow-x-auto">
+					<table className="w-full procedure-pricing-table">
 						<tbody>
 							{data.map((item) => (
-								<tr key={item.id}>
-									<td className="procedure-name-cell">
+								<tr key={item.id} className="border-b border-gray-100 last:border-0">
+									<td className="procedure-name-cell py-4">
 										<div 
-											className="capitalize procedure-name-text" 
+											className="procedure-name-text font-normal text-[15px]" 
 											title={item.name}
 										>
 											{item.name}
 										</div>
 									</td>
-									<td className="text-right text-black text-opacity-70 price-cell">
-										{formatPrice(item.price)}
+									<td className="price-cell py-4">
+										<span className="text-[15px] font-medium text-black">
+											{formatPrice(item.price)}+
+										</span>
 									</td>
-									<td className="md:px-2 action-cell">
+									<td className="action-cell py-4 pl-4">
 										<div className="flex justify-end">
 											{addedData.find(added => added.id === item.id) ? (
 												<button

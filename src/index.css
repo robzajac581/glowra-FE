@@ -388,13 +388,13 @@
 		@apply text-xs text-black text-opacity-50 hidden sm:block uppercase;
 	}
 	.procedure-table-card {
-		@apply border border-border p-4 rounded-2xl;
+		@apply border border-border p-6 rounded-2xl bg-white;
 	}
 	.procedure-table-card .name {
-		@apply font-extrabold flex w-full justify-between text-primary text-xl mb-2;
+		@apply font-extrabold flex w-full justify-between text-primary text-2xl mb-4;
 	}
 	.procedure-table-card-name {
-		@apply text-xs py-2 px-4 font-medium text-black text-opacity-50 flex uppercase justify-between;
+		@apply text-xs py-3 px-0 font-semibold text-black text-opacity-50 flex uppercase justify-between border-b border-gray-200 mb-2;
 	}
 	.table-btn-2 {
 		@apply bg-primary border-primary text-white hover:bg-[#ED4D4D] hover:border-[#ED4D4D];
@@ -403,40 +403,46 @@
 	/* Procedure pricing table normalization styles */
 	.procedure-pricing-table {
 		table-layout: fixed;
+		width: 100%;
 	}
 	
 	.procedure-pricing-table .procedure-name-cell {
-		width: 60%;
+		width: 45%;
 		@apply pr-4;
 	}
 	
 	.procedure-pricing-table .price-cell {
-		width: 20%;
+		width: 30%;
 		@apply text-right whitespace-nowrap;
 	}
 	
 	.procedure-pricing-table .action-cell {
-		width: 20%;
+		width: 25%;
 		@apply text-right;
 	}
 	
 	.procedure-name-text {
-		@apply truncate block;
+		@apply block;
 		max-width: 100%;
+		line-height: 1.5;
 	}
 	
 	/* Responsive adjustments */
 	@media (max-width: 768px) {
 		.procedure-pricing-table .procedure-name-cell {
-			width: 50%;
+			width: 40%;
 		}
 		
 		.procedure-pricing-table .price-cell {
-			width: 25%;
+			width: 35%;
 		}
 		
 		.procedure-pricing-table .action-cell {
 			width: 25%;
+		}
+		
+		.procedure-name-text {
+			font-size: 14px;
 		}
 	}
 	.submitted-card {
@@ -545,7 +551,7 @@
 		@apply flex text-[7px] items-center text-dark text-opacity-40 mb-[10px] mt-4 gap-2;
 	}
 	.review-card-quote {
-		@apply text-xs leading-[1.7] line-clamp-4 text-dark text-opacity-70 mb-2;
+		@apply text-xs leading-[1.7] line-clamp-6 text-dark text-opacity-70 mb-2;
 	}
 	.review-card .read {
 		@apply text-xs text-dark text-opacity-70;

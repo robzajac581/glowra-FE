@@ -55,7 +55,7 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo }) => {
           <h4 className="text-xl font-medium mb-4">Clinic Information</h4>
           <div className="space-y-3">
             <p><strong>Address:</strong> {clinicInfo.Address}</p>
-            {clinicInfo.Phone && <p><strong>Phone:</strong> {clinicInfo.Phone}</p>}
+            {/* {clinicInfo.Phone && <p><strong>Phone:</strong> {clinicInfo.Phone}</p>} */}
           </div>
         </div>
       )}
