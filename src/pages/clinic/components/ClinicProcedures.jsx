@@ -83,20 +83,20 @@ const ClinicProcedureTable = ({
 						<tbody>
 							{data.map((item) => (
 								<tr key={item.id} className="border-b border-gray-100 last:border-0">
-									<td className="procedure-name-cell py-4">
+									<td className="procedure-name-cell py-2">
 										<div 
-											className="procedure-name-text font-normal text-[15px]" 
+											className="procedure-name-text font-normal text-sm" 
 											title={item.name}
 										>
 											{item.name}
 										</div>
 									</td>
-									<td className="price-cell py-4">
-										<span className="text-[15px] font-medium text-black">
+									<td className="price-cell py-2">
+										<span className="text-sm font-medium text-black">
 											{formatPrice(item.price)}+
 										</span>
 									</td>
-									<td className="action-cell py-4 pl-4">
+									<td className="action-cell py-2 pl-2">
 										<div className="flex justify-end">
 											{addedData.find(added => added.id === item.id) ? (
 												<button
