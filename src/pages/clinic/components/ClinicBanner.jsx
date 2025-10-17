@@ -1,5 +1,5 @@
 // ClinicBanner.jsx
-import React from "react";
+import React, { useRef, useState } from "react";
 import { procedure } from "../../../components/Icons";
 import { cn } from "../../../utils/cn";
 
@@ -20,6 +20,10 @@ const toTitleCase = (str) => {
  * Displays clinic header with logo, name, address, rating, verified badge, category, and open/closed status
  */
 const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) => {
+	const carouselRef = useRef(null);
+	const [showLeftArrow, setShowLeftArrow] = useState(false);
+	const [showRightArrow, setShowRightArrow] = useState(true);
+
 	if (!clinicInfo) {
 		return <div>Loading clinic information...</div>;
 	}
@@ -39,6 +43,26 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 	// Use Google rating data
 	const rating = clinicInfo.GoogleRating || 0;
 	const reviewCount = clinicInfo.GoogleReviewCount || 0;
+
+	// Carousel navigation functions
+	const scroll = (direction) => {
+		if (carouselRef.current) {
+			const scrollAmount = 300;
+			const newScrollLeft = carouselRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
+			carouselRef.current.scrollTo({
+				left: newScrollLeft,
+				behavior: 'smooth'
+			});
+		}
+	};
+
+	const handleScroll = () => {
+		if (carouselRef.current) {
+			const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+			setShowLeftArrow(scrollLeft > 0);
+			setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+		}
+	};
 
 	return (
 		<div className="">
@@ -112,25 +136,63 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 					<h5 className="text-lg mb-[22px]">
 						Doctors who work at {displayName}:
 					</h5>
-					<div className="doc-list">
-						{providers.map((item, index) => (
-							<div className="item" key={index}>
-								<img 
-									src={item.img || "/img/provider/1.png"} 
-									className="img" 
-									alt={item.ProviderName}
-									loading="lazy"
-									onError={(e) => {
-										e.target.onerror = null;
-										e.target.src = "/img/provider/1.png";
-									}}
-								/>
-								<div>
-									<h5 className="name">{item.ProviderName}</h5>
-									<div className="designation">{item.Specialty}</div>
+					<div className="relative">
+						{/* Left Navigation Arrow */}
+						{showLeftArrow && (
+							<button
+								onClick={() => scroll('left')}
+								className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 hover:bg-gray-50 transition-colors"
+								aria-label="Scroll left"
+							>
+								<svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+								</svg>
+							</button>
+						)}
+						
+						{/* Carousel Container */}
+						<div 
+							ref={carouselRef}
+							onScroll={handleScroll}
+							className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth"
+							style={{ 
+								scrollbarWidth: 'none', 
+								msOverflowStyle: 'none',
+								WebkitOverflowScrolling: 'touch'
+							}}
+						>
+							{providers.map((item, index) => (
+								<div className="item flex-shrink-0 w-[280px]" key={index}>
+									<img 
+										src={item.img || "/img/provider/1.png"} 
+										className="img" 
+										alt={item.ProviderName}
+										loading="lazy"
+										onError={(e) => {
+											e.target.onerror = null;
+											e.target.src = "/img/provider/1.png";
+										}}
+									/>
+									<div>
+										<h5 className="name">{item.ProviderName}</h5>
+										<div className="designation">{item.Specialty}</div>
+									</div>
 								</div>
-							</div>
-						))}
+							))}
+						</div>
+						
+						{/* Right Navigation Arrow */}
+						{showRightArrow && (
+							<button
+								onClick={() => scroll('right')}
+								className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 hover:bg-gray-50 transition-colors"
+								aria-label="Scroll right"
+							>
+								<svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+								</svg>
+							</button>
+						)}
 					</div>
 				</>
 			)}
