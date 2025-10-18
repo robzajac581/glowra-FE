@@ -104,7 +104,7 @@ const FindCosmetics = () => {
 								<span>Search {icons.searchIcon3}</span>
 							</button>
 						</div>
-						<Link to="/procedures" className="find-cosmetic-btn">
+						<Link to="/search" className="find-cosmetic-btn">
 							<span className="hidden md:block">See All</span>{" "}
 							{icons.rightArrow}
 						</Link>
@@ -162,7 +162,7 @@ const FindCosmetics = () => {
 				</div>
 			</div>
 			<div className="start-search-btn">
-				<Link to="/procedures" className="btn w-full max-w-[297px]">
+				<Link to="/search" className="btn w-full max-w-[297px]">
 					Start Your Search
 				</Link>
 			</div>

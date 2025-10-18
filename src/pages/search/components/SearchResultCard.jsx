@@ -123,3 +123,4 @@ const SearchResultCard = ({ item, searchQuery }) => {
 };
 
 export default SearchResultCard;
+

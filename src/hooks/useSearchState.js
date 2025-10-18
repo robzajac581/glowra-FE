@@ -78,7 +78,7 @@ const useSearchState = (defaultValues = {}) => {
   };
   
   // Navigate to search page with current filters
-  const navigateToSearch = (baseUrl = '/procedures') => {
+  const navigateToSearch = (baseUrl = '/search') => {
     const params = new URLSearchParams();
     
     Object.entries(searchState).forEach(([key, value]) => {

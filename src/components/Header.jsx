@@ -88,7 +88,7 @@ const Header = ({ fixed }) => {
 const menu = [
 	{
 		name: "Search",
-		url: "/Procedures",
+		url: "/search",
 	},
 	{
 		name: "About Us",

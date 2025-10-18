@@ -12,9 +12,9 @@ const Banner = () => {
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (searchQuery.trim()) {
-			navigate(`/procedures?searchQuery=${encodeURIComponent(searchQuery.trim())}`);
+			navigate(`/search?searchQuery=${encodeURIComponent(searchQuery.trim())}`);
 		} else {
-			navigate("/procedures");
+			navigate("/search");
 		}
 	};
 	return (

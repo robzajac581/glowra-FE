@@ -1,4 +1,4 @@
-// Procedures.jsx
+// Search.jsx
 import { Radio, Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect, useCallback } from "react";
 import { createSearchIndex, performSearch, applyFilters, paginateResults } from "../../utils/searchUtils";
@@ -13,7 +13,7 @@ const API_BASE_URL = 'http://localhost:3001';
 
 const NUMBER_OF_CARDS_PER_PAGE = 9;
 
-const Procedures = () => {
+const Search = () => {
   const screen = useScreen();
   const [rating, setRating] = useState("5 star");
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -461,4 +461,5 @@ const ratingList = [
   { name: "1 star (& above)" },
 ];
 
-export default Procedures;
+export default Search;
+
