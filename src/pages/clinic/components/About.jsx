@@ -6,17 +6,8 @@ import AccordionCard from "./AccordionCard";
  * Displays clinic description from Google Places data
  */
 const About = ({ description, clinicName }) => {
-	// DEBUG: Log props received
-	console.log('=== ABOUT COMPONENT DEBUG ===');
-	console.log('Description prop:', description);
-	console.log('Clinic name:', clinicName);
-	console.log('Description exists?', !!description);
-	console.log('Description length:', description?.length);
-	console.log('===========================');
-
 	// Don't render if no description available
 	if (!description) {
-		console.warn('About component: No description provided, not rendering');
 		return null;
 	}
 

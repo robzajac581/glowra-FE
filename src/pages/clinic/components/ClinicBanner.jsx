@@ -16,6 +16,101 @@ const toTitleCase = (str) => {
 };
 
 /**
+ * Helper function to resolve photo URLs for development environment
+ * In production, relative URLs work fine. In dev, we need to prepend the API base URL.
+ */
+const resolvePhotoURL = (photoURL) => {
+	if (!photoURL) return null;
+	
+	// If it's already an absolute URL, return as-is
+	if (photoURL.startsWith('http://') || photoURL.startsWith('https://')) {
+		return photoURL;
+	}
+	
+	// In development, prepend the API base URL
+	// In production, relative URLs work fine (both FE and BE on same domain: Glowra.com)
+	if (process.env.NODE_ENV === 'development' && photoURL.startsWith('/api/')) {
+		return `http://localhost:3001${photoURL}`;
+	}
+	
+	return photoURL;
+};
+
+/**
+ * Helper function to get initials from provider name
+ */
+const getInitials = (name) => {
+	if (!name) return '?';
+	
+	// Remove "Dr." prefix and split by space
+	const cleanName = name.replace(/^Dr\.?\s*/i, '').trim();
+	const parts = cleanName.split(/\s+/);
+	
+	if (parts.length >= 2) {
+		// First and last name initials
+		return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+	}
+	
+	// Single name - return first letter
+	return cleanName[0]?.toUpperCase() || '?';
+};
+
+/**
+ * Placeholder component for providers without photos
+ */
+const ProviderPhotoPlaceholder = ({ name }) => {
+	const initials = getInitials(name);
+	
+	return (
+		<div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center border-2 border-blue-300">
+			<span className="text-2xl font-bold text-blue-700">
+				{initials}
+			</span>
+		</div>
+	);
+};
+
+/**
+ * Individual provider card component with photo/placeholder
+ */
+const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
+	const [imageError, setImageError] = useState(false);
+	const showPlaceholder = !hasValidPhoto || imageError;
+	
+	return (
+		<div className="flex-shrink-0 w-[160px] text-center">
+			<div className="mb-3 flex justify-center">
+				{showPlaceholder ? (
+					<ProviderPhotoPlaceholder name={provider.ProviderName} />
+				) : (
+					<img 
+						src={photoURL} 
+						className="w-24 h-24 rounded-full object-cover border-2 border-gray-200" 
+						alt={`${provider.ProviderName} - ${provider.Specialty}`}
+						loading="lazy"
+						referrerPolicy="no-referrer"
+						onError={() => setImageError(true)}
+					/>
+				)}
+			</div>
+			<div>
+				<h5 className="text-sm font-black font-Avenir text-dark mb-1">
+					{provider.ProviderName}
+				</h5>
+				<div className="text-xs text-black text-opacity-70">
+					{provider.Specialty}
+				</div>
+				{hasValidPhoto && !imageError && (
+					<span className="inline-flex items-center gap-1 text-xs text-green-600 mt-2">
+						✓ Verified
+					</span>
+				)}
+			</div>
+		</div>
+	);
+};
+
+/**
  * ClinicBanner Component
  * Displays clinic header with logo, name, address, rating, verified badge, category, and open/closed status
  */
@@ -31,12 +126,6 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 	// Use Google Places logo or fallback to placeholder
 	const displayLogo = logo || "/img/clinic-logo.png";
 	
-	// DEBUG: Log logo information
-	console.log('=== CLINIC BANNER LOGO DEBUG ===');
-	console.log('Logo prop received:', logo);
-	console.log('Display logo (with fallback):', displayLogo);
-	console.log('================================');
-	
 	// Normalize clinic name to title case
 	const displayName = toTitleCase(clinicInfo.ClinicName);
 	
@@ -47,7 +136,7 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 	// Carousel navigation functions
 	const scroll = (direction) => {
 		if (carouselRef.current) {
-			const scrollAmount = 300;
+			const scrollAmount = 200; // Reduced for smaller cards
 			const newScrollLeft = carouselRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
 			carouselRef.current.scrollTo({
 				left: newScrollLeft,
@@ -72,6 +161,7 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 						src={displayLogo} 
 						className="img" 
 						alt={`${clinicInfo.ClinicName} logo`}
+						referrerPolicy="no-referrer"
 						onError={(e) => {
 							e.target.onerror = null;
 							e.target.src = "/img/clinic-logo.png";
@@ -154,31 +244,27 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 						<div 
 							ref={carouselRef}
 							onScroll={handleScroll}
-							className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth"
+							className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
 							style={{ 
 								scrollbarWidth: 'none', 
 								msOverflowStyle: 'none',
 								WebkitOverflowScrolling: 'touch'
 							}}
 						>
-							{providers.map((item, index) => (
-								<div className="item flex-shrink-0 w-[280px]" key={index}>
-									<img 
-										src={item.img || "/img/provider/1.png"} 
-										className="img" 
-										alt={item.ProviderName}
-										loading="lazy"
-										onError={(e) => {
-											e.target.onerror = null;
-											e.target.src = "/img/provider/1.png";
-										}}
-									/>
-									<div>
-										<h5 className="name">{item.ProviderName}</h5>
-										<div className="designation">{item.Specialty}</div>
-									</div>
-								</div>
-							))}
+						{providers.map((item, index) => {
+							// Resolve photo URL for development/production
+							const photoURL = resolvePhotoURL(item.PhotoURL);
+							const hasValidPhoto = item.hasPhoto && photoURL;
+							
+							return (
+								<ProviderCard 
+									key={index}
+									provider={item}
+									photoURL={photoURL}
+									hasValidPhoto={hasValidPhoto}
+								/>
+							);
+						})}
 						</div>
 						
 						{/* Right Navigation Arrow */}

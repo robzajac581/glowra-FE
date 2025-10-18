@@ -25,6 +25,7 @@ const Clinic = () => {
 	const [clinicInfo, setClinicInfo] = useState(null);
 	const [providers, setProviders] = useState([]);
 	const [procedures, setProcedures] = useState({});
+	const [photos, setPhotos] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
@@ -33,7 +34,6 @@ const Clinic = () => {
 		workingHours, 
 		isOpenNow, 
 		closingTime,
-		photos,
 		logo 
 	} = useClinicData(clinicInfo);
 
@@ -44,11 +44,12 @@ const Clinic = () => {
 			setError(null);
 
 			try {
-				// Fetch clinic info, providers, and procedures in parallel
-				const [clinicResponse, providersResponse, proceduresResponse] = await Promise.all([
+				// Fetch clinic info, providers, procedures, and photos in parallel
+				const [clinicResponse, providersResponse, proceduresResponse, photosResponse] = await Promise.all([
 					fetch(`${API_BASE_URL}/api/clinics/${clinicId}`),
 					fetch(`${API_BASE_URL}/api/clinics/${clinicId}/providers`),
-					fetch(`${API_BASE_URL}/api/clinics/${clinicId}/procedures`)
+					fetch(`${API_BASE_URL}/api/clinics/${clinicId}/procedures`),
+					fetch(`${API_BASE_URL}/api/clinics/${clinicId}/photos`)
 				]);
 
 				// Check for response errors
@@ -60,27 +61,18 @@ const Clinic = () => {
 				const clinicData = await clinicResponse.json();
 				const providersData = await providersResponse.json();
 				const proceduresData = await proceduresResponse.json();
-
-				// DEBUG: Log clinic data to check Description, Logo, Reviews, and Category fields
-				console.log('=== CLINIC DATA DEBUG ===');
-				console.log('Full clinic data:', clinicData);
-				console.log('Description field:', clinicData.Description);
-				console.log('Description exists?', !!clinicData.Description);
-				console.log('Logo field:', clinicData.Logo);
-				console.log('Logo exists?', !!clinicData.Logo);
-				console.log('Photo field:', clinicData.Photo);
-				console.log('Photo exists?', !!clinicData.Photo);
-				console.log('Category field:', clinicData.Category);
-				console.log('Category exists?', !!clinicData.Category);
-				console.log('GoogleReviewsJSON field:', clinicData.GoogleReviewsJSON);
-				console.log('GoogleReviewsJSON exists?', !!clinicData.GoogleReviewsJSON);
-				console.log('GoogleReviewsJSON type:', typeof clinicData.GoogleReviewsJSON);
-				console.log('========================');
+				
+				// Parse photos response (don't fail if photos endpoint has issues)
+				let photosData = { photos: [] };
+				if (photosResponse.ok) {
+					photosData = await photosResponse.json();
+				}
 
 				// Update state with fetched data
 				setClinicInfo(clinicData);
 				setProviders(providersData);
 				setProcedures(proceduresData);
+				setPhotos(photosData.photos || []);
 			} catch (err) {
 				console.error('Error fetching clinic data:', err);
 				setError('Failed to load clinic data. Please try again later.');
@@ -130,17 +122,17 @@ const Clinic = () => {
 					<div className="flex flex-wrap gap-10">
 						<div className="w-full lg:w-1/2 flex-grow">
 							<div className="flex flex-col gap-6">
-								<ClinicBanner 
-									clinicInfo={clinicInfo} 
-									providers={providers}
-									logo={logo}
-									isOpenNow={isOpenNow}
-									closingTime={closingTime}
-								/>
-								<Gallery 
-									photos={photos}
-									clinicName={clinicInfo?.ClinicName}
-								/>
+							<ClinicBanner 
+								clinicInfo={clinicInfo} 
+								providers={providers}
+								logo={logo}
+								isOpenNow={isOpenNow}
+								closingTime={closingTime}
+							/>
+							<Gallery 
+								photos={photos}
+								clinicName={clinicInfo?.ClinicName}
+							/>
 								<ClinicProcedures
 									procedures={procedures}
 									selectedData={selectedData}

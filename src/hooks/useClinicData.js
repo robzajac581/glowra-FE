@@ -102,13 +102,7 @@ export const useClinicData = (clinicInfo) => {
 
   // Get logo (prefer Logo, fallback to Photo)
   const logo = useMemo(() => {
-    const logoUrl = clinicInfo?.Logo || clinicInfo?.Photo || null;
-    console.log('=== LOGO DEBUG in useClinicData ===');
-    console.log('Logo from DB:', clinicInfo?.Logo);
-    console.log('Photo from DB:', clinicInfo?.Photo);
-    console.log('Final logo URL:', logoUrl);
-    console.log('==================================');
-    return logoUrl;
+    return clinicInfo?.Logo || clinicInfo?.Photo || null;
   }, [clinicInfo?.Logo, clinicInfo?.Photo]);
 
   return {

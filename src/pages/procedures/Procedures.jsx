@@ -62,7 +62,6 @@ const Procedures = () => {
         }
         
         const data = await response.json();
-        console.log('API returned data:', data);
         
         // Transform the data for our component format
         const transformedData = data.map(procedure => ({
