@@ -16,8 +16,8 @@ const toTitleCase = (str) => {
 
 /**
  * Gallery Component
- * Displays clinic photos from new Photos API
- * Falls back to placeholder images if no photos available
+ * Displays clinic photos from Photos API
+ * Returns null if no photos are available
  */
 const Gallery = ({ photos, clinicName }) => {
 	const [swiper, setSwiper] = useState(null);
@@ -28,14 +28,12 @@ const Gallery = ({ photos, clinicName }) => {
 	// Normalize clinic name to title case
 	const displayName = toTitleCase(clinicName);
 
-	// Use API photos or fallback to placeholder images
-	const displayPhotos = photos && photos.length > 0 ? photos : null;
-	const useFallback = !displayPhotos;
-
-	// Don't render if no photos available
-	if (!displayPhotos && !useFallback) {
+	// Only show gallery if there are actual photos
+	if (!photos || photos.length === 0) {
 		return null;
 	}
+
+	const displayPhotos = photos;
 
 	return (
 		<div>
@@ -44,7 +42,7 @@ const Gallery = ({ photos, clinicName }) => {
 					<Swiper
 						onSwiper={setSwiper}
 						onSlideChange={(swiper) => setActive(swiper.activeIndex)}
-						onEnded={(swiper) => setActive((useFallback ? fallbackImages : displayPhotos).length - 1)}
+						onEnded={(swiper) => setActive(displayPhotos.length - 1)}
 						breakpoints={{
 							0: {
 								slidesPerView: 1.4,
@@ -60,43 +58,21 @@ const Gallery = ({ photos, clinicName }) => {
 							},
 						}}
 					>
-						{useFallback ? (
-							// Render fallback images if no photos from API
-							fallbackImages.map((photo, index) => (
-								<SwiperSlide key={index}>
-									<div className="relative rounded-[10px] overflow-hidden aspect-[4/3]">
-										<img
-											src={photo}
-											className="w-full h-full object-cover rounded-[10px]"
-											alt={`${displayName || 'Clinic'} - Photo ${index + 1}`}
-											loading={index < 2 ? "eager" : "lazy"}
-										/>
-									</div>
-								</SwiperSlide>
-							))
-						) : (
-							// Render photos from new API
-							displayPhotos.map((photo, index) => (
-								<SwiperSlide key={photo.photoId || index}>
-									<div className="relative rounded-[10px] overflow-hidden aspect-[4/3]">
-										<img
-											src={photo.urls?.medium || photo.url}
-											className="w-full h-full object-cover rounded-[10px]"
-											alt={`${displayName || 'Clinic'} - Photo ${index + 1}`}
-											width={photo.width}
-											height={photo.height}
-											loading={index < 2 ? "eager" : "lazy"}
-											referrerPolicy="no-referrer"
-											onError={(e) => {
-												e.target.onerror = null;
-												// Use fallback image on error
-												e.target.src = fallbackImages[index % fallbackImages.length];
-											}}
-										/>
-									</div>
-								</SwiperSlide>
-							))
-						)}
+						{displayPhotos.map((photo, index) => (
+							<SwiperSlide key={photo.photoId || index}>
+								<div className="relative rounded-[10px] overflow-hidden aspect-[4/3]">
+									<img
+										src={photo.urls?.medium || photo.url}
+										className="w-full h-full object-cover rounded-[10px]"
+										alt={`${displayName || 'Clinic'} - Photo ${index + 1}`}
+										width={photo.width}
+										height={photo.height}
+										loading={index < 2 ? "eager" : "lazy"}
+										referrerPolicy="no-referrer"
+									/>
+								</div>
+							</SwiperSlide>
+						))}
 					</Swiper>
 					{active !== 0 && (
 						<button
@@ -108,7 +84,7 @@ const Gallery = ({ photos, clinicName }) => {
 							<Prev />
 						</button>
 					)}
-					{active !== (useFallback ? fallbackImages : displayPhotos).length - 1 && (
+					{active !== displayPhotos.length - 1 && (
 						<button
 							type="button"
 							className="slide-btn right-4"
@@ -123,13 +99,5 @@ const Gallery = ({ photos, clinicName }) => {
 		</div>
 	);
 };
-
-// Fallback images if no Google Places photos available
-const fallbackImages = [
-	"/img/clinic/1.png",
-	"/img/clinic/2.png",
-	"/img/clinic/3.png",
-	"/img/clinic/4.png",
-];
 
 export default React.memo(Gallery);

@@ -17,9 +17,6 @@ const ClinicProcedures = ({ procedures, selectedData, setSelectedData }) => {
 		<div>
 			<div className="clinic-procedure">
 				<h5 className="text-[22px]">Procedures</h5>
-				<div className="subtext">
-					City average for procedures are calculated based on location
-				</div>
 			</div>
 			<div className="flex flex-col gap-4">
 				{Object.entries(procedures).map(([category, data]) => (
