@@ -1,5 +1,5 @@
 // useSearchState.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 /**
@@ -9,18 +9,43 @@ const useSearchState = (defaultValues = {}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
+  // Track if we're currently syncing from URL to prevent circular updates
+  const isSyncingFromUrl = useRef(false);
+  
+  // Track the last URL we synced from to avoid re-syncing the same URL
+  const lastSyncedUrl = useRef('');
+  
   // Initialize state from URL params or default values
-  const [searchState, setSearchState] = useState({
-    searchQuery: searchParams.get('searchQuery') || defaultValues.searchQuery || '',
-    category: searchParams.get('category') || defaultValues.category || '',
-    minPrice: searchParams.get('minPrice') || defaultValues.minPrice || '',
-    maxPrice: searchParams.get('maxPrice') || defaultValues.maxPrice || '',
-    specialty: searchParams.get('specialty') || defaultValues.specialty || '',
-    page: parseInt(searchParams.get('page')) || defaultValues.page || 1
+  const [searchState, setSearchState] = useState(() => {
+    // Only use default values if there are NO URL params at all
+    const hasAnyUrlParams = Array.from(searchParams.keys()).length > 0;
+    
+    return {
+      searchQuery: searchParams.get('searchQuery') || (hasAnyUrlParams ? '' : defaultValues.searchQuery || ''),
+      category: searchParams.get('category') || (hasAnyUrlParams ? '' : defaultValues.category || ''),
+      minPrice: searchParams.get('minPrice') || (hasAnyUrlParams ? '' : defaultValues.minPrice || ''),
+      maxPrice: searchParams.get('maxPrice') || (hasAnyUrlParams ? '' : defaultValues.maxPrice || ''),
+      specialty: searchParams.get('specialty') || (hasAnyUrlParams ? '' : defaultValues.specialty || ''),
+      page: parseInt(searchParams.get('page')) || (hasAnyUrlParams ? 1 : defaultValues.page || 1)
+    };
   });
   
   // Sync state when URL params change (for direct URL access or browser back/forward)
   useEffect(() => {
+    const currentUrl = searchParams.toString();
+    
+    // If we just updated the URL from state, skip this sync
+    if (isSyncingFromUrl.current) {
+      isSyncingFromUrl.current = false;
+      lastSyncedUrl.current = currentUrl; // Remember we synced this URL
+      return;
+    }
+    
+    // If this is the same URL we just synced, skip
+    if (lastSyncedUrl.current === currentUrl) {
+      return;
+    }
+    
     const urlState = {
       searchQuery: searchParams.get('searchQuery') || '',
       category: searchParams.get('category') || '',
@@ -36,9 +61,10 @@ const useSearchState = (defaultValues = {}) => {
     });
     
     if (hasChanges) {
+      lastSyncedUrl.current = currentUrl; // Remember we synced this URL
       setSearchState(urlState);
     }
-  }, [searchParams]); // Remove searchState from dependencies to avoid infinite loops
+  }, [searchParams, searchState]); // Add searchState to dependencies so we use current values
 
   // Update URL when search state changes
   useEffect(() => {
@@ -46,14 +72,24 @@ const useSearchState = (defaultValues = {}) => {
     
     // Only add parameters with values to the URL
     Object.entries(searchState).forEach(([key, value]) => {
+      // Don't add page=1 to URL unless there are other params
+      if (key === 'page' && value === 1) {
+        return; // Skip adding page=1
+      }
       if (value !== '' && value !== null && value !== undefined) {
         params.set(key, value);
       }
     });
     
-    // Update the URL with new search params
-    setSearchParams(params);
-  }, [searchState, setSearchParams]);
+    // Check if the URL params are actually different before updating
+    const currentParamsString = searchParams.toString();
+    const newParamsString = params.toString();
+    
+    if (currentParamsString !== newParamsString) {
+      isSyncingFromUrl.current = true; // Mark that we're updating URL so the other effect doesn't react
+      setSearchParams(params);
+    }
+  }, [searchState, setSearchParams, searchParams]);
   
   // Update individual search state fields
   const updateSearchState = (field, value) => {
