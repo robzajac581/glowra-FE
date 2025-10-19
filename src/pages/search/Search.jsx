@@ -40,6 +40,14 @@ const Search = () => {
     page 
   } = searchState;
   
+  // Local state for input value (separate from searchQuery to prevent search-as-you-type)
+  const [inputValue, setInputValue] = useState(searchQuery);
+  
+  // Sync inputValue with searchQuery when it changes from external sources (like URL params)
+  useEffect(() => {
+    setInputValue(searchQuery);
+  }, [searchQuery]);
+  
   // State for full data and displayed products
   const [allProcedures, setAllProcedures] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
@@ -144,7 +152,9 @@ const Search = () => {
   // Handle search submission
   const handleSearch = (e) => {
     e.preventDefault();
-    // Search will be triggered automatically by the useEffect when searchQuery changes
+    // Update searchQuery which will trigger the search via useEffect
+    updateSearchState('searchQuery', inputValue);
+    updateSearchState('page', 1); // Reset to page 1 on new search
   };
   
   // Handle page change
@@ -174,8 +184,8 @@ const Search = () => {
                       : "Search by city, state, procedure name, or doctor"
                   }
                   className="search-input"
-                  value={searchQuery}
-                  onChange={(e) => updateSearchState('searchQuery', e.target.value)}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
                 />
                 <button type="submit" className="search-btn">
                   <span>Search</span>
@@ -374,7 +384,6 @@ const Search = () => {
                       <div className="procedure-card-wrapper" key={item.id}>
                         <SearchResultCard 
                           item={item}
-                          searchQuery={searchQuery}
                         />
                       </div>
                     ))}

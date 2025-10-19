@@ -4,9 +4,8 @@ import { procedure } from "../../../components/Icons";
 
 /**
  * Enhanced ProcedureCard component optimized for search results
- * Highlights search terms in the title and displays improved information
  */
-const SearchResultCard = ({ item, searchQuery }) => {
+const SearchResultCard = ({ item }) => {
 	// Format price to USD currency string
 	const formatPrice = (price) => {
 		return new Intl.NumberFormat('en-US', {
@@ -15,34 +14,6 @@ const SearchResultCard = ({ item, searchQuery }) => {
 			minimumFractionDigits: 0,
 			maximumFractionDigits: 0,
 		}).format(price);
-	};
-
-	// Highlight search term in text if present (title, location, etc.)
-	const highlightSearchTerm = (text, term) => {
-		if (!term || !text) return text;
-		
-		// Case insensitive search
-		const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-		
-		// Skip highlighting if no match
-		if (!regex.test(text)) return text;
-		
-		// Split by the regex and then map the parts, adding highlight to matches
-		const parts = text.split(regex);
-		
-		return (
-			<>
-				{parts.map((part, i) => 
-					regex.test(part) ? (
-						<mark key={i} className="bg-yellow-100 px-[1px] rounded">
-							{part}
-						</mark>
-					) : (
-						part
-					)
-				)}
-			</>
-		);
 	};
 
 	return (
@@ -71,7 +42,7 @@ const SearchResultCard = ({ item, searchQuery }) => {
 				{/* Fixed height title area to accommodate 1-2 lines consistently */}
 				<div className="h-16 mb-3 flex items-start">
 					<h5 className="name text-base leading-tight line-clamp-2">
-						{searchQuery ? highlightSearchTerm(item.name, searchQuery) : item.name}
+						{item.name}
 					</h5>
 				</div>
 				
@@ -79,20 +50,20 @@ const SearchResultCard = ({ item, searchQuery }) => {
 				<div className="text-sm flex-1 flex flex-col justify-between">
 					<div className="space-y-2">
 						<div className="procedure-card-doc-info">
-							<span>{searchQuery ? highlightSearchTerm(item.doctor, searchQuery) : item.doctor}</span>
+							<span>{item.doctor}</span>
 							{item.specialty && (
-								<span className="ml-1 text-gray-500">({searchQuery ? highlightSearchTerm(item.specialty, searchQuery) : item.specialty})</span>
+								<span className="ml-1 text-gray-500">({item.specialty})</span>
 							)}
 						</div>
 						<div className="clinic-name font-medium text-xs">
-							{searchQuery ? highlightSearchTerm(item.doctorInfo, searchQuery) : item.doctorInfo}
+							{item.doctorInfo}
 						</div>
 						<div className="location text-xs flex items-center">
 							<strong className="mr-1">{procedure.mapmarker2}</strong>
 							<span>
-								{searchQuery && item.City ? highlightSearchTerm(item.City, searchQuery) : (item.City || "Location unavailable")},{" "}
+								{item.City || "Location unavailable"},{" "}
 								<strong className="text-primary font-black">
-									{searchQuery && item.State ? highlightSearchTerm(item.State, searchQuery) : item.State}
+									{item.State}
 								</strong>
 							</span>
 						</div>
