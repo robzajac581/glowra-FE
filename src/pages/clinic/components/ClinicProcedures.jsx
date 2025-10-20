@@ -74,6 +74,7 @@ const ClinicProcedureTable = ({
 				<div className="procedure-table-card-name">
 					<span>Procedure</span>
 					<span>Clinic Price Estimate</span>
+					<span></span>
 				</div>
 				<div className="overflow-x-auto">
 					<table className="w-full procedure-pricing-table">
