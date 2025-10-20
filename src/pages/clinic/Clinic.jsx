@@ -6,7 +6,6 @@ import About from "./components/About";
 import ClinicBanner from "./components/ClinicBanner";
 import ClinicProcedures from "./components/ClinicProcedures";
 import ClinicRightSidebar from "./components/ClinicRightSidebar";
-import Faqs from "./components/Faqs";
 import Gallery from "./components/Gallery";
 import InstagramPosts from "./components/InstagramPosts";
 import Location from "./components/Location";
@@ -163,7 +162,6 @@ const Clinic = () => {
 						/>
 							<Location clinicInfo={clinicInfo} />
 								<InstagramPosts />
-								<Faqs />
 								{/* Visit Website Button */}
 								{clinicInfo?.Website && (
 									<div className="mt-6 p-6 bg-gray-50 rounded-lg text-center">
