@@ -1,5 +1,4 @@
 import React from "react";
-import { Link } from "react-router-dom";
 
 const Cta = () => {
 	return (
@@ -13,9 +12,6 @@ const Cta = () => {
 							best results. Access exclusive promotions and read real
 							reviews from patients like you.
 						</p>
-						<Link to="" className="btn">
-							Request a Consultation
-						</Link>
 					</div>
 				</div>
 				<div>

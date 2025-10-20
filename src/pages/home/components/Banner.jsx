@@ -60,7 +60,7 @@ const Banner = () => {
 				</form>
 				<div className="hidden lg:block text-center font-medium mt-[33px] text-white">
 					Search by Condition, Select Locations, or Category.{" "}
-					<span className="font-extrabold text-primary">Learn More</span>
+					{/* <span className="font-extrabold text-primary">Learn More</span> */}
 				</div>
 			</div>
 		</section>

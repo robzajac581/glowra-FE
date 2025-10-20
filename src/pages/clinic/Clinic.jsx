@@ -24,6 +24,8 @@ const Clinic = () => {
 	const [selectedData, setSelectedData] = useState([]);
 	const [clinicInfo, setClinicInfo] = useState(null);
 	const [providers, setProviders] = useState([]);
+	const [requiresConsultRequest, setRequiresConsultRequest] = useState(false);
+	const [consultMessage, setConsultMessage] = useState(null);
 	const [procedures, setProcedures] = useState({});
 	const [photos, setPhotos] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -70,7 +72,10 @@ const Clinic = () => {
 
 				// Update state with fetched data
 				setClinicInfo(clinicData);
-				setProviders(providersData);
+				// Handle new provider API response structure
+				setProviders(providersData.providers || []);
+				setRequiresConsultRequest(providersData.requiresConsultRequest || false);
+				setConsultMessage(providersData.message || null);
 				setProcedures(proceduresData);
 				setPhotos(photosData.photos || []);
 			} catch (err) {
@@ -125,6 +130,8 @@ const Clinic = () => {
 							<ClinicBanner 
 								clinicInfo={clinicInfo} 
 								providers={providers}
+								requiresConsultRequest={requiresConsultRequest}
+								consultMessage={consultMessage}
 								logo={logo}
 								isOpenNow={isOpenNow}
 								closingTime={closingTime}

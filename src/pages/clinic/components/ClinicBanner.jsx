@@ -114,7 +114,7 @@ const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
  * ClinicBanner Component
  * Displays clinic header with logo, name, address, rating, verified badge, category, and open/closed status
  */
-const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) => {
+const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMessage, logo, isOpenNow, closingTime }) => {
 	const carouselRef = useRef(null);
 	const [showLeftArrow, setShowLeftArrow] = useState(false);
 	const [showRightArrow, setShowRightArrow] = useState(true);
@@ -227,66 +227,78 @@ const ClinicBanner = ({ clinicInfo, providers, logo, isOpenNow, closingTime }) =
 				/>
 			</div>
 			
-			{providers && providers.length > 0 && (
-				<>
-					<h5 className="text-lg mb-[22px]">
-						Doctors who work at {displayName}:
-					</h5>
-					<div className="relative">
-						{/* Left Navigation Arrow */}
-						{showLeftArrow && (
-							<button
-								onClick={() => scroll('left')}
-								className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 hover:bg-gray-50 transition-colors"
-								aria-label="Scroll left"
-							>
-								<svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-								</svg>
-							</button>
-						)}
-						
-						{/* Carousel Container */}
-						<div 
-							ref={carouselRef}
-							onScroll={handleScroll}
-							className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
-							style={{ 
-								scrollbarWidth: 'none', 
-								msOverflowStyle: 'none',
-								WebkitOverflowScrolling: 'touch'
-							}}
-						>
-						{providers.map((item, index) => {
-							// Resolve photo URL for development/production
-							const photoURL = resolvePhotoURL(item.PhotoURL);
-							const hasValidPhoto = item.hasPhoto && photoURL;
-							
-							return (
-								<ProviderCard 
-									key={index}
-									provider={item}
-									photoURL={photoURL}
-									hasValidPhoto={hasValidPhoto}
-								/>
-							);
-						})}
-						</div>
-						
-						{/* Right Navigation Arrow */}
-						{showRightArrow && (
-							<button
-								onClick={() => scroll('right')}
-								className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 hover:bg-gray-50 transition-colors"
-								aria-label="Scroll right"
-							>
-								<svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-								</svg>
-							</button>
-						)}
+			{/* Handle consult-only clinics */}
+			{requiresConsultRequest ? (
+				consultMessage && (
+					<div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+						<p className="text-sm text-blue-800 text-center">
+							{consultMessage}
+						</p>
 					</div>
-				</>
+				)
+			) : (
+				/* Show providers section for normal clinics */
+				providers && providers.length > 0 && (
+					<>
+						<h5 className="text-lg mb-[22px]">
+							Doctors who work at {displayName}:
+						</h5>
+						<div className="relative">
+							{/* Left Navigation Arrow */}
+							{showLeftArrow && (
+								<button
+									onClick={() => scroll('left')}
+									className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 hover:bg-gray-50 transition-colors"
+									aria-label="Scroll left"
+								>
+									<svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+									</svg>
+								</button>
+							)}
+							
+							{/* Carousel Container */}
+							<div 
+								ref={carouselRef}
+								onScroll={handleScroll}
+								className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
+								style={{ 
+									scrollbarWidth: 'none', 
+									msOverflowStyle: 'none',
+									WebkitOverflowScrolling: 'touch'
+								}}
+							>
+							{providers.map((item, index) => {
+								// Resolve photo URL for development/production
+								const photoURL = resolvePhotoURL(item.PhotoURL);
+								const hasValidPhoto = item.hasPhoto && photoURL;
+								
+								return (
+									<ProviderCard 
+										key={index}
+										provider={item}
+										photoURL={photoURL}
+										hasValidPhoto={hasValidPhoto}
+									/>
+								);
+							})}
+							</div>
+							
+							{/* Right Navigation Arrow */}
+							{showRightArrow && (
+								<button
+									onClick={() => scroll('right')}
+									className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 hover:bg-gray-50 transition-colors"
+									aria-label="Scroll right"
+								>
+									<svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+									</svg>
+								</button>
+							)}
+						</div>
+					</>
+				)
 			)}
 			
 			<Rating 
