@@ -3,19 +3,16 @@ import { useParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { procedure } from "../../components/Icons";
 import About from "./components/About";
-import AboutProviders from "./components/AboutProviders";
 import ClinicBanner from "./components/ClinicBanner";
 import ClinicProcedures from "./components/ClinicProcedures";
 import ClinicRightSidebar from "./components/ClinicRightSidebar";
 import Faqs from "./components/Faqs";
 import Gallery from "./components/Gallery";
-import Highlights from "./components/Highlights";
 import InstagramPosts from "./components/InstagramPosts";
 import Location from "./components/Location";
 import ReviewsForCosmetics from "./components/ReviewsForCosmetics";
 import WorkingHours from "./components/WorkingHours";
 import { useClinicData } from "../../hooks/useClinicData";
-// import SpecialOffers from "./components/SpecialOffers";
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -166,8 +163,6 @@ const Clinic = () => {
 						/>
 							<Location clinicInfo={clinicInfo} />
 								<InstagramPosts />
-								<AboutProviders /> 
-								{/* TODO: Add providers data or remove this */}
 								<Faqs />
 								{/* Visit Website Button */}
 								{clinicInfo?.Website && (
