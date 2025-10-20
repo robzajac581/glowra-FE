@@ -78,7 +78,7 @@ const menu2 = [
 	},
 	{
 		name: "About Us",
-		url: "#",
+		url: "/about-us",
 	},
 ];
 

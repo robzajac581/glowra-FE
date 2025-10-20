@@ -4,6 +4,7 @@ import "swiper/css/bundle";
 import Clinic from "./pages/clinic/Clinic";
 import Home from "./pages/home/Home";
 import Search from "./pages/search/Search";
+import AboutUs from "./pages/aboutus/AboutUs";
 function App() {
 	const Wrapper = ({ children }) => {
 		const location = useLocation();
@@ -19,6 +20,7 @@ function App() {
 				<Routes>
 					<Route path="/" element={<Home />} />
 					<Route path="/search" element={<Search />} />
+					<Route path="/about-us" element={<AboutUs />} />
 					<Route path="/clinic/:id" element={<Clinic />} />
 					<Route path="*" element={<Home />} />
 				</Routes>

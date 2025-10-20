@@ -87,12 +87,16 @@ const Header = ({ fixed }) => {
 // };
 const menu = [
 	{
+		name: "Home",
+		url: "/",
+	},
+	{
 		name: "Search",
 		url: "/search",
 	},
 	{
 		name: "About Us",
-		url: "/",
+		url: "/about-us",
 	},
 	{
 		name: "Blog",
