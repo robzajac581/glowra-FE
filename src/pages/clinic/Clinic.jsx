@@ -158,11 +158,12 @@ const Clinic = () => {
 								workingHours={workingHours}
 								isOpenNow={isOpenNow}
 							/>
-							<ReviewsForCosmetics 
-								reviews={clinicInfo?.GoogleReviewsJSON}
-								clinicName={clinicInfo?.ClinicName}
-								totalReviewCount={clinicInfo?.GoogleReviewCount}
-							/>
+						<ReviewsForCosmetics 
+							reviews={clinicInfo?.GoogleReviewsJSON}
+							clinicName={clinicInfo?.ClinicName}
+							totalReviewCount={clinicInfo?.GoogleReviewCount}
+							reviewsLink={clinicInfo?.ReviewsLink}
+						/>
 							<Location clinicInfo={clinicInfo} />
 								<InstagramPosts />
 								<AboutProviders /> 
