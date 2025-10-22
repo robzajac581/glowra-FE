@@ -1,11 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { procedure } from "../../../components/Icons";
 
 /**
  * Enhanced ProcedureCard component optimized for search results
  */
 const SearchResultCard = ({ item }) => {
+	const location = useLocation();
+	
 	// Format price to USD currency string
 	const formatPrice = (price) => {
 		return new Intl.NumberFormat('en-US', {
@@ -16,10 +18,13 @@ const SearchResultCard = ({ item }) => {
 		}).format(price);
 	};
 
+	// Preserve search parameters when navigating to clinic page
+	const clinicUrl = `/clinic/${item.clinicId}${location.search}`;
+
 	return (
 		<div className="procedure-card group h-full flex flex-col">
 			<Link 
-				to={`/clinic/${item.clinicId}`} 
+				to={clinicUrl} 
 				className="absolute z-[1] inset-0" 
 			/>
 			<div className="procedure-card-top flex-shrink-0">
@@ -82,7 +87,7 @@ const SearchResultCard = ({ item }) => {
 					<div className="mt-1">
 						<Link 
 							className="btn btn-sm w-full text-xs py-2" 
-							to={`/clinic/${item.clinicId}`}
+							to={clinicUrl}
 						>
 							View Details {procedure.arrowLink}
 						</Link>
