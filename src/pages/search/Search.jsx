@@ -78,10 +78,10 @@ const Search = () => {
           console.error("Error getting user location:", error);
           setLocationError(error.message);
           setLocationLoading(false);
-          // Fallback to default location (Dallas, Texas - matches your data)
+          // Fallback to default location (Chicago, IL)
           setUserLocation({
-            lat: 32.7767,
-            lng: -96.7970
+            lat: 41.8781,
+            lng: -87.6298
           });
         },
         {
@@ -93,10 +93,10 @@ const Search = () => {
     } else {
       setLocationError("Geolocation is not supported by your browser");
       setLocationLoading(false);
-      // Fallback to default location
+      // Fallback to default location (Chicago, IL)
       setUserLocation({
-        lat: 32.7767,
-        lng: -96.7970
+        lat: 41.8781,
+        lng: -87.6298
       });
     }
   }, []);
