@@ -57,6 +57,49 @@ const Search = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalResults, setTotalResults] = useState(0);
+  
+  // User location state for map
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(true);
+
+  // Get user's location for map
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setLocationLoading(false);
+        },
+        (error) => {
+          console.error("Error getting user location:", error);
+          setLocationError(error.message);
+          setLocationLoading(false);
+          // Fallback to default location (Dallas, Texas - matches your data)
+          setUserLocation({
+            lat: 32.7767,
+            lng: -96.7970
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      setLocationError("Geolocation is not supported by your browser");
+      setLocationLoading(false);
+      // Fallback to default location
+      setUserLocation({
+        lat: 32.7767,
+        lng: -96.7970
+      });
+    }
+  }, []);
 
   // Fetch all procedures for indexing
   useEffect(() => {
@@ -352,12 +395,34 @@ const Search = () => {
                 <h5 className="font-medium mb-2 font-Avenir">
                   Nearest Locations
                 </h5>
-                <iframe
-                  title="Search Map"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7298.9601660514245!2d90.36501104466463!3d23.837080364445423!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755c14a3366b005%3A0x901b07016468944c!2sMirpur%20DOHS%2C%20Dhaka!5e0!3m2!1sen!2sbd!4v1721925768310!5m2!1sen!2sbd"
-                  height="250"
-                  style={{ border: "none", width: "100%" }}
-                ></iframe>
+                {locationLoading ? (
+                  <div className="flex justify-center items-center bg-gray-100 rounded-lg" style={{ height: "250px" }}>
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Getting your location...</p>
+                    </div>
+                  </div>
+                ) : userLocation ? (
+                  <iframe
+                    title="Search Map"
+                    src={`https://maps.google.com/maps?q=${userLocation.lat},${userLocation.lng}&t=&z=11&ie=UTF8&iwloc=&output=embed`}
+                    height="250"
+                    style={{ border: "none", width: "100%" }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  ></iframe>
+                ) : (
+                  <div className="flex justify-center items-center bg-gray-100 rounded-lg" style={{ height: "250px" }}>
+                    <p className="text-sm text-gray-600">Unable to load map</p>
+                  </div>
+                )}
+                {locationError && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {locationError === "User denied Geolocation" 
+                      ? "Location access denied. Showing default area." 
+                      : "Using default location."}
+                  </p>
+                )}
               </div>
             </div>
             
