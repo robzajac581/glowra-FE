@@ -100,11 +100,6 @@ const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
 				<div className="text-xs text-black text-opacity-70">
 					{provider.Specialty}
 				</div>
-				{hasValidPhoto && !imageError && (
-					<span className="inline-flex items-center gap-1 text-xs text-green-600 mt-2">
-						✓ Verified
-					</span>
-				)}
 			</div>
 		</div>
 	);
