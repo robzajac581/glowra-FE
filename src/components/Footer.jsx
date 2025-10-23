@@ -11,9 +11,6 @@ const Footer = () => {
 						<Link to="/" className="footer-logo">
 							<img src="/img/logo-bigger.svg" alt="" />
 						</Link>
-						<div className="text-[22.581px] text-black font-light">
-							Find Your Glow.
-						</div>
 					</div>
 					<div className="footer-center">
 						<h5 className="footer-title">Pages</h5>
@@ -35,17 +32,19 @@ const Footer = () => {
 						</div>
 					</div>
 					<div className="footer-right">
-						<h5 className="footer-title">In Social Media</h5>
-						<ul className="social">
+						{/* TODO: add social media links back one day???? */}
+						{/* <h5 className="footer-title">In Social Media</h5> */}
+						{/* <ul className="social">
 							{social.map((item, index) => (
 								<li key={index}>
 									<Link to={item.url}>{item.icon}</Link>
 								</li>
 							))}
-						</ul>
-						<div className="text-xs text-black">
+						</ul> */}
+						{/* TODO: add copyright text back one day???? */}
+						{/* <div className="text-xs text-black">
 							All Right reserved &copy; GlowUp
-						</div>
+						</div> */}
 					</div>
 				</div>
 			</div>
@@ -56,53 +55,45 @@ const Footer = () => {
 const menu = [
 	{
 		name: "Home",
-		url: "#",
+		url: "/",
 	},
 	{
-		name: "Services",
-		url: "#",
-	},
-	{
-		name: "Clinics",
-		url: "#",
-	},
-	{
-		name: "Contact",
-		url: "#",
+		name: "Search",
+		url: "/search",
 	},
 ];
 const menu2 = [
 	{
-		name: "Get a Quote",
-		url: "#",
-	},
-	{
 		name: "About Us",
 		url: "/about-us",
 	},
+	{
+		name: "List your clinic",
+		url: "/",
+	},
 ];
 
-const social = [
-	{
-		icon: socialIcons.whatsapp,
-		url: "",
-	},
-	{
-		icon: socialIcons.mail,
-		url: "",
-	},
-	{
-		icon: socialIcons.instagram,
-		url: "",
-	},
-	{
-		icon: socialIcons.facebook,
-		url: "",
-	},
-	{
-		icon: socialIcons.pinterest,
-		url: "",
-	},
-];
+// const social = [
+// 	{
+// 		icon: socialIcons.whatsapp,
+// 		url: "",
+// 	},
+// 	{
+// 		icon: socialIcons.mail,
+// 		url: "",
+// 	},
+// 	{
+// 		icon: socialIcons.instagram,
+// 		url: "",
+// 	},
+// 	{
+// 		icon: socialIcons.facebook,
+// 		url: "",
+// 	},
+// 	{
+// 		icon: socialIcons.pinterest,
+// 		url: "",
+// 	},
+// ];
 
 export default Footer;

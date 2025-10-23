@@ -87,24 +87,12 @@ const Header = ({ fixed }) => {
 // };
 const menu = [
 	{
-		name: "Home",
-		url: "/",
-	},
-	{
 		name: "Search",
 		url: "/search",
 	},
 	{
 		name: "About Us",
 		url: "/about-us",
-	},
-	{
-		name: "Blog",
-		url: "/",
-	},
-	{
-		name: "Contact Us",
-		url: "/",
 	},
 	{
 		name: "List your clinic on Glowra",
