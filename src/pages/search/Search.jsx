@@ -1,7 +1,7 @@
 // Search.jsx
 import { Radio, Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect, useCallback } from "react";
-import { createSearchIndex, performSearch, applyFilters, paginateResults } from "../../utils/searchUtils";
+import { createSearchIndex, performSearch, applyFilters, paginateResults, getDisplayProcedures } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
@@ -48,11 +48,12 @@ const Search = () => {
     setInputValue(searchQuery);
   }, [searchQuery]);
   
-  // State for full data and displayed products
-  const [allProcedures, setAllProcedures] = useState([]);
+  // State for full data and displayed clinics
+  const [allClinics, setAllClinics] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [clinics, setClinics] = useState([]);
   const [searchIndex, setSearchIndex] = useState(null);
+  const [indexData, setIndexData] = useState(null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -101,12 +102,12 @@ const Search = () => {
     }
   }, []);
 
-  // Fetch all procedures for indexing
+  // Fetch all clinics for indexing
   useEffect(() => {
-    const fetchAllProcedures = async () => {
+    const fetchAllClinics = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/procedures/search-index`);
+        const response = await fetch(`${API_BASE_URL}/api/clinics/search-index`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -114,40 +115,18 @@ const Search = () => {
         
         const data = await response.json();
         
-        // Transform the data for our component format
-        const transformedData = data.map(procedure => ({
-          id: procedure.ProcedureID,
-          clinicId: procedure.ClinicID,
-          img: `/img/procedures/${(procedure.ProcedureID % 6) + 1}.png`, // Cycle through available images
-          doctor: procedure.ProviderName,
-          doctorInfo: procedure.ClinicName,
-          name: procedure.ProcedureName,
-          price: procedure.AverageCost,
-          City: procedure.City,
-          State: procedure.State,
-          website: procedure.Website,
-          category: procedure.Category,
-          specialty: procedure.Specialty
-        }));
+        // Extract clinics array from response
+        const clinicsData = data.clinics || [];
         
-        setAllProcedures(transformedData);
+        setAllClinics(clinicsData);
         
         // Build the Lunr search index using our utility function
-        const idx = createSearchIndex(transformedData, {
-          fields: {
-            name: { boost: 7 },       // Procedure name
-            doctorInfo: { boost: 4 },  // Clinic name
-            doctor: { boost: 2 },      // Provider name
-            category: { boost: 7 },
-            specialty: { boost: 4 },
-            City: { boost: 8 },
-            State: { boost: 9 }
-          }
-        });
+        const { idx, indexData: transformedData } = createSearchIndex(clinicsData);
         
         setSearchIndex(idx);
+        setIndexData(transformedData);
       } catch (error) {
-        console.error('Error fetching procedures for search index:', error);
+        console.error('Error fetching clinics for search index:', error);
         setError(error.message);
         
       } finally {
@@ -155,24 +134,24 @@ const Search = () => {
       }
     };
     
-    fetchAllProcedures();
-  }, []); // Add empty dependency array to prevent infinite loop
+    fetchAllClinics();
+  }, []); // Empty dependency array to fetch once on mount
   
   // Perform search operation and apply filters
   useEffect(() => {
-    if (!searchIndex || allProcedures.length === 0) {
+    if (!searchIndex || allClinics.length === 0) {
       return;
     }
 
     let dataToFilter;
 
     if (!searchQuery.trim()) {
-      // If no search query, use all procedures
-      dataToFilter = allProcedures;
+      // If no search query, use all clinics
+      dataToFilter = allClinics;
       setSearchResults([]);
     } else {
       // Use the performSearch utility, which includes error handling and fallbacks
-      const results = performSearch(searchIndex, allProcedures, searchQuery);
+      const results = performSearch(searchIndex, allClinics, searchQuery);
       setSearchResults(results);
       dataToFilter = results;
     }
@@ -180,17 +159,22 @@ const Search = () => {
     // Apply filters using our utility function
     const filtered = applyFilters(dataToFilter, {
       category,
-      specialty,
       minPrice,
       maxPrice
     });
     
+    // Add display procedures to each clinic based on search context
+    const clinicsWithDisplayProcedures = filtered.map(clinic => ({
+      ...clinic,
+      displayProcedures: getDisplayProcedures(clinic, searchQuery)
+    }));
+    
     // Handle pagination using our utility function
-    const paginationData = paginateResults(filtered, page, NUMBER_OF_CARDS_PER_PAGE);
+    const paginationData = paginateResults(clinicsWithDisplayProcedures, page, NUMBER_OF_CARDS_PER_PAGE);
     
     setTotalResults(paginationData.total);
-    setProducts(paginationData.results);
-  }, [searchIndex, allProcedures, searchQuery, category, specialty, minPrice, maxPrice, page]);
+    setClinics(paginationData.results);
+  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, page]);
   
   // Handle search submission
   const handleSearch = (e) => {
@@ -213,7 +197,7 @@ const Search = () => {
           <h1 className="title">
             {searchQuery ? `Search results for "${searchQuery}":` : "Search Locations or Procedures:"}
           </h1>
-          <div className="subtitle">{totalResults} Procedures Found</div>
+          <div className="subtitle">{totalResults} {totalResults === 1 ? 'Clinic' : 'Clinics'} Found</div>
           
           <div className="flex gap-4 items-start relative z-10">
             {/* Search Bar - 60% width */}
@@ -437,18 +421,19 @@ const Search = () => {
                   <p className="text-red-500 font-medium">Error: {error}</p>
                   <p>Please try again or contact support if the problem persists.</p>
                 </div>
-              ) : products.length === 0 ? (
+              ) : clinics.length === 0 ? (
                 <div className="py-8 text-center">
-                  <p className="text-xl font-medium">No procedures found matching your criteria.</p>
+                  <p className="text-xl font-medium">No clinics found matching your criteria.</p>
                   <p className="mt-2 text-gray-600">Try adjusting your filters or search terms.</p>
                 </div>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-                    {products.map((item) => (
-                      <div className="procedure-card-wrapper" key={item.id}>
+                    {clinics.map((clinic) => (
+                      <div className="procedure-card-wrapper" key={clinic.clinicId}>
                         <SearchResultCard 
-                          item={item}
+                          clinic={clinic}
+                          searchQuery={searchQuery}
                         />
                       </div>
                     ))}

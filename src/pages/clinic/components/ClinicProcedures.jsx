@@ -16,9 +16,10 @@ const ClinicProcedures = ({ procedures, selectedData, setSelectedData }) => {
 
 		const searchParams = new URLSearchParams(location.search);
 		const category = searchParams.get('category');
+		const openCategory = searchParams.get('openCategory');
 		const searchQuery = searchParams.get('searchQuery');
 		
-		const searchTerm = (category || searchQuery || '').toLowerCase().trim();
+		const searchTerm = (openCategory || category || searchQuery || '').toLowerCase().trim();
 		
 		const initialState = {};
 		Object.keys(procedures).forEach((categoryName) => {

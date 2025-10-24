@@ -2,25 +2,146 @@
 import lunr from 'lunr';
 
 /**
- * Creates an enhanced Lunr search index with better handling for partial matches
- * @param {Array} documents - Array of documents to index
- * @param {Object} options - Indexing options with field configurations
- * @returns {Object} Lunr search index
+ * Popular procedures dictionary - ranked by popularity within each category
+ * Used when showing procedures for location-based searches
  */
-export const createSearchIndex = (documents, options = {}) => {
-  // Default field configurations
+const POPULAR_PROCEDURES = {
+  'Breast': ['Breast Augmentation', 'Breast Lift', 'Breast Reduction'],
+  'Face': ['Facelift', 'Rhinoplasty', 'Blepharoplasty'],
+  'Body': ['Liposuction', 'Tummy Tuck', 'Brazilian Butt Lift'],
+  'Injectibles': ['Botox', 'Dermal Fillers', 'Lip Fillers'],
+  'Skin': ['Laser Treatment', 'Chemical Peel', 'Microneedling'],
+  'Other': []
+};
+
+/**
+ * Get popular procedures from a clinic's procedure list
+ * @param {Array} procedures - Array of procedure objects
+ * @returns {Array} Up to 5 popular procedures
+ */
+export const getPopularProcedures = (procedures) => {
+  const selected = [];
+  const perCategory = {};
+
+  // Select up to 2 per category, prioritize by ranking
+  for (const [category, rankedNames] of Object.entries(POPULAR_PROCEDURES)) {
+    perCategory[category] = 0;
+    
+    for (const name of rankedNames) {
+      if (selected.length >= 5) break;
+      if (perCategory[category] >= 2) break;
+      
+      const proc = procedures.find(p => 
+        p.category === category && p.procedureName === name
+      );
+      
+      if (proc) {
+        selected.push(proc);
+        perCategory[category]++;
+      }
+    }
+  }
+
+  // Fill remaining slots with any procedures not yet selected
+  if (selected.length < 5) {
+    const selectedIds = new Set(selected.map(p => p.procedureId));
+    for (const proc of procedures) {
+      if (selected.length >= 5) break;
+      if (!selectedIds.has(proc.procedureId)) {
+        selected.push(proc);
+      }
+    }
+  }
+
+  return selected;
+};
+
+/**
+ * Get procedures to display on a clinic card based on search context
+ * @param {Object} clinic - Clinic object with procedures array
+ * @param {String} searchQuery - Current search query
+ * @returns {Array} Up to 5 procedures to display
+ */
+export const getDisplayProcedures = (clinic, searchQuery) => {
+  if (!clinic.procedures || clinic.procedures.length === 0) {
+    return [];
+  }
+
+  const query = (searchQuery || '').toLowerCase().trim();
+  
+  // If no search query, return popular procedures
+  if (!query) {
+    return getPopularProcedures(clinic.procedures);
+  }
+
+  const matchedProcedures = [];
+  const categoryMatches = new Set();
+
+  // Find directly matching procedures
+  clinic.procedures.forEach(proc => {
+    if (proc.procedureName.toLowerCase().includes(query)) {
+      matchedProcedures.push(proc);
+      categoryMatches.add(proc.category);
+    }
+  });
+
+  // If we found matches, add other procedures from same categories
+  if (matchedProcedures.length > 0) {
+    const relatedProcedures = clinic.procedures.filter(proc => 
+      categoryMatches.has(proc.category) && 
+      !matchedProcedures.find(m => m.procedureId === proc.procedureId)
+    );
+
+    // Combine matched + related, limit to 5 total
+    return [...matchedProcedures, ...relatedProcedures].slice(0, 5);
+  }
+
+  // If no direct matches (location search), return popular procedures
+  return getPopularProcedures(clinic.procedures);
+};
+
+/**
+ * Creates an enhanced Lunr search index for clinic-based search
+ * @param {Array} clinics - Array of clinic objects to index
+ * @param {Object} options - Indexing options with field configurations
+ * @returns {Object} Lunr search index and transformed data
+ */
+export const createSearchIndex = (clinics, options = {}) => {
+  // Transform clinics for indexing
+  const indexData = clinics.map((clinic, index) => {
+    // Concatenate all procedure names for searchability
+    const procedureNames = clinic.procedures.map(p => p.procedureName).join(' ');
+    const procedureCategories = [...new Set(clinic.procedures.map(p => p.category))].join(' ');
+    
+    return {
+      id: index.toString(),
+      clinicName: clinic.clinicName || '',
+      city: clinic.city || '',
+      state: clinic.state || '',
+      address: clinic.address || '',
+      clinicCategory: clinic.clinicCategory || '',
+      procedureNames: procedureNames,
+      procedureCategories: procedureCategories,
+      // Store original index for retrieval
+      _originalIndex: index
+    };
+  });
+
+  // Default field configurations for clinic-based search
   const fields = options.fields || {
-      name: { boost: 7 },       // Procedure name
-      doctorInfo: { boost: 4 },  // Clinic name
-      doctor: { boost: 2 },      // Provider name
-      category: { boost: 7 },
-      specialty: { boost: 4 },
-      City: { boost: 8 },
-      State: { boost: 9 }
+    state: { boost: 9 },
+    city: { boost: 9 },
+    clinicName: { boost: 8 },
+    procedureNames: { boost: 7 },
+    procedureCategories: { boost: 7 },
+    clinicCategory: { boost: 5 },
+    address: { boost: 3 }
   };
 
   // Create the Lunr index with enhanced configuration
   const idx = lunr(function() {
+    this.ref('id');
+    
     // Configure the pipeline for better fuzzy matching
     this.pipeline.remove(lunr.stemmer);
     this.searchPipeline.remove(lunr.stemmer);
@@ -31,29 +152,22 @@ export const createSearchIndex = (documents, options = {}) => {
     });
     
     // Add documents to the index
-    documents.forEach((doc, index) => {
-      // Create a copy of the document with a stringified ID for Lunr
-      const indexDoc = {
-        ...doc,
-        id: index.toString()
-      };
-      this.add(indexDoc);
-    });
+    indexData.forEach(doc => this.add(doc));
   });
 
-  return idx;
+  return { idx, indexData };
 };
 
 /**
  * Performs a search with fallback to simple filtering for complex queries
  * @param {Object} searchIndex - Lunr search index
- * @param {Array} documents - Original documents array
+ * @param {Array} clinics - Original clinics array
  * @param {String} query - Search query
- * @returns {Array} Matched documents
+ * @returns {Array} Matched clinics
  */
-export const performSearch = (searchIndex, documents, query) => {
+export const performSearch = (searchIndex, clinics, query) => {
   if (!query || !query.trim()) {
-    return documents;
+    return clinics;
   }
 
   try {
@@ -136,73 +250,89 @@ export const performSearch = (searchIndex, documents, query) => {
       });
     }
     
-    // If we have results from any strategy, map them back to the original documents
+    // If we have results from any strategy, map them back to the original clinics
     if (searchResults.length > 0) {
-      return searchResults.map(result => documents[parseInt(result.ref)]);
+      return searchResults.map(result => clinics[parseInt(result.ref)]);
     }
     
-    // Final fallback: simple contains search
-    return documents.filter(doc => 
-      (doc.name && doc.name.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.City && doc.City.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.State && doc.State.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.doctor && doc.doctor.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.category && doc.category.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.specialty && doc.specialty.toLowerCase().includes(query.toLowerCase()))
-    );
+    // Final fallback: simple contains search on clinic data
+    return clinics.filter(clinic => {
+      const searchLower = query.toLowerCase();
+      const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
+      const categories = clinic.procedures.map(p => p.category.toLowerCase()).join(' ');
+      
+      return (
+        (clinic.clinicName && clinic.clinicName.toLowerCase().includes(searchLower)) ||
+        (clinic.city && clinic.city.toLowerCase().includes(searchLower)) ||
+        (clinic.state && clinic.state.toLowerCase().includes(searchLower)) ||
+        (clinic.address && clinic.address.toLowerCase().includes(searchLower)) ||
+        (clinic.clinicCategory && clinic.clinicCategory.toLowerCase().includes(searchLower)) ||
+        procedureNames.includes(searchLower) ||
+        categories.includes(searchLower)
+      );
+    });
   } catch (error) {
     console.error('Search error:', error);
     
     // Fall back to simple text matching if Lunr search fails
-    return documents.filter(doc => 
-      (doc.name && doc.name.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.City && doc.City.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.State && doc.State.toLowerCase().includes(query.toLowerCase())) ||
-      (doc.doctorInfo && doc.doctorInfo.toLowerCase().includes(query.toLowerCase()))
-    );
+    return clinics.filter(clinic => {
+      const searchLower = query.toLowerCase();
+      const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
+      
+      return (
+        (clinic.clinicName && clinic.clinicName.toLowerCase().includes(searchLower)) ||
+        (clinic.city && clinic.city.toLowerCase().includes(searchLower)) ||
+        (clinic.state && clinic.state.toLowerCase().includes(searchLower)) ||
+        procedureNames.includes(searchLower)
+      );
+    });
   }
 };
 
 /**
- * Applies filters to a set of procedures
- * @param {Array} procedures - Array of procedures to filter
+ * Applies filters to a set of clinics based on their procedures
+ * @param {Array} clinics - Array of clinics to filter
  * @param {Object} filters - Object containing filter criteria
- * @returns {Array} Filtered procedures
+ * @returns {Array} Filtered clinics with procedures filtered to match criteria
  */
-export const applyFilters = (procedures, filters) => {
-  if (!procedures || procedures.length === 0) {
+export const applyFilters = (clinics, filters) => {
+  if (!clinics || clinics.length === 0) {
     return [];
   }
 
-  return procedures.filter(proc => {
-    // Category filter
-    if (filters.category && 
-        proc.category && 
-        proc.category.toLowerCase() !== filters.category.toLowerCase()) {
-      return false;
-    }
-    
-    // Location filter is removed - now handled through search query
-    
-    // Specialty filter
-    if (filters.specialty && 
-        proc.specialty && 
-        proc.specialty.toLowerCase() !== filters.specialty.toLowerCase()) {
-      return false;
-    }
-    
-    // Price range filters
-    if (filters.minPrice && proc.price < parseFloat(filters.minPrice)) {
-      return false;
-    }
-    
-    if (filters.maxPrice && proc.price > parseFloat(filters.maxPrice)) {
-      return false;
-    }
-    
-    return true;
-  });
+  return clinics
+    .map(clinic => {
+      // Filter the procedures within the clinic
+      let filteredProcedures = [...clinic.procedures];
+
+      // Category filter - only keep procedures in this category
+      if (filters.category) {
+        filteredProcedures = filteredProcedures.filter(proc => 
+          proc.category && proc.category.toLowerCase() === filters.category.toLowerCase()
+        );
+      }
+
+      // Price range filters - only keep procedures in price range
+      if (filters.minPrice) {
+        filteredProcedures = filteredProcedures.filter(proc => 
+          proc.price >= parseFloat(filters.minPrice)
+        );
+      }
+
+      if (filters.maxPrice) {
+        filteredProcedures = filteredProcedures.filter(proc => 
+          proc.price <= parseFloat(filters.maxPrice)
+        );
+      }
+
+      // Return clinic with filtered procedures
+      return {
+        ...clinic,
+        procedures: filteredProcedures
+      };
+    })
+    // Only keep clinics that have procedures after filtering
+    .filter(clinic => clinic.procedures.length > 0);
 };
 
 /**
