@@ -22,6 +22,20 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 		}).format(price);
 	};
 
+	// Normalize clinic name to sentence case (capitalize only first letter)
+	const formatClinicName = (name) => {
+		if (!name) return '';
+		const trimmed = name.trim();
+		return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+	};
+
+	// Normalize category name to sentence case
+	const formatCategoryName = (category) => {
+		if (!category) return '';
+		const trimmed = category.trim();
+		return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+	};
+
 	// Use displayProcedures (pre-computed in Search.jsx) or fallback to first 5 procedures
 	const displayProcedures = clinic.displayProcedures || clinic.procedures.slice(0, 5);
 
@@ -110,41 +124,49 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 					</div>
 				)}
 				
-				{/* Rating Display */}
-				{hasRating ? (
-					<>
-						<div className="rating">
-							<span className="translate-y-[1px]">{clinic.rating.toFixed(1)}</span> {procedure.star}
+				{/* Overlay Badges Container - Redesigned for better spacing */}
+				<div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-2">
+					{/* Left: Clinic Category Badge */}
+					{clinic.clinicCategory && (
+						<div className="bg-primary text-white text-xs py-1.5 px-3 rounded-full font-medium shadow-md">
+							{formatCategoryName(clinic.clinicCategory)}
 						</div>
-						<div className="reviews">
-							{procedure.reviews}
-							<span className="translate-y-[1px]">{clinic.reviewCount} Reviews</span>
-						</div>
-					</>
-				) : (
-					<div className="absolute top-2 right-2 bg-gray-100 text-gray-600 text-xs py-1 px-3 rounded-full font-medium">
-						No reviews yet
+					)}
+					
+					{/* Right: Rating and Reviews */}
+					<div className="flex flex-col items-end gap-1 ml-auto">
+						{hasRating ? (
+							<>
+								{/* Rating Badge */}
+								<div className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs py-1.5 px-3 rounded-full font-bold shadow-md flex items-center gap-1">
+									<span>{clinic.rating.toFixed(1)}</span>
+									{procedure.star}
+								</div>
+								{/* Reviews Count Badge */}
+								<div className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs py-1 px-3 rounded-full font-medium shadow-md flex items-center gap-1">
+									{procedure.reviews}
+									<span>{clinic.reviewCount} Reviews</span>
+								</div>
+							</>
+						) : (
+							<div className="bg-white/95 backdrop-blur-sm text-gray-600 text-xs py-1.5 px-3 rounded-full font-medium shadow-md">
+								No reviews yet
+							</div>
+						)}
 					</div>
-				)}
-				
-				{/* Clinic Category Badge */}
-				{clinic.clinicCategory && (
-					<div className="absolute top-2 left-2 bg-primary text-white text-xs py-1 px-2 rounded-full font-medium">
-						{clinic.clinicCategory}
-					</div>
-				)}
+				</div>
 			</div>
 
 			{/* Clinic Info */}
 			<div className="p-4 flex-1 flex flex-col">
-				{/* Clinic Name */}
-				<div className="mb-3">
+				{/* Clinic Name - Standardized 2-line height */}
+				<div className="mb-3" style={{ minHeight: '3.5rem' }}>
 					<Link 
 						to={clinicUrl}
 						className="hover:text-primary transition-colors"
 					>
 						<h5 className="name text-lg leading-tight line-clamp-2 font-bold">
-							{clinic.clinicName}
+							{formatClinicName(clinic.clinicName)}
 						</h5>
 					</Link>
 				</div>

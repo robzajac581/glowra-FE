@@ -15,11 +15,32 @@ const POPULAR_PROCEDURES = {
 };
 
 /**
+ * Deduplicate procedures by name (keep first occurrence)
+ * @param {Array} procedures - Array of procedure objects
+ * @returns {Array} Deduplicated procedures
+ */
+const deduplicateProcedures = (procedures) => {
+  const seen = new Set();
+  return procedures.filter(proc => {
+    // Create a unique key based on procedure name and category
+    const key = `${proc.procedureName}_${proc.category}`.toLowerCase();
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+};
+
+/**
  * Get popular procedures from a clinic's procedure list
  * @param {Array} procedures - Array of procedure objects
  * @returns {Array} Up to 5 popular procedures
  */
 export const getPopularProcedures = (procedures) => {
+  // First deduplicate all procedures
+  const uniqueProcedures = deduplicateProcedures(procedures);
+  
   const selected = [];
   const perCategory = {};
 
@@ -31,7 +52,7 @@ export const getPopularProcedures = (procedures) => {
       if (selected.length >= 5) break;
       if (perCategory[category] >= 2) break;
       
-      const proc = procedures.find(p => 
+      const proc = uniqueProcedures.find(p => 
         p.category === category && p.procedureName === name
       );
       
@@ -44,10 +65,11 @@ export const getPopularProcedures = (procedures) => {
 
   // Fill remaining slots with any procedures not yet selected
   if (selected.length < 5) {
-    const selectedIds = new Set(selected.map(p => p.procedureId));
-    for (const proc of procedures) {
+    const selectedNames = new Set(selected.map(p => `${p.procedureName}_${p.category}`.toLowerCase()));
+    for (const proc of uniqueProcedures) {
       if (selected.length >= 5) break;
-      if (!selectedIds.has(proc.procedureId)) {
+      const key = `${proc.procedureName}_${proc.category}`.toLowerCase();
+      if (!selectedNames.has(key)) {
         selected.push(proc);
       }
     }
@@ -67,18 +89,21 @@ export const getDisplayProcedures = (clinic, searchQuery) => {
     return [];
   }
 
+  // First deduplicate all procedures from the clinic
+  const uniqueProcedures = deduplicateProcedures(clinic.procedures);
+
   const query = (searchQuery || '').toLowerCase().trim();
   
   // If no search query, return popular procedures
   if (!query) {
-    return getPopularProcedures(clinic.procedures);
+    return getPopularProcedures(uniqueProcedures);
   }
 
   const matchedProcedures = [];
   const categoryMatches = new Set();
 
   // Find directly matching procedures
-  clinic.procedures.forEach(proc => {
+  uniqueProcedures.forEach(proc => {
     if (proc.procedureName.toLowerCase().includes(query)) {
       matchedProcedures.push(proc);
       categoryMatches.add(proc.category);
@@ -87,17 +112,18 @@ export const getDisplayProcedures = (clinic, searchQuery) => {
 
   // If we found matches, add other procedures from same categories
   if (matchedProcedures.length > 0) {
-    const relatedProcedures = clinic.procedures.filter(proc => 
-      categoryMatches.has(proc.category) && 
-      !matchedProcedures.find(m => m.procedureId === proc.procedureId)
-    );
+    const matchedKeys = new Set(matchedProcedures.map(m => `${m.procedureName}_${m.category}`.toLowerCase()));
+    const relatedProcedures = uniqueProcedures.filter(proc => {
+      const key = `${proc.procedureName}_${proc.category}`.toLowerCase();
+      return categoryMatches.has(proc.category) && !matchedKeys.has(key);
+    });
 
     // Combine matched + related, limit to 5 total
     return [...matchedProcedures, ...relatedProcedures].slice(0, 5);
   }
 
   // If no direct matches (location search), return popular procedures
-  return getPopularProcedures(clinic.procedures);
+  return getPopularProcedures(uniqueProcedures);
 };
 
 /**
