@@ -1,11 +1,12 @@
 // Search.jsx
-import { Radio, Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
+import { Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect, useCallback } from "react";
-import { createSearchIndex, performSearch, applyFilters, paginateResults, getDisplayProcedures } from "../../utils/searchUtils";
+import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
 import CombinedPriceFilter from '../../components/CombinedPriceFilter';
+import SortFilter from "../../components/SortFilter";
 import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
 
@@ -15,7 +16,6 @@ const NUMBER_OF_CARDS_PER_PAGE = 9;
 
 const Search = () => {
   const screen = useScreen();
-  const [rating, setRating] = useState("5 star");
   const [categoryOpen, setCategoryOpen] = useState(false);
   
   // Use our custom hook for search state management
@@ -28,6 +28,7 @@ const Search = () => {
     minPrice: "",
     maxPrice: "",
     specialty: "",
+    sortBy: "relevance",
     page: 1
   });
   
@@ -37,6 +38,7 @@ const Search = () => {
     minPrice, 
     maxPrice, 
     specialty, 
+    sortBy,
     page 
   } = searchState;
   
@@ -137,13 +139,14 @@ const Search = () => {
     fetchAllClinics();
   }, []); // Empty dependency array to fetch once on mount
   
-  // Perform search operation and apply filters
+  // Perform search operation, apply filters, sort, and paginate
   useEffect(() => {
     if (!searchIndex || allClinics.length === 0) {
       return;
     }
 
     let dataToFilter;
+    let rawSearchResults = [];
 
     if (!searchQuery.trim()) {
       // If no search query, use all clinics
@@ -152,6 +155,7 @@ const Search = () => {
     } else {
       // Use the performSearch utility, which includes error handling and fallbacks
       const results = performSearch(searchIndex, allClinics, searchQuery);
+      rawSearchResults = searchIndex.search(searchQuery); // Store raw Lunr results for scoring
       setSearchResults(results);
       dataToFilter = results;
     }
@@ -163,8 +167,17 @@ const Search = () => {
       maxPrice
     });
     
+    // Sort the filtered results
+    const sorted = sortResults(
+      filtered,
+      sortBy,
+      searchQuery,
+      rawSearchResults,
+      userLocation
+    );
+    
     // Add display procedures to each clinic based on search context
-    const clinicsWithDisplayProcedures = filtered.map(clinic => ({
+    const clinicsWithDisplayProcedures = sorted.map(clinic => ({
       ...clinic,
       displayProcedures: getDisplayProcedures(clinic, searchQuery)
     }));
@@ -174,7 +187,7 @@ const Search = () => {
     
     setTotalResults(paginationData.total);
     setClinics(paginationData.results);
-  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, page]);
+  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation]);
   
   // Handle search submission
   const handleSearch = (e) => {
@@ -343,36 +356,11 @@ const Search = () => {
           <div className="flex flex-col xl:flex-row gap-8 mt-[34px] md:mt-[63px]">
             {/* Sidebar */}
             <div className="w-full xl:w-[208px] xl:flex-shrink-0 order-2 xl:order-1">
-              {/* Rating filters */}
-              <div className="mb-8">
-                <h5 className="font-bold mb-2 font-Avenir">
-                  Customer Rating
-                </h5>
-                <div className="flex flex-col gap-3">
-                  {ratingList?.map((item) => (
-                    <Radio
-                      key={item.name}
-                      name="terms"
-                      label={
-                        <div
-                          className={`font-medium ${
-                            item.name === rating
-                              ? "text-black"
-                              : "text-text2"
-                          }`}
-                        >
-                          {item.name}
-                        </div>
-                      }
-                      containerProps={{
-                        className: "p-0 items-center radio",
-                      }}
-                      defaultChecked={item.name === rating}
-                      onChange={() => setRating(item.name)}
-                    />
-                  ))}
-                </div>
-              </div>
+              {/* Sort Filter */}
+              <SortFilter
+                value={sortBy}
+                onChange={(value) => updateSearchState('sortBy', value)}
+              />
               
               {/* Map */}
               <div className="mb-8">
@@ -485,14 +473,6 @@ const Search = () => {
     </Layout>
   );
 };
-
-const ratingList = [
-  { name: "5 star" },
-  { name: "4 star (& above)" },
-  { name: "3 star (& above)" },
-  { name: "2 star (& above)" },
-  { name: "1 star (& above)" },
-];
 
 export default Search;
 

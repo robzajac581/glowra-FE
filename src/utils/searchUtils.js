@@ -379,3 +379,184 @@ export const paginateResults = (results, page = 1, limit = 10) => {
     results: results.slice(startIndex, endIndex)
   };
 };
+
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ * @param {Number} lat1 - Latitude of first point
+ * @param {Number} lon1 - Longitude of first point
+ * @param {Number} lat2 - Latitude of second point
+ * @param {Number} lon2 - Longitude of second point
+ * @returns {Number} Distance in kilometers
+ */
+export const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of Earth in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+/**
+ * Calculate relevance score for a clinic based on search context
+ * @param {Object} clinic - Clinic object
+ * @param {String} searchQuery - Search query string
+ * @param {Object} searchResult - Lunr search result (contains score)
+ * @param {Object} userLocation - User's location { lat, lng }
+ * @returns {Number} Relevance score (higher is more relevant)
+ */
+export const calculateRelevanceScore = (clinic, searchQuery, searchResult = null, userLocation = null) => {
+  let score = 0;
+  const query = (searchQuery || '').toLowerCase().trim();
+  
+  // 1. Search Match Score (0-100 points, weight: 10x)
+  let searchMatchScore = 0;
+  
+  if (query && searchResult) {
+    // Base score from Lunr (0-10, normalize to 0-10)
+    searchMatchScore = Math.min(searchResult.score || 0, 10);
+    
+    // Exact match bonuses
+    const clinicName = (clinic.clinicName || '').toLowerCase();
+    const city = (clinic.city || '').toLowerCase();
+    const state = (clinic.state || '').toLowerCase();
+    
+    if (clinicName === query) searchMatchScore += 5; // Exact clinic name match
+    else if (clinicName.includes(query)) searchMatchScore += 2; // Partial clinic name match
+    
+    if (city === query || state === query) searchMatchScore += 3; // Exact location match
+    else if (city.includes(query) || state.includes(query)) searchMatchScore += 1; // Partial location match
+  } else if (!query) {
+    // No search query - base score for all
+    searchMatchScore = 5;
+  }
+  
+  score += searchMatchScore * 10; // 0-100 points
+  
+  // 2. Procedure Match Score (0-50 points, weight: 5x)
+  let procedureMatchScore = 0;
+  
+  if (query && clinic.procedures && clinic.procedures.length > 0) {
+    let exactMatches = 0;
+    let partialMatches = 0;
+    let categoryMatches = 0;
+    
+    clinic.procedures.forEach(proc => {
+      const procName = (proc.procedureName || '').toLowerCase();
+      const procCategory = (proc.category || '').toLowerCase();
+      
+      if (procName === query) {
+        exactMatches++;
+      } else if (procName.includes(query)) {
+        partialMatches++;
+      }
+      
+      if (procCategory === query || procCategory.includes(query)) {
+        categoryMatches++;
+      }
+    });
+    
+    procedureMatchScore = Math.min(
+      (exactMatches * 3) + (partialMatches * 1) + (categoryMatches * 0.5),
+      10
+    );
+  } else if (!query && clinic.procedures) {
+    // No query - score based on procedure variety
+    procedureMatchScore = Math.min(clinic.procedures.length * 0.1, 5);
+  }
+  
+  score += procedureMatchScore * 5; // 0-50 points
+  
+  // 3. Rating Score (0-10 points, weight: 2x)
+  const rating = clinic.rating || 0;
+  score += rating * 2; // 0-10 points
+  
+  // 4. Review Count Score (0-5 points, weight: 0.1x)
+  const reviewCount = clinic.reviewCount || 0;
+  score += Math.min(reviewCount, 50) * 0.1; // 0-5 points
+  
+  // 5. Distance Penalty (subtract points based on distance)
+  if (!query && userLocation && clinic.latitude && clinic.longitude) {
+    // When no search query, prioritize nearby locations
+    const distance = calculateDistance(
+      userLocation.lat,
+      userLocation.lng,
+      clinic.latitude,
+      clinic.longitude
+    );
+    score -= distance * 0.01; // Penalty increases with distance
+  }
+  
+  return score;
+};
+
+/**
+ * Sort clinics based on specified sort mode
+ * @param {Array} clinics - Array of clinics to sort
+ * @param {String} sortBy - Sort mode: 'relevance', 'rating', 'reviewCount'
+ * @param {String} searchQuery - Current search query
+ * @param {Array} searchResults - Lunr search results (for relevance scoring)
+ * @param {Object} userLocation - User's location { lat, lng }
+ * @returns {Array} Sorted clinics
+ */
+export const sortResults = (clinics, sortBy = 'relevance', searchQuery = '', searchResults = [], userLocation = null) => {
+  if (!clinics || clinics.length === 0) {
+    return [];
+  }
+  
+  // Create a copy to avoid mutating original array
+  const clinicsToSort = [...clinics];
+  
+  switch (sortBy) {
+    case 'rating':
+      // Sort by average rating (highest first), then by review count as tiebreaker
+      return clinicsToSort.sort((a, b) => {
+        const ratingDiff = (b.rating || 0) - (a.rating || 0);
+        if (ratingDiff !== 0) return ratingDiff;
+        return (b.reviewCount || 0) - (a.reviewCount || 0);
+      });
+      
+    case 'reviewCount':
+      // Sort by review count (most reviews first), then by rating as tiebreaker
+      return clinicsToSort.sort((a, b) => {
+        const reviewDiff = (b.reviewCount || 0) - (a.reviewCount || 0);
+        if (reviewDiff !== 0) return reviewDiff;
+        return (b.rating || 0) - (a.rating || 0);
+      });
+      
+    case 'relevance':
+    default:
+      // Build a map of clinic IDs to search results for quick lookup
+      const searchResultMap = {};
+      if (searchResults && searchResults.length > 0) {
+        searchResults.forEach(result => {
+          const clinicIndex = parseInt(result.ref);
+          searchResultMap[clinicIndex] = result;
+        });
+      }
+      
+      // Calculate relevance score for each clinic and sort
+      const clinicsWithScores = clinicsToSort.map((clinic, index) => {
+        const searchResult = searchResultMap[index] || null;
+        const relevanceScore = calculateRelevanceScore(
+          clinic,
+          searchQuery,
+          searchResult,
+          userLocation
+        );
+        
+        return {
+          clinic,
+          score: relevanceScore
+        };
+      });
+      
+      // Sort by relevance score (highest first)
+      clinicsWithScores.sort((a, b) => b.score - a.score);
+      
+      return clinicsWithScores.map(item => item.clinic);
+  }
+};

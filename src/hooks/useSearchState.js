@@ -26,6 +26,7 @@ const useSearchState = (defaultValues = {}) => {
       minPrice: searchParams.get('minPrice') || (hasAnyUrlParams ? '' : defaultValues.minPrice || ''),
       maxPrice: searchParams.get('maxPrice') || (hasAnyUrlParams ? '' : defaultValues.maxPrice || ''),
       specialty: searchParams.get('specialty') || (hasAnyUrlParams ? '' : defaultValues.specialty || ''),
+      sortBy: searchParams.get('sortBy') || (hasAnyUrlParams ? 'relevance' : defaultValues.sortBy || 'relevance'),
       page: parseInt(searchParams.get('page')) || (hasAnyUrlParams ? 1 : defaultValues.page || 1)
     };
   });
@@ -52,6 +53,7 @@ const useSearchState = (defaultValues = {}) => {
       minPrice: searchParams.get('minPrice') || '',
       maxPrice: searchParams.get('maxPrice') || '',
       specialty: searchParams.get('specialty') || '',
+      sortBy: searchParams.get('sortBy') || 'relevance',
       page: parseInt(searchParams.get('page')) || 1
     };
     
@@ -109,6 +111,7 @@ const useSearchState = (defaultValues = {}) => {
       minPrice: defaultValues.minPrice || '',
       maxPrice: defaultValues.maxPrice || '',
       specialty: defaultValues.specialty || '',
+      sortBy: defaultValues.sortBy || 'relevance',
       page: 1
     });
   };
