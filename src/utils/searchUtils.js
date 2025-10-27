@@ -316,7 +316,7 @@ export const performSearch = (searchIndex, clinics, query) => {
 };
 
 /**
- * Applies filters to a set of clinics based on their procedures
+ * Applies filters to a set of clinics based on clinic category and procedure prices
  * @param {Array} clinics - Array of clinics to filter
  * @param {Object} filters - Object containing filter criteria
  * @returns {Array} Filtered clinics with procedures filtered to match criteria
@@ -327,16 +327,19 @@ export const applyFilters = (clinics, filters) => {
   }
 
   return clinics
-    .map(clinic => {
-      // Filter the procedures within the clinic
-      let filteredProcedures = [...clinic.procedures];
-
-      // Category filter - only keep procedures in this category
+    .filter(clinic => {
+      // Category filter - filter by clinic category, not procedure category
       if (filters.category) {
-        filteredProcedures = filteredProcedures.filter(proc => 
-          proc.category && proc.category.toLowerCase() === filters.category.toLowerCase()
-        );
+        if (!clinic.clinicCategory) {
+          return false;
+        }
+        return clinic.clinicCategory.toLowerCase() === filters.category.toLowerCase();
       }
+      return true;
+    })
+    .map(clinic => {
+      // Filter the procedures within the clinic for price ranges only
+      let filteredProcedures = [...clinic.procedures];
 
       // Price range filters - only keep procedures in price range
       if (filters.minPrice) {
