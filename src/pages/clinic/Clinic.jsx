@@ -161,9 +161,9 @@ const Clinic = () => {
 							reviewsLink={clinicInfo?.ReviewsLink}
 						/>
 							<Location clinicInfo={clinicInfo} />
-								<InstagramPosts />
+								{/* <InstagramPosts /> */}
 								{/* Visit Website Button */}
-								{clinicInfo?.Website && (
+								{/* {clinicInfo?.Website && (
 									<div className="mt-6 p-6 bg-gray-50 rounded-lg text-center">
 										<a 
 											href={clinicInfo.Website.startsWith('http') ? clinicInfo.Website : `https://${clinicInfo.Website}`} 
@@ -174,7 +174,7 @@ const Clinic = () => {
 											Visit Clinic Website {procedure.arrowLink}
 										</a>
 									</div>
-								)}
+								)} */}
 							</div>
 						</div>
 						<div className="w-full lg:w-1/4 flex-grow xl:max-w-[400px]">
