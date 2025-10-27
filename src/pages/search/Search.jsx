@@ -117,8 +117,20 @@ const Search = () => {
         
         const data = await response.json();
         
-        // Extract clinics array from response
-        const clinicsData = data.clinics || [];
+        // Extract clinics array from response and filter out closed clinics
+        const clinicsData = (data.clinics || []).filter(clinic => {
+          // Check if clinic has businessStatus field and it's operational
+          if (clinic.businessStatus && clinic.businessStatus !== 'OPERATIONAL') {
+            return false;
+          }
+          
+          // Also check if clinic name contains "(closed)"
+          if (clinic.clinicName && clinic.clinicName.toLowerCase().includes('(closed)')) {
+            return false;
+          }
+          
+          return true;
+        });
         
         setAllClinics(clinicsData);
         

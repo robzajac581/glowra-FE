@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { icons } from "../../../components/Icons";
+import ClinicInitialAvatar from "../../../components/ClinicInitialAvatar";
 
 /**
  * LocalDoctorsCard Component
@@ -8,6 +9,9 @@ import { icons } from "../../../components/Icons";
  * Used in the "Book with Local Doctors" section on the homepage
  */
 const LocalDoctorsCard = ({ clinic }) => {
+	// State to track if photo failed to load (must be before early return)
+	const [photoError, setPhotoError] = React.useState(false);
+
 	if (!clinic) return null;
 
 	const {
@@ -67,9 +71,6 @@ const LocalDoctorsCard = ({ clinic }) => {
 		));
 	};
 
-	// Use clinic photo or fallback to placeholder
-	const displayPhoto = photoURL || "/img/client/1.png";
-
 	// Truncate review text to fit card (approximately 250 chars for ~5 lines)
 	const truncateText = (text, maxLength = 250) => {
 		if (!text) return "";
@@ -83,15 +84,16 @@ const LocalDoctorsCard = ({ clinic }) => {
 	return (
 		<div className="client-card flex flex-col h-full">
 			<div className="flex items-center gap-4 mb-4">
-				<img
-					src={displayPhoto}
-					alt={displayName}
-					className="w-[76px] h-[76px] rounded-full object-cover flex-shrink-0"
-					onError={(e) => {
-						// Fallback to placeholder if image fails to load
-						e.target.src = "/img/client/1.png";
-					}}
-				/>
+				{photoURL && !photoError ? (
+					<img
+						src={photoURL}
+						alt={displayName}
+						className="w-[76px] h-[76px] rounded-full object-cover flex-shrink-0"
+						onError={() => setPhotoError(true)}
+					/>
+				) : (
+					<ClinicInitialAvatar clinicName={displayName} size={76} />
+				)}
 				<div className="flex-grow min-w-0">
 					<h3 className="text-[26px] mb-[3px] leading-tight line-clamp-2 min-h-[60px]">
 						{displayName}

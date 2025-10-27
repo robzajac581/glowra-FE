@@ -10,8 +10,23 @@ const API_BASE_URL = 'http://localhost:3001';
 const DEFAULT_LOCATION = {
 	lat: 41.8781,
 	lng: -87.6298,
-	city: "Chicago"
+	city: "Chicago",
+	state: "IL"
 };
+
+// States to expand to based on the user's state
+const NEARBY_STATES = {
+	'IL': ['WI', 'IN', 'MI', 'IA', 'MO'],
+	'WI': ['IL', 'MI', 'MN', 'IA'],
+	'IN': ['IL', 'OH', 'MI', 'KY'],
+	'MI': ['WI', 'IN', 'IL', 'OH'],
+	'IA': ['WI', 'IL', 'MN', 'MO', 'NE', 'SD'],
+	'MO': ['IL', 'IA', 'KS', 'AR', 'TN', 'KY'],
+	// Add more states as needed
+};
+
+// Distances in miles to try when searching nearby
+const SEARCH_RADIUSES = [25, 50, 100, 150, 200];
 
 const LocalDoctors = () => {
 	const screen = useScreen();
@@ -60,23 +75,90 @@ const LocalDoctors = () => {
 				setLoading(true);
 				setError(null);
 
-				const url = `${API_BASE_URL}/api/clinics/nearby-top-rated?lat=${userLocation.lat}&lng=${userLocation.lng}&limit=3`;
+				// Helper function to check if a clinic is open
+				const isClinicOpen = (clinic) => {
+					// Check if clinic has businessStatus field and it's operational
+					if (clinic.businessStatus && clinic.businessStatus !== 'OPERATIONAL') {
+						return false;
+					}
+					
+					// Also check if clinic name contains "(closed)"
+					if (clinic.clinicName && clinic.clinicName.toLowerCase().includes('(closed)')) {
+						return false;
+					}
+					
+					return true;
+				};
 
-				const response = await fetch(url);
+				// Try fetching with progressively larger limits to account for filtering
+				let openClinics = [];
+				let fetchLimit = 10; // Start with higher limit to account for closed clinics
+				let attempts = 0;
+				const maxAttempts = 3;
 
-				if (!response.ok) {
-					const errorText = await response.text();
-					console.error('Error response:', errorText);
-					throw new Error(`Backend error: ${response.status}`);
+				while (openClinics.length < 3 && attempts < maxAttempts) {
+					const url = `${API_BASE_URL}/api/clinics/nearby-top-rated?lat=${userLocation.lat}&lng=${userLocation.lng}&limit=${fetchLimit}`;
+					
+					const response = await fetch(url);
+
+					if (!response.ok) {
+						const errorText = await response.text();
+						console.error('Error response:', errorText);
+						throw new Error(`Backend error: ${response.status}`);
+					}
+
+					const data = await response.json();
+					
+					if (data.clinics && data.clinics.length > 0) {
+						// Filter out closed clinics
+						const filteredClinics = data.clinics.filter(isClinicOpen);
+						openClinics = filteredClinics.slice(0, 3);
+						
+						// If we got enough clinics, break
+						if (openClinics.length >= 3) {
+							break;
+						}
+						
+						// If we got all available clinics from the backend but still need more
+						if (data.clinics.length < fetchLimit) {
+							// We've exhausted nearby clinics, try expanding to nearby states
+							if (userLocation.state) {
+								const nearbyStates = NEARBY_STATES[userLocation.state] || [];
+								
+								// Try to fetch from all clinics and filter by nearby states
+								const expandedUrl = `${API_BASE_URL}/api/clinics/search-index`;
+								const expandedResponse = await fetch(expandedUrl);
+								
+								if (expandedResponse.ok) {
+									const expandedData = await expandedResponse.json();
+									
+									// Filter by nearby states and exclude already fetched clinics
+									const existingIds = new Set(openClinics.map(c => c.clinicId));
+									const stateClinics = expandedData.clinics
+										.filter(c => isClinicOpen(c) && 
+											nearbyStates.includes(c.state) && 
+											!existingIds.has(c.clinicId))
+										.sort((a, b) => {
+											// Sort by rating, then review count
+											if (b.rating !== a.rating) return b.rating - a.rating;
+											return b.reviewCount - a.reviewCount;
+										})
+										.slice(0, 3 - openClinics.length);
+									
+									openClinics = [...openClinics, ...stateClinics];
+								}
+							}
+							break;
+						}
+					} else {
+						break;
+					}
+					
+					attempts++;
+					fetchLimit += 10; // Increase limit for next attempt
 				}
 
-				const data = await response.json();
-				
-				if (data.clinics && data.clinics.length > 0) {
-					setClinics(data.clinics);
-				} else {
-					setClinics([]);
-				}
+				setClinics(openClinics);
 			} catch (err) {
 				console.error('Error fetching nearby clinics:', err);
 				setError(err.message);
