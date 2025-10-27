@@ -1,147 +1,145 @@
-import { Collapse, Option, Select } from "@material-tailwind/react";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { icons } from "../../../components/Icons";
-import ProcedureCard from "../../../components/ProcedureCard";
+import SearchResultCard from "../../search/components/SearchResultCard";
 import useScreen from "../../../hooks/useScreen";
-import useSearchState from "../../../hooks/useSearchState";
 
 const API_BASE_URL = 'http://localhost:3001';
 
-const FindCosmetics = () => {
-	const [open, setOpen] = useState(false);
-	const screen = useScreen();
-	const [searchInput, setSearchInput] = useState('');
-	const [featuredProcedures, setFeaturedProcedures] = useState([]);
-	const [loading, setLoading] = useState(true);
-	
-	// Use our custom search hook
-	const { 
-		searchState, 
-		updateSearchState, 
-		navigateToSearch 
-	} = useSearchState({
-		searchQuery: "",
-		category: "",
-		minPrice: "",
-		maxPrice: "",
-		specialty: "",
-		page: 1
-	});
+// Default location: Chicago, IL
+const DEFAULT_LOCATION = {
+	lat: 41.8781,
+	lng: -87.6298,
+	city: "Chicago",
+	state: "IL"
+};
 
-	// Fetch featured procedures on component mount
+const FindCosmetics = () => {
+	const screen = useScreen();
+	const [clinics, setClinics] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const [userLocation, setUserLocation] = useState(null);
+	const [locationLoading, setLocationLoading] = useState(true);
+
+	// Get user's location
 	useEffect(() => {
-		const fetchFeaturedProcedures = async () => {
+		if ("geolocation" in navigator) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					setUserLocation({
+						lat: position.coords.latitude,
+						lng: position.coords.longitude
+					});
+					setLocationLoading(false);
+				},
+				(error) => {
+					console.log("Location access denied or unavailable, using default (Chicago):", error.message);
+					// Fallback to Chicago
+					setUserLocation(DEFAULT_LOCATION);
+					setLocationLoading(false);
+				},
+				{
+					enableHighAccuracy: false,
+					timeout: 5000,
+					maximumAge: 300000 // Cache for 5 minutes
+				}
+			);
+		} else {
+			console.log("Geolocation not supported, using default location (Chicago)");
+			setUserLocation(DEFAULT_LOCATION);
+			setLocationLoading(false);
+		}
+	}, []);
+
+	// Fetch clinics based on location once we have it
+	useEffect(() => {
+		if (!userLocation || locationLoading) return;
+
+		const fetchClinics = async () => {
 			try {
 				setLoading(true);
-				const response = await fetch(`${API_BASE_URL}/api/procedures?limit=6`);
-				
-				if (!response.ok) {
-					throw new Error('Failed to fetch featured procedures');
+				setError(null);
+
+				// Helper function to check if a clinic is open
+				const isClinicOpen = (clinic) => {
+					if (clinic.businessStatus && clinic.businessStatus !== 'OPERATIONAL') {
+						return false;
+					}
+					if (clinic.clinicName && clinic.clinicName.toLowerCase().includes('(closed)')) {
+						return false;
+					}
+					return true;
+				};
+
+				// Helper function to calculate distance between two points
+				const calculateDistance = (lat1, lng1, lat2, lng2) => {
+					const R = 3959; // Earth's radius in miles
+					const dLat = (lat2 - lat1) * Math.PI / 180;
+					const dLng = (lng2 - lng1) * Math.PI / 180;
+					const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+						Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+						Math.sin(dLng / 2) * Math.sin(dLng / 2);
+					const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+					return R * c;
+				};
+
+				// Fetch all clinics from search-index (includes procedures)
+				const allClinicsUrl = `${API_BASE_URL}/api/clinics/search-index`;
+				const allClinicsResponse = await fetch(allClinicsUrl);
+
+				if (!allClinicsResponse.ok) {
+					throw new Error('Failed to fetch clinics');
 				}
+
+				const allClinicsData = await allClinicsResponse.json();
 				
-				const data = await response.json();
-				
-				// Transform the data for our component format
-				const transformedData = data.procedures.map(procedure => ({
-					id: procedure.ProcedureID,
-					clinicId: procedure.ClinicID || "1", // Fallback if not available
-					img: `/img/procedures/${(procedure.ProcedureID % 6) + 1}.png`, // Cycle through available images
-					doctor: procedure.ProviderName,
-					doctorInfo: procedure.ClinicName,
-					name: procedure.ProcedureName,
-					price: procedure.AverageCost,
-					City: procedure.City,
-					State: procedure.State,
-					website: procedure.Website
-				}));
-				
-				setFeaturedProcedures(transformedData);
-			} catch (error) {
-				console.error('Error fetching featured procedures:', error);
-				// Fallback to hardcoded data if API fails
-				setFeaturedProcedures(products);
+				// Filter out closed clinics
+				let openClinics = allClinicsData.clinics.filter(isClinicOpen);
+
+				// Calculate distance for each clinic and sort by distance
+				openClinics = openClinics.map(clinic => ({
+					...clinic,
+					distance: calculateDistance(
+						userLocation.lat,
+						userLocation.lng,
+						clinic.latitude || 0,
+						clinic.longitude || 0
+					)
+				})).sort((a, b) => a.distance - b.distance);
+
+				// Take first 6 clinics
+				setClinics(openClinics.slice(0, 6));
+			} catch (err) {
+				console.error('Error fetching clinics:', err);
+				setError(err.message);
 			} finally {
 				setLoading(false);
 			}
 		};
-		
-		fetchFeaturedProcedures();
-	}, []);
 
-	// Handle search form submission
-	const handleSearchSubmit = (e) => {
-		e.preventDefault();
-		
-		// Update search state with input value
-		updateSearchState('searchQuery', searchInput);
-		
-		// Navigate to search page with query
-		navigateToSearch();
-	};
+		fetchClinics();
+	}, [userLocation, locationLoading]);
 
 	return (
 		<section className="find-cosmetic">
 			<div className="container">
-				<h2 className="find-cosmetic-title">
-					Find Your Cosmetic Procedure
-				</h2>
-				<form onSubmit={handleSearchSubmit}>
-					<div className="flex md:gap-[30px] mb-[13px] md:mb-[30px]">
-						<div className="w-0 flex-grow relative -mr-4 md:mr-0">
-							<input
-								type="text"
-								placeholder={
-									screen < 768
-										? "Search procedure or location"
-										: "Search by procedure name, city, state, or doctor"
-								}
-								className="find-cosmetic-input"
-								value={searchInput}
-								onChange={(e) => setSearchInput(e.target.value)}
-							/>
-							<button type="submit" className="find-cosmetic-search-btn">
-								<span>Search {icons.searchIcon3}</span>
-							</button>
-						</div>
-						<Link to="/search" className="find-cosmetic-btn">
-							<span className="hidden md:block">See All</span>{" "}
-							{icons.rightArrow}
-						</Link>
-					</div>
-				</form>
+				{/* Header with title and See All button side by side */}
+				<div className="flex justify-between items-center mb-[19px] md:mb-5">
+					<h2 className="find-cosmetic-title mb-0">
+						Find Your Cosmetic Procedure
+					</h2>
+					<Link to="/search" className="find-cosmetic-btn">
+						<span className="hidden md:block">See All</span>{" "}
+						{icons.rightArrow}
+					</Link>
+				</div>
 				
-				{/* Advanced filter section */}
-				{screen >= 1024 ? (
-					<AdvancedFilter 
-						searchState={searchState}
-						updateSearchState={updateSearchState}
-					/>
-				) : (
-					<Collapse open={open}>
-						<AdvancedFilter 
-							searchState={searchState}
-							updateSearchState={updateSearchState}
-						/>
-					</Collapse>
-				)}
-				
-				<button
-					type="button"
-					onClick={() => setOpen(!open)}
-					className={`text-black flex gap-3 lg:hidden ${
-						open ? "mt-3" : ""
-					}`}
-				>
-					{icons.filter}
-					Advanced filters
-				</button>
-				
-				{/* Featured procedures grid */}
-				<div className="products-grid">
-					{loading ? (
+				{/* Clinic cards grid */}
+				<div className="products-grid mt-[34px] md:mt-[63px]">
+					{loading || locationLoading ? (
 						// Show skeleton loaders when loading
-						Array(screen < 1024 ? (screen < 640 ? 3 : 4) : 6).fill(0).map((_, idx) => (
+						Array(6).fill(0).map((_, idx) => (
 							<div key={idx} className="procedure-card animate-pulse">
 								<div className="procedure-card-top bg-gray-200 h-48"></div>
 								<div className="p-5">
@@ -152,12 +150,22 @@ const FindCosmetics = () => {
 								</div>
 							</div>
 						))
+					) : error ? (
+						// Error state
+						<div className="col-span-3 py-8 text-center">
+							<p className="text-gray-600">Unable to load clinics at this time.</p>
+							<p className="text-sm text-gray-500 mt-2">Please try again later.</p>
+						</div>
 					) : (
-						featuredProcedures
-							.slice(0, screen < 1024 ? (screen < 640 ? 3 : 4) : 6)
-							.map((item) => (
-								<ProcedureCard item={item} key={item.id} />
-							))
+						// Display clinic cards
+						clinics.map((clinic) => (
+							<div className="procedure-card-wrapper" key={clinic.clinicId}>
+								<SearchResultCard 
+									clinic={clinic}
+									searchQuery=""
+								/>
+							</div>
+						))
 					)}
 				</div>
 			</div>
@@ -169,127 +177,5 @@ const FindCosmetics = () => {
 		</section>
 	);
 };
-
-const AdvancedFilter = ({ searchState, updateSearchState }) => {
-	const { 
-		category = "", 
-		minPrice = "", 
-		maxPrice = "", 
-		specialty = "" 
-	} = searchState;
-	
-	return (
-		<div className="advanced-search-flex">
-			<div className="select-item">
-				{icons.searchicon}
-				<label className="text-text">Procedure Type:</label>
-				<Select
-					className="border-none rounded-xl"
-					containerProps={{
-						className: "!min-w-20 w-full select-4",
-					}}
-					labelProps={{
-						className: "hidden",
-					}}
-					value={category}
-					onChange={(value) => updateSearchState('category', value)}
-				>
-					<Option value="">All Categories</Option>
-					<Option value="Breast">Breast</Option>
-					<Option value="Body">Body</Option>
-					<Option value="Face">Face</Option>
-					<Option value="Injectibles">Injectibles</Option>
-					<Option value="Skin">Skin</Option>
-				</Select>
-			</div>
-			{/* Location filter removed - now handled through search bar */}
-			<div className="select-item">
-				{icons.dollar}
-				<label className="text-text">Price Range:</label>
-				<Select
-					className="border-none rounded-xl"
-					containerProps={{
-						className: "!min-w-20 w-full select-4",
-					}}
-					labelProps={{
-						className: "hidden",
-					}}
-					value={minPrice}
-					onChange={(value) => updateSearchState('minPrice', value)}
-				>
-					<Option value="">Any Price</Option>
-					<Option value="1000">From $1,000</Option>
-					<Option value="3500">From $3,500</Option>
-					<Option value="5000">From $5,000</Option>
-					<Option value="7500">From $7,500</Option>
-				</Select>
-			</div>
-			<div className="select-item">
-				{icons.doctor}
-				<label className="text-text">Specialty:</label>
-				<Select
-					className="border-none rounded-xl"
-					containerProps={{
-						className: "!min-w-20 w-full select-4",
-					}}
-					labelProps={{
-						className: "hidden",
-					}}
-					value={specialty}
-					onChange={(value) => updateSearchState('specialty', value)}
-				>
-					<Option value="">Any Specialty</Option>
-					<Option value="Plastic Surgery">Plastic Surgery</Option>
-					<Option value="Dermatology">Dermatology</Option>
-				</Select>
-			</div>
-		</div>
-	);
-};
-
-export const products = [
-	{
-		id: "1",
-		img: "/img/procedures/1.png",
-		doctor: "Dr. Jane Smith",
-		doctorInfo: "Board-Certified Dermatologist",
-		name: "Botox Cosmetic RTASCX (Wrinkle Reduction)",
-	},
-	{
-		id: "2",
-		img: "/img/procedures/2.png",
-		doctor: "Dr. Jane Smith",
-		doctorInfo: "Board-Certified Dermatologist",
-		name: "Botox Cosmetic RTASCX (Wrinkle Reduction)",
-	},
-	{
-		id: "3",
-		img: "/img/procedures/3.png",
-		doctor: "Dr. Jane Smith",
-		doctorInfo: "Board-Certified Dermatologist",
-		name: "Botox Cosmetic RTASCX (Wrinkle Reduction)",
-	},
-	{
-		id: "4",
-		img: "/img/procedures/4.png",
-		doctor: "Dr. Jane Smith",
-		doctorInfo: "Board-Certified Dermatologist",
-		name: "Botox Cosmetic RTASCX (Wrinkle Reduction)",
-	},
-	{
-		id: "5",
-		img: "/img/procedures/5.png",
-		doctor: "Dr. Jane Smith",
-		doctorInfo: "Board-Certified Dermatologist",
-		name: "Botox Cosmetic RTASCX (Wrinkle Reduction)",
-	},
-	{
-		id: "6",
-		img: "/img/procedures/6.png",
-		doctor: "Dr. Jane Smith",
-		doctorInfo: "Board-Certified Dermatologist",
-		name: "Botox Cosmetic RTASCX (Wrinkle Reduction)",
-	},
-];
 
 export default FindCosmetics;

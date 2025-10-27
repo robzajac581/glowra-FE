@@ -37,7 +37,7 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 	};
 
 	// Use displayProcedures (pre-computed in Search.jsx) or fallback to first 5 procedures
-	const displayProcedures = clinic.displayProcedures || clinic.procedures.slice(0, 5);
+	const displayProcedures = clinic.displayProcedures || (clinic.procedures ? clinic.procedures.slice(0, 5) : []);
 
 	// Base clinic URL
 	const clinicUrl = `/clinic/${clinic.clinicId}`;
@@ -191,21 +191,27 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 						Featured Procedures:
 					</div>
 					<div className="space-y-1.5">
-						{displayProcedures.map((proc) => (
-							<Link
-								key={proc.procedureId}
-								to={`${clinicUrl}?openCategory=${encodeURIComponent(proc.category)}`}
-								className="flex justify-between items-center text-xs hover:bg-gray-50 p-1.5 rounded transition-colors group/proc"
-								onClick={(e) => e.stopPropagation()}
-							>
-								<span className="font-medium text-gray-800 group-hover/proc:text-primary truncate flex-1 pr-2">
-									{proc.procedureName}
-								</span>
-								<span className="text-primary font-bold whitespace-nowrap">
-									{formatPrice(proc.price)}
-								</span>
-							</Link>
-						))}
+						{displayProcedures.length > 0 ? (
+							displayProcedures.map((proc) => (
+								<Link
+									key={proc.procedureId}
+									to={`${clinicUrl}?openCategory=${encodeURIComponent(proc.category)}`}
+									className="flex justify-between items-center text-xs hover:bg-gray-50 p-1.5 rounded transition-colors group/proc"
+									onClick={(e) => e.stopPropagation()}
+								>
+									<span className="font-medium text-gray-800 group-hover/proc:text-primary truncate flex-1 pr-2">
+										{proc.procedureName}
+									</span>
+									<span className="text-primary font-bold whitespace-nowrap">
+										{formatPrice(proc.price)}
+									</span>
+								</Link>
+							))
+						) : (
+							<div className="text-xs text-gray-500 italic py-2">
+								View clinic for procedure details
+							</div>
+						)}
 					</div>
 				</div>
 
