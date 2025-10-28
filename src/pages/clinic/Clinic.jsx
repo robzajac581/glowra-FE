@@ -12,8 +12,7 @@ import Location from "./components/Location";
 import ReviewsForCosmetics from "./components/ReviewsForCosmetics";
 import WorkingHours from "./components/WorkingHours";
 import { useClinicData } from "../../hooks/useClinicData";
-
-const API_BASE_URL = 'http://localhost:3001';
+import API_BASE_URL from "../../config/api";
 
 const Clinic = () => {
 	const { id: clinicId } = useParams();

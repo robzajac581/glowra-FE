@@ -9,8 +9,7 @@ import CombinedPriceFilter from '../../components/CombinedPriceFilter';
 import SortFilter from "../../components/SortFilter";
 import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
-
-const API_BASE_URL = 'http://localhost:3001';
+import API_BASE_URL from "../../config/api";
 
 const NUMBER_OF_CARDS_PER_PAGE = 9;
 

@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { icons } from "../../../components/Icons";
 import SearchResultCard from "../../search/components/SearchResultCard";
 import useScreen from "../../../hooks/useScreen";
-
-const API_BASE_URL = 'http://localhost:3001';
+import API_BASE_URL from "../../../config/api";
 
 // Default location: Chicago, IL
 const DEFAULT_LOCATION = {

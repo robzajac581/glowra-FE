@@ -3,8 +3,7 @@ import { A11y, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import useScreen from "../../../hooks/useScreen";
 import LocalDoctorsCard from "./LocalDoctorsCard";
-
-const API_BASE_URL = 'http://localhost:3001';
+import API_BASE_URL from "../../../config/api";
 
 // Default location: Chicago, IL
 const DEFAULT_LOCATION = {
