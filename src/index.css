@@ -645,3 +645,130 @@
 .price-filter-popover::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
 }
+
+/* Consultation Request Modal Styles */
+.consultation-modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.consultation-modal-container {
+  @apply bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.consultation-modal-close {
+  @apply absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-200 text-gray-500 hover:text-gray-700 z-10;
+}
+
+.consultation-modal-close:disabled {
+  @apply opacity-50 cursor-not-allowed hover:bg-transparent;
+}
+
+.consultation-modal-header {
+  @apply px-6 sm:px-8 md:px-12 pt-8 md:pt-12 pb-6 text-center;
+}
+
+.consultation-modal-form {
+  @apply px-6 sm:px-8 md:px-12 pb-8 md:pb-12 space-y-4;
+}
+
+.consultation-modal-row {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+}
+
+.consultation-modal-field {
+  @apply flex flex-col;
+}
+
+.consultation-modal-input {
+  @apply w-full h-12 px-4 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-dark placeholder:text-gray-400 outline-none transition-all duration-200;
+}
+
+.consultation-modal-input:focus {
+  @apply border-primary bg-white ring-2 ring-primary ring-opacity-20;
+}
+
+.consultation-modal-input:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.consultation-modal-input-error {
+  @apply border-red-500 bg-red-50;
+}
+
+.consultation-modal-input-error:focus {
+  @apply ring-red-500 ring-opacity-20;
+}
+
+.consultation-modal-textarea {
+  @apply w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-dark placeholder:text-gray-400 outline-none transition-all duration-200 resize-none;
+}
+
+.consultation-modal-textarea:focus {
+  @apply border-primary bg-white ring-2 ring-primary ring-opacity-20;
+}
+
+.consultation-modal-textarea:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.consultation-modal-error {
+  @apply text-xs text-red-600 mt-1;
+}
+
+.consultation-modal-submit-error {
+  @apply text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-center;
+}
+
+.consultation-modal-submit {
+  @apply w-full h-12 bg-primary text-white rounded-lg font-bold text-base transition-all duration-200 hover:bg-opacity-90 active:scale-[0.98];
+}
+
+.consultation-modal-submit:disabled {
+  @apply opacity-70 cursor-not-allowed hover:bg-opacity-100 active:scale-100;
+}
+
+.consultation-modal-success {
+  @apply px-6 sm:px-8 md:px-12 py-12 md:py-16 text-center;
+}
+
+.consultation-modal-success-icon {
+  @apply flex justify-center mb-6;
+}
+
+.consultation-modal-success-btn {
+  @apply inline-flex items-center justify-center px-8 py-3 bg-primary text-white rounded-lg font-bold text-base transition-all duration-200 hover:bg-opacity-90 active:scale-[0.98];
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .consultation-modal-container {
+    @apply rounded-xl;
+  }
+  
+  .consultation-modal-header {
+    @apply pt-12;
+  }
+}

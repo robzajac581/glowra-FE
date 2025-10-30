@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import ConsultationRequestModal from "../../../components/ConsultationRequestModal";
 
-const ClinicRightSidebar = ({ selectedData, clinicInfo }) => {
+const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // Format price to USD currency string
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-US', {
@@ -43,12 +45,23 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo }) => {
               <span className="font-bold text-xl text-primary">{formatPrice(totalPrice)}</span>
             </div>
             
-            <button className="btn w-full mt-4">
+            <button 
+              className="btn w-full mt-4"
+              onClick={() => setIsModalOpen(true)}
+            >
               Request Consultation
             </button>
           </>
         )}
       </div>
+      
+      <ConsultationRequestModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        clinicId={clinicId}
+        clinicInfo={clinicInfo}
+        selectedData={selectedData}
+      />
     </div>
   );
 };

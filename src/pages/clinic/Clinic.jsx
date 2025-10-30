@@ -178,6 +178,7 @@ const Clinic = () => {
 							<ClinicRightSidebar 
 								selectedData={selectedData} 
 								clinicInfo={clinicInfo}
+								clinicId={clinicId}
 							/>
 						</div>
 					</div>
