@@ -24,9 +24,6 @@ const NEARBY_STATES = {
 	// Add more states as needed
 };
 
-// Distances in miles to try when searching nearby
-const SEARCH_RADIUSES = [25, 50, 100, 150, 200];
-
 const LocalDoctors = () => {
 	const screen = useScreen();
 	const [clinics, setClinics] = useState([]);

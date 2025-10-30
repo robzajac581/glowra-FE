@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "../../components/Layout";
-import { procedure } from "../../components/Icons";
 import About from "./components/About";
 import ClinicBanner from "./components/ClinicBanner";
 import ClinicProcedures from "./components/ClinicProcedures";
 import ClinicRightSidebar from "./components/ClinicRightSidebar";
 import Gallery from "./components/Gallery";
-import InstagramPosts from "./components/InstagramPosts";
 import Location from "./components/Location";
 import ReviewsForCosmetics from "./components/ReviewsForCosmetics";
 import WorkingHours from "./components/WorkingHours";

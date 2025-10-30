@@ -64,7 +64,7 @@ const Gallery = ({ photos, clinicName }) => {
 									<img
 										src={photo.urls?.medium || photo.url}
 										className="w-full h-full object-cover rounded-[10px]"
-										alt={`${displayName || 'Clinic'} - Photo ${index + 1}`}
+										alt={`${displayName || 'Clinic'} gallery image ${index + 1}`}
 										width={photo.width}
 										height={photo.height}
 										loading={index < 2 ? "eager" : "lazy"}

@@ -1,6 +1,6 @@
 // Search.jsx
 import { Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
@@ -36,7 +36,6 @@ const Search = () => {
     category, 
     minPrice, 
     maxPrice, 
-    specialty, 
     sortBy,
     page 
   } = searchState;
@@ -51,10 +50,8 @@ const Search = () => {
   
   // State for full data and displayed clinics
   const [allClinics, setAllClinics] = useState([]);
-  const [searchResults, setSearchResults] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [searchIndex, setSearchIndex] = useState(null);
-  const [indexData, setIndexData] = useState(null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -134,10 +131,9 @@ const Search = () => {
         setAllClinics(clinicsData);
         
         // Build the Lunr search index using our utility function
-        const { idx, indexData: transformedData } = createSearchIndex(clinicsData);
+        const { idx } = createSearchIndex(clinicsData);
         
         setSearchIndex(idx);
-        setIndexData(transformedData);
       } catch (error) {
         console.error('Error fetching clinics for search index:', error);
         setError(error.message);
@@ -162,12 +158,10 @@ const Search = () => {
     if (!searchQuery.trim()) {
       // If no search query, use all clinics
       dataToFilter = allClinics;
-      setSearchResults([]);
     } else {
       // Use the performSearch utility, which includes error handling and fallbacks
       const results = performSearch(searchIndex, allClinics, searchQuery);
       rawSearchResults = searchIndex.search(searchQuery); // Store raw Lunr results for scoring
-      setSearchResults(results);
       dataToFilter = results;
     }
     

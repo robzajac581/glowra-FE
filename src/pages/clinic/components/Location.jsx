@@ -18,15 +18,6 @@ const Location = ({ clinicInfo }) => {
 		return parts.join(', ');
 	}, [clinicInfo]);
 
-	// Generate Google Maps embed URL with the clinic's address
-	const mapEmbedUrl = useMemo(() => {
-		if (!fullAddress) return '';
-		
-		// Encode the address for the URL
-		const encodedAddress = encodeURIComponent(fullAddress);
-		return `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodedAddress}`;
-	}, [fullAddress]);
-
 	// If we don't have an address, don't render the component
 	if (!fullAddress) {
 		return null;

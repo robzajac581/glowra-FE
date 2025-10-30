@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { procedure } from "../../../components/Icons";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -9,7 +9,6 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
  * Displays clinic information with relevant procedures
  */
 const SearchResultCard = ({ clinic, searchQuery }) => {
-	const location = useLocation();
 	
 	// Format price to USD currency string
 	const formatPrice = (price) => {

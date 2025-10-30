@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { icons } from "../../../components/Icons";
 import SearchResultCard from "../../search/components/SearchResultCard";
-import useScreen from "../../../hooks/useScreen";
 import API_BASE_URL from "../../../config/api";
 
 // Default location: Chicago, IL
@@ -14,7 +13,6 @@ const DEFAULT_LOCATION = {
 };
 
 const FindCosmetics = () => {
-	const screen = useScreen();
 	const [clinics, setClinics] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
