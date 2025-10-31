@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import API_BASE_URL from "../config/api";
+import { CONSULTATION_REQUEST_API_URL } from "../config/api";
 import { cn } from "../utils/cn";
 import "./ConsultationRequestModal.css";
 
@@ -119,6 +119,7 @@ const ConsultationRequestModal = ({
     }
 
     setIsSubmitting(true);
+    setErrors({}); // Clear previous errors
 
     try {
       // Prepare request payload
@@ -139,7 +140,7 @@ const ConsultationRequestModal = ({
         }))
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/consultation-requests`, {
+      const response = await fetch(`${CONSULTATION_REQUEST_API_URL}/api/consultation-requests`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -147,15 +148,39 @@ const ConsultationRequestModal = ({
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to submit consultation request");
+      // Try to parse JSON response
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        // If response is not JSON, treat as error
+        throw new Error("Invalid response from server");
       }
 
-      setIsSuccess(true);
+      if (result.success) {
+        // Success - save requestId for potential tracking
+        console.log('Consultation request submitted successfully. Request ID:', result.requestId);
+        setIsSuccess(true);
+      } else {
+        // Handle validation errors from API
+        if (result.details && typeof result.details === 'object') {
+          // Map API validation errors to form errors
+          const apiErrors = {};
+          Object.keys(result.details).forEach((field) => {
+            apiErrors[field] = result.details[field];
+          });
+          setErrors(apiErrors);
+        } else {
+          // Generic error
+          setErrors({
+            submit: result.error || "Failed to submit your request. Please try again later."
+          });
+        }
+      }
     } catch (error) {
       console.error("Error submitting consultation request:", error);
       setErrors({
-        submit: "Failed to submit your request. Please try again later."
+        submit: "Failed to submit your request. Please check your connection and try again."
       });
     } finally {
       setIsSubmitting(false);
