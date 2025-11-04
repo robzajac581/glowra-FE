@@ -259,12 +259,12 @@ const Search = () => {
               >
                 <PopoverHandler>
                   <div className="relative w-full h-[63px] border border-border rounded-[10px] bg-white cursor-pointer hover:bg-opacity-5 transition-colors">
-                    <label className="absolute text-xs text-black text-opacity-50 top-[6px] left-4">
+                    <label className="absolute text-xs text-black text-opacity-50 top-[6px] left-2 md:left-4">
                       Category
                     </label>
                     <div className="h-full w-full pt-4 px-4 flex items-center justify-between">
                       <span className="text-sm font-extrabold text-black">
-                        {category || "Category"}
+                        {category || "All"}
                       </span>
                       <div className="pointer-events-none text-black">
                         <svg

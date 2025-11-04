@@ -86,7 +86,7 @@ const CombinedPriceFilter = ({
     } else if (hasMax) {
       return `Up to $${formatPrice(maxValue)}`;
     }
-    return "Price";
+    return "Any";
   };
 
   return (

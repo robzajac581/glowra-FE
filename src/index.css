@@ -414,6 +414,16 @@
 		@apply bg-primary border-primary text-white hover:bg-[#ED4D4D] hover:border-[#ED4D4D];
 	}
 	
+	/* Add extra padding for "Added" button on mobile breakpoints */
+	@media (max-width: 639px) {
+		.table-btn.table-btn-2 {
+			padding-left: 0.75rem !important;
+			padding-right: 0.75rem !important;
+			width: auto !important;
+			min-width: 85px !important;
+		}
+	}
+	
 	/* Procedure pricing table normalization styles */
 	.procedure-pricing-table {
 		table-layout: fixed;
@@ -427,7 +437,7 @@
 	
 	.procedure-pricing-table .price-cell {
 		width: 30%;
-		@apply text-right whitespace-nowrap;
+		@apply text-right whitespace-nowrap pr-3;
 	}
 	
 	.procedure-pricing-table .action-cell {
@@ -449,6 +459,7 @@
 		
 		.procedure-pricing-table .price-cell {
 			width: 35%;
+			@apply pr-8;
 		}
 		
 		.procedure-pricing-table .action-cell {

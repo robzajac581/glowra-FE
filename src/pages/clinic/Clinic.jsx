@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "../../components/Layout";
 import About from "./components/About";
@@ -9,7 +9,9 @@ import Gallery from "./components/Gallery";
 import Location from "./components/Location";
 import ReviewsForCosmetics from "./components/ReviewsForCosmetics";
 import WorkingHours from "./components/WorkingHours";
+import Toast from "../../components/Toast";
 import { useClinicData } from "../../hooks/useClinicData";
+import useScreen from "../../hooks/useScreen";
 import API_BASE_URL from "../../config/api";
 
 const Clinic = () => {
@@ -23,6 +25,23 @@ const Clinic = () => {
 	const [photos, setPhotos] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [showToast, setShowToast] = useState(false);
+	const hasShownToast = useRef(false);
+	const previousSelectedDataLength = useRef(0);
+
+	const screenWidth = useScreen();
+	const isMobileBreakpoint = screenWidth < 1024; // lg breakpoint in Tailwind is 1024px
+
+	// Function to scroll to consultation request section
+	const scrollToConsultationSection = () => {
+		const consultationSection = document.getElementById('consultation-request-section');
+		if (consultationSection) {
+			consultationSection.scrollIntoView({ 
+				behavior: 'smooth',
+				block: 'center'
+			});
+		}
+	};
 
 	// Parse Google Places data efficiently with memoization
 	const { 
@@ -31,6 +50,26 @@ const Clinic = () => {
 		closingTime,
 		logo 
 	} = useClinicData(clinicInfo);
+
+	// Detect when first procedure is added on mobile breakpoints
+	useEffect(() => {
+		// Only show toast if:
+		// 1. We're on mobile breakpoint (screenWidth < 1024px)
+		// 2. We haven't shown the toast yet
+		// 3. selectedData went from 0 to 1 (first procedure added)
+		if (
+			isMobileBreakpoint &&
+			!hasShownToast.current &&
+			previousSelectedDataLength.current === 0 &&
+			selectedData.length === 1
+		) {
+			setShowToast(true);
+			hasShownToast.current = true;
+		}
+
+		// Update previous length for next comparison
+		previousSelectedDataLength.current = selectedData.length;
+	}, [selectedData.length, isMobileBreakpoint]);
 
 	// Fetch clinic data on component mount
 	useEffect(() => {
@@ -184,6 +223,12 @@ const Clinic = () => {
 					</div>
 				</div>
 			</section>
+			<Toast
+				message="You can request a consultation at the bottom"
+				isVisible={showToast}
+				onClose={() => setShowToast(false)}
+				onClick={scrollToConsultationSection}
+			/>
 		</Layout>
 	);
 };

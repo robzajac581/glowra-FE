@@ -17,7 +17,7 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId }) => {
   const totalPrice = selectedData.reduce((sum, item) => sum + item.price, 0);
 
   return (
-    <div className="clinic-sidebar sticky top-4">
+    <div id="consultation-request-section" className="clinic-sidebar sticky top-4">
       <div className="clinic-sidebar-card">
         <h4 className="text-xl font-medium mb-4">Your Selected Procedures</h4>
         
