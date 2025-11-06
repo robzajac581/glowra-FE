@@ -410,6 +410,9 @@
 	.procedure-table-card-name {
 		@apply text-xs py-2 px-0 font-medium text-black text-opacity-50 flex uppercase justify-between mb-1;
 	}
+	.clinic-sidebar-card {
+		@apply bg-white border border-border rounded-2xl p-6 shadow-sm;
+	}
 	.table-btn-2 {
 		@apply bg-primary border-primary text-white hover:bg-[#ED4D4D] hover:border-[#ED4D4D];
 	}
@@ -785,5 +788,17 @@
   
   .consultation-modal-header {
     @apply pt-12;
+  }
+}
+
+/* Slide up animation for mobile sticky consultation bar */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

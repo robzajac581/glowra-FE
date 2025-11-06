@@ -176,7 +176,14 @@ const Clinic = () => {
 
 	return (
 		<Layout>
-			<section className="py-10">
+			<section 
+				className="py-10"
+				style={{
+					paddingBottom: isMobileBreakpoint && selectedData.length > 0 
+						? 'calc(2.5rem + 120px + env(safe-area-inset-bottom))' 
+						: undefined
+				}}
+			>
 				<div className="container">
 					<div className="flex flex-wrap gap-10">
 						<div className="w-full lg:w-1/2 flex-grow">
