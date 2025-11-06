@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import Layout from "../../components/Layout";
 import About from "./components/About";
 import ClinicBanner from "./components/ClinicBanner";
@@ -16,6 +16,7 @@ import API_BASE_URL from "../../config/api";
 
 const Clinic = () => {
 	const { id: clinicId } = useParams();
+	const location = useLocation();
 	const [selectedData, setSelectedData] = useState([]);
 	const [clinicInfo, setClinicInfo] = useState(null);
 	const [providers, setProviders] = useState([]);
@@ -42,6 +43,27 @@ const Clinic = () => {
 			});
 		}
 	};
+
+	// Function to scroll to reviews section
+	const scrollToReviewsSection = () => {
+		const reviewsSection = document.getElementById('reviews');
+		if (reviewsSection) {
+			// Small delay to ensure the page has rendered
+			setTimeout(() => {
+				reviewsSection.scrollIntoView({ 
+					behavior: 'smooth',
+					block: 'start'
+				});
+			}, 100);
+		}
+	};
+
+	// Handle hash navigation to reviews section
+	useEffect(() => {
+		if (location.hash === '#reviews' && !loading) {
+			scrollToReviewsSection();
+		}
+	}, [location.hash, loading]);
 
 	// Parse Google Places data efficiently with memoization
 	const { 

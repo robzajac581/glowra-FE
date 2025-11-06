@@ -140,15 +140,23 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 						{hasRating ? (
 							<>
 								{/* Rating Badge */}
-								<div className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs py-1.5 px-3 rounded-full font-bold shadow-md flex items-center gap-1">
+								<Link 
+									to={`${clinicUrl}#reviews`}
+									onClick={(e) => e.stopPropagation()}
+									className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs py-1.5 px-3 rounded-full font-bold shadow-md flex items-center gap-1 hover:bg-white transition-colors cursor-pointer"
+								>
 									<span>{clinic.rating.toFixed(1)}</span>
 									{procedure.star}
-								</div>
+								</Link>
 								{/* Reviews Count Badge */}
-								<div className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs py-1 px-3 rounded-full font-medium shadow-md flex items-center gap-1">
+								<Link 
+									to={`${clinicUrl}#reviews`}
+									onClick={(e) => e.stopPropagation()}
+									className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs py-1 px-3 rounded-full font-medium shadow-md flex items-center gap-1 hover:bg-white transition-colors cursor-pointer"
+								>
 									{procedure.reviews}
 									<span>{clinic.reviewCount} Reviews</span>
-								</div>
+								</Link>
 							</>
 						) : (
 							<div className="bg-white/95 backdrop-blur-sm text-gray-600 text-xs py-1.5 px-3 rounded-full font-medium shadow-md">

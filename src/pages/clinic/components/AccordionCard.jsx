@@ -3,10 +3,11 @@ import React, { useState } from "react";
 import { clinicIcons } from "../../../components/Icons";
 import { cn } from "../../../utils/cn";
 
-const AccordionCard = ({ title, className, children }) => {
+const AccordionCard = ({ title, className, children, id }) => {
 	const [open, setOpen] = useState(true);
 	return (
 		<div
+			id={id}
 			className={cn("accordion-card", {
 				[className]: className,
 			})}

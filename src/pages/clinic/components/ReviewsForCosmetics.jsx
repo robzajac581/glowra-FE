@@ -38,7 +38,7 @@ const ReviewsForCosmetics = ({ reviews, clinicName, totalReviewCount, reviewsLin
 	const displayReviews = parsedReviews.slice(0, 5);
 
 	return (
-		<AccordionCard className="px-0" title={`Reviews for ${clinicName || 'This Clinic'}`}>
+		<AccordionCard id="reviews" className="px-0" title={`Reviews for ${clinicName || 'This Clinic'}`}>
 			<div className="slider--wrapper mx-0">
 				<div className="px-5 relative">
 					<Swiper
