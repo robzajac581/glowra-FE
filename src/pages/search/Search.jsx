@@ -226,7 +226,7 @@ const Search = () => {
                   placeholder={
                     screen < 768
                       ? "Search location or procedure"
-                      : "Search by city, state, procedure name, or doctor"
+                      : "Search by city, state, zip, procedure, or doctor"
                   }
                   className="search-input"
                   value={inputValue}

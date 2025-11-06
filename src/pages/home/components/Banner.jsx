@@ -46,7 +46,7 @@ const Banner = () => {
 								placeholder={
 									screen < 768
 										? "Search locations, procedures..."
-										: "Search by city, state, procedure, doctor, or clinic"
+										: "Search by city, state, zip code, procedure, doctor, or clinic"
 								}
 								className="banner-search-input"
 								value={searchQuery}

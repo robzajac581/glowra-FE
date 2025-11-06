@@ -146,6 +146,7 @@ export const createSearchIndex = (clinics, options = {}) => {
       state: clinic.state || '',
       address: clinic.address || '',
       clinicCategory: clinic.clinicCategory || '',
+      zipCode: clinic.zipCode || '',
       procedureNames: procedureNames,
       procedureCategories: procedureCategories,
       // Store original index for retrieval
@@ -155,9 +156,10 @@ export const createSearchIndex = (clinics, options = {}) => {
 
   // Default field configurations for clinic-based search
   const fields = options.fields || {
+    zipCode: { boost: 9 },
     state: { boost: 9 },
     city: { boost: 9 },
-    clinicName: { boost: 8 },
+    clinicName: { boost: 10 },
     procedureNames: { boost: 7 },
     procedureCategories: { boost: 7 },
     clinicCategory: { boost: 5 },
@@ -185,6 +187,27 @@ export const createSearchIndex = (clinics, options = {}) => {
 };
 
 /**
+ * Check if a query string is a zip code (5 digits)
+ * @param {String} query - Search query
+ * @returns {Boolean} True if query is a zip code
+ */
+const isZipCode = (query) => {
+  const trimmed = query.trim();
+  // Check if it's exactly 5 digits
+  return /^\d{5}$/.test(trimmed);
+};
+
+/**
+ * Get nearby zip codes (zip codes starting with same first 3 digits)
+ * @param {String} zipCode - 5-digit zip code
+ * @returns {String} First 3 digits of zip code
+ */
+const getZipCodePrefix = (zipCode) => {
+  if (!zipCode || zipCode.length < 3) return null;
+  return zipCode.substring(0, 3);
+};
+
+/**
  * Performs a search with fallback to simple filtering for complex queries
  * @param {Object} searchIndex - Lunr search index
  * @param {Array} clinics - Original clinics array
@@ -194,6 +217,31 @@ export const createSearchIndex = (clinics, options = {}) => {
 export const performSearch = (searchIndex, clinics, query) => {
   if (!query || !query.trim()) {
     return clinics;
+  }
+
+  const trimmedQuery = query.trim();
+
+  // Check if query is a zip code - if so, filter by zip code only
+  if (isZipCode(trimmedQuery)) {
+    const zipPrefix = getZipCodePrefix(trimmedQuery);
+    
+    // Filter clinics by zip code (exact match or nearby - same first 3 digits)
+    return clinics.filter(clinic => {
+      if (!clinic.zipCode) return false;
+      
+      // Exact match
+      if (clinic.zipCode === trimmedQuery) {
+        return true;
+      }
+      
+      // Nearby zip codes (same first 3 digits)
+      if (zipPrefix && clinic.zipCode.length >= 3) {
+        const clinicZipPrefix = getZipCodePrefix(clinic.zipCode);
+        return clinicZipPrefix === zipPrefix;
+      }
+      
+      return false;
+    });
   }
 
   try {
