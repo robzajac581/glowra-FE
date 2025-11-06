@@ -217,9 +217,9 @@ const Search = () => {
           </h1>
           <div className="subtitle">{totalResults} {totalResults === 1 ? 'Clinic' : 'Clinics'} Found</div>
           
-          <div className="flex gap-4 items-start relative z-10">
-            {/* Search Bar - 60% width */}
-            <form onSubmit={handleSearch} className="w-[60%]">
+          <div className="flex flex-col md:flex-row gap-4 items-start relative z-10">
+            {/* Search Bar - Full width on mobile, 60% on desktop */}
+            <form onSubmit={handleSearch} className="w-full md:w-[60%]">
               <div className="relative">
                 <input
                   type="text"
@@ -239,19 +239,21 @@ const Search = () => {
               </div>
             </form>
 
-            {/* Price Filter - 20% width */}
-            <div className="w-[20%]">
-              <CombinedPriceFilter
-                minValue={minPrice}
-                maxValue={maxPrice}
-                onMinChange={(val) => updateSearchState('minPrice', val)}
-                onMaxChange={(val) => updateSearchState('maxPrice', val)}
-              />
-            </div>
+            {/* Filters Row - Full width on mobile, 40% on desktop */}
+            <div className="w-full md:w-[40%] flex flex-row gap-4">
+              {/* Price Filter - 50% width */}
+              <div className="w-1/2">
+                <CombinedPriceFilter
+                  minValue={minPrice}
+                  maxValue={maxPrice}
+                  onMinChange={(val) => updateSearchState('minPrice', val)}
+                  onMaxChange={(val) => updateSearchState('maxPrice', val)}
+                />
+              </div>
 
-            {/* Category Filter - 20% width */}
-            <div className="w-[20%]">
-              <Popover 
+              {/* Category Filter - 50% width */}
+              <div className="w-1/2">
+                <Popover 
                 open={categoryOpen} 
                 handler={() => setCategoryOpen(!categoryOpen)}
                 placement="bottom-start"
@@ -426,6 +428,7 @@ const Search = () => {
                   </div>
                 </PopoverContent>
               </Popover>
+              </div>
             </div>
           </div>
           
