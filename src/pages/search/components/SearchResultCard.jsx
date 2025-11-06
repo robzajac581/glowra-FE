@@ -21,11 +21,14 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 		}).format(price);
 	};
 
-	// Normalize clinic name to sentence case (capitalize only first letter)
+	// Normalize clinic name to title case (capitalize first letter of each word)
 	const formatClinicName = (name) => {
 		if (!name) return '';
-		const trimmed = name.trim();
-		return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+		return name
+			.trim()
+			.split(/\s+/)
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ');
 	};
 
 	// Normalize category name to sentence case
