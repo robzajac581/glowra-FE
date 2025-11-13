@@ -187,6 +187,55 @@ export const createSearchIndex = (clinics, options = {}) => {
 };
 
 /**
+ * US State abbreviations and full names for location detection
+ */
+const US_STATES = {
+  // Abbreviations
+  'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+  'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+  'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+  'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+  'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+  'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+  'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+  'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+  'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+  'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming',
+  'DC': 'District of Columbia',
+  // Full names (lowercase for matching)
+  'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR', 'california': 'CA',
+  'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE', 'florida': 'FL', 'georgia': 'GA',
+  'hawaii': 'HI', 'idaho': 'ID', 'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA',
+  'kansas': 'KS', 'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+  'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS', 'missouri': 'MO',
+  'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+  'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH',
+  'oklahoma': 'OK', 'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+  'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT', 'vermont': 'VT',
+  'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY',
+  'district of columbia': 'DC'
+};
+
+/**
+ * Common procedure abbreviations for detection
+ */
+const PROCEDURE_ABBREVIATIONS = {
+  'bbl': 'brazilian butt lift',
+  'tummy tuck': 'abdominoplasty',
+  'nose job': 'rhinoplasty',
+  'boob job': 'breast augmentation',
+  'botox': 'botulinum toxin',
+  'filler': 'dermal filler',
+  'lip filler': 'lip augmentation',
+  'face lift': 'facelift',
+  'eye lift': 'blepharoplasty',
+  'lipo': 'liposuction',
+  'mommy makeover': 'mommy makeover',
+  'breast aug': 'breast augmentation',
+  'breast lift': 'mastopexy'
+};
+
+/**
  * Check if a query string is a zip code (5 digits)
  * @param {String} query - Search query
  * @returns {Boolean} True if query is a zip code
@@ -195,6 +244,129 @@ const isZipCode = (query) => {
   const trimmed = query.trim();
   // Check if it's exactly 5 digits
   return /^\d{5}$/.test(trimmed);
+};
+
+/**
+ * Parse search query to detect location and procedure terms
+ * @param {String} query - Search query string
+ * @param {Array} clinics - Array of all clinics (to check for valid cities/states)
+ * @returns {Object} Parsed query with location and procedure terms
+ */
+export const parseSearchQuery = (query, clinics = []) => {
+  if (!query || !query.trim()) {
+    return { locationTerms: [], procedureTerms: [], remainingTerms: [] };
+  }
+
+  const trimmed = query.trim().toLowerCase();
+  const terms = trimmed.split(/\s+/).filter(t => t.length > 0);
+  
+  const locationTerms = [];
+  const procedureTerms = [];
+  const remainingTerms = [];
+  
+  // Extract unique cities and states from clinics for matching
+  const validCities = new Set();
+  const validStates = new Set();
+  clinics.forEach(clinic => {
+    if (clinic.city) validCities.add(clinic.city.toLowerCase());
+    if (clinic.state) validStates.add(clinic.state.toLowerCase());
+  });
+
+  // Check each term
+  for (let i = 0; i < terms.length; i++) {
+    const term = terms[i];
+    let matched = false;
+
+    // Check for zip code
+    if (isZipCode(term)) {
+      locationTerms.push({ type: 'zip', value: term });
+      matched = true;
+    }
+    // Check for state abbreviation (2 letters, uppercase)
+    else if (term.length === 2 && US_STATES[term.toUpperCase()]) {
+      locationTerms.push({ type: 'state', value: term.toUpperCase() });
+      matched = true;
+    }
+    // Check for state full name
+    else if (US_STATES[term]) {
+      locationTerms.push({ type: 'state', value: US_STATES[term] });
+      matched = true;
+    }
+    // Check for procedure abbreviations FIRST (before city matching to avoid false positives)
+    else if (PROCEDURE_ABBREVIATIONS[term]) {
+      procedureTerms.push({ 
+        type: 'abbreviation', 
+        value: term, 
+        fullName: PROCEDURE_ABBREVIATIONS[term] 
+      });
+      matched = true;
+    }
+    // Check for valid city (must match a city in our clinic data)
+    else if (validCities.has(term)) {
+      locationTerms.push({ type: 'city', value: term });
+      matched = true;
+    }
+    // Check for multi-word city names (e.g., "Palo Alto", "New York")
+    // This handles both cities in our data and potential city names
+    else if (i < terms.length - 1) {
+      const twoWordCity = `${term} ${terms[i + 1]}`;
+      if (validCities.has(twoWordCity)) {
+        // Exact match in our clinic data
+        locationTerms.push({ type: 'city', value: twoWordCity });
+        i++; // Skip next term since we used it
+        matched = true;
+      } else {
+        // Check if it looks like a city name (capitalized words, common patterns)
+        // Common city name patterns: "Palo Alto", "New York", "San Francisco", etc.
+        const cityPatterns = ['palo', 'san', 'santa', 'los', 'las', 'new', 'mount', 'saint', 'st.', 'fort', 'lake'];
+        const firstWord = term.toLowerCase();
+        const secondWord = terms[i + 1].toLowerCase();
+        
+        // If first word matches a common city prefix, treat as potential city
+        if (cityPatterns.includes(firstWord) || 
+            (firstWord.length > 2 && secondWord.length > 2 && 
+             !PROCEDURE_ABBREVIATIONS[twoWordCity] && 
+             !PROCEDURE_ABBREVIATIONS[term] && 
+             !PROCEDURE_ABBREVIATIONS[secondWord])) {
+          locationTerms.push({ type: 'city', value: twoWordCity });
+          i++; // Skip next term since we used it
+          matched = true;
+        }
+      }
+    }
+    
+    if (!matched) {
+      remainingTerms.push(term);
+    }
+  }
+
+  // If we have remaining terms and no procedure terms yet, check if they might be procedures
+  // by checking against common procedure names
+  if (remainingTerms.length > 0 && procedureTerms.length === 0) {
+    const remainingQuery = remainingTerms.join(' ');
+    // Check if any remaining term matches a procedure abbreviation
+    for (const term of remainingTerms) {
+      if (PROCEDURE_ABBREVIATIONS[term]) {
+        const idx = remainingTerms.indexOf(term);
+        if (idx !== -1) {
+          procedureTerms.push({ 
+            type: 'abbreviation', 
+            value: term, 
+            fullName: PROCEDURE_ABBREVIATIONS[term] 
+          });
+          remainingTerms.splice(idx, 1);
+        }
+      }
+    }
+  }
+
+  return {
+    locationTerms,
+    procedureTerms,
+    remainingTerms,
+    hasLocation: locationTerms.length > 0,
+    hasProcedure: procedureTerms.length > 0 || remainingTerms.length > 0
+  };
 };
 
 /**
@@ -208,25 +380,181 @@ const getZipCodePrefix = (zipCode) => {
 };
 
 /**
- * Performs a search with fallback to simple filtering for complex queries
+ * Filter clinics by location terms (city, state, or zip)
+ * Supports geographic proximity for cities (includes nearby cities in same state)
+ * @param {Array} clinics - Array of clinics to filter
+ * @param {Array} locationTerms - Array of location term objects from parseSearchQuery
+ * @returns {Array} Filtered clinics matching location criteria
+ */
+const filterByLocation = (clinics, locationTerms) => {
+  if (!locationTerms || locationTerms.length === 0) {
+    return clinics;
+  }
+
+  // Group clinics by state for proximity matching
+  const clinicsByState = {};
+  clinics.forEach(clinic => {
+    if (clinic.state) {
+      const state = clinic.state.toLowerCase();
+      if (!clinicsByState[state]) {
+        clinicsByState[state] = [];
+      }
+      clinicsByState[state].push(clinic);
+    }
+  });
+
+  const matchedClinics = new Set();
+  
+  locationTerms.forEach(locationTerm => {
+    if (locationTerm.type === 'zip') {
+      const zipPrefix = getZipCodePrefix(locationTerm.value);
+      clinics.forEach(clinic => {
+        if (clinic.zipCode) {
+          // Exact match
+          if (clinic.zipCode === locationTerm.value) {
+            matchedClinics.add(clinic);
+          }
+          // Nearby zip codes (same first 3 digits)
+          else if (zipPrefix && clinic.zipCode.length >= 3) {
+            const clinicZipPrefix = getZipCodePrefix(clinic.zipCode);
+            if (clinicZipPrefix === zipPrefix) {
+              matchedClinics.add(clinic);
+            }
+          }
+        }
+      });
+    }
+    else if (locationTerm.type === 'state') {
+      // Match clinics in the specified state
+      const stateLower = locationTerm.value.toLowerCase();
+      clinics.forEach(clinic => {
+        if (clinic.state && clinic.state.toLowerCase() === stateLower) {
+          matchedClinics.add(clinic);
+        }
+      });
+    }
+    else if (locationTerm.type === 'city') {
+      const cityLower = locationTerm.value.toLowerCase();
+      
+      // First, find clinics in the exact city
+      const exactMatches = [];
+      clinics.forEach(clinic => {
+        if (clinic.city && clinic.city.toLowerCase() === cityLower) {
+          matchedClinics.add(clinic);
+          exactMatches.push(clinic);
+        }
+      });
+      
+      // If we found exact matches, include nearby cities in the same state (metro area)
+      if (exactMatches.length > 0) {
+        const matchingStates = new Set();
+        exactMatches.forEach(clinic => {
+          if (clinic.state) {
+            matchingStates.add(clinic.state.toLowerCase());
+          }
+        });
+        
+        // Include all clinics in the same state(s) as the matched city
+        // This provides "metro area" functionality (e.g., Chicago includes all IL clinics)
+        // For better accuracy, we could limit to cities within a certain distance,
+        // but without coordinates, same-state is a reasonable approximation
+        matchingStates.forEach(state => {
+          if (clinicsByState[state]) {
+            clinicsByState[state].forEach(clinic => {
+              matchedClinics.add(clinic);
+            });
+          }
+        });
+      }
+      // If no exact matches found, return empty array (will trigger "No clinics in this area" message)
+      // This handles cases like "Palo Alto" where we have no clinics
+    }
+  });
+
+  return Array.from(matchedClinics);
+};
+
+/**
+ * Filter clinics by procedure terms
+ * @param {Array} clinics - Array of clinics to filter
+ * @param {Array} procedureTerms - Array of procedure term objects from parseSearchQuery
+ * @param {Array} remainingTerms - Remaining search terms that might be procedure names
+ * @returns {Array} Filtered clinics that offer matching procedures
+ */
+const filterByProcedure = (clinics, procedureTerms, remainingTerms) => {
+  if ((!procedureTerms || procedureTerms.length === 0) && (!remainingTerms || remainingTerms.length === 0)) {
+    return clinics;
+  }
+
+  const searchTerms = [];
+  
+  // Add procedure abbreviation full names
+  procedureTerms.forEach(term => {
+    if (term.fullName) {
+      searchTerms.push(term.fullName.toLowerCase());
+    }
+    searchTerms.push(term.value.toLowerCase());
+  });
+  
+  // Add remaining terms as potential procedure names
+  if (remainingTerms && remainingTerms.length > 0) {
+    searchTerms.push(...remainingTerms.map(t => t.toLowerCase()));
+  }
+
+  return clinics.filter(clinic => {
+    if (!clinic.procedures || clinic.procedures.length === 0) {
+      return false;
+    }
+
+    // Check if any procedure matches any search term
+    return clinic.procedures.some(proc => {
+      const procNameLower = (proc.procedureName || '').toLowerCase();
+      return searchTerms.some(term => procNameLower.includes(term));
+    });
+  });
+};
+
+/**
+ * Performs a search with location-aware filtering and AND logic for combined queries
  * @param {Object} searchIndex - Lunr search index
  * @param {Array} clinics - Original clinics array
  * @param {String} query - Search query
- * @returns {Array} Matched clinics
+ * @returns {Object} Object with results array and metadata { results: [], isLocationSearch: boolean }
  */
 export const performSearch = (searchIndex, clinics, query) => {
   if (!query || !query.trim()) {
-    return clinics;
+    return { results: clinics, isLocationSearch: false };
   }
 
   const trimmedQuery = query.trim();
 
-  // Check if query is a zip code - if so, filter by zip code only
+  // Parse the query to detect location and procedure terms
+  const parsed = parseSearchQuery(trimmedQuery, clinics);
+  
+  // If we detected location terms, use location-first filtering
+  if (parsed.hasLocation) {
+    // Filter by location FIRST
+    let locationFiltered = filterByLocation(clinics, parsed.locationTerms);
+    
+    // If we also have procedure terms, apply AND logic (filter location results by procedure)
+    if (parsed.hasProcedure) {
+      locationFiltered = filterByProcedure(locationFiltered, parsed.procedureTerms, parsed.remainingTerms);
+    }
+    
+    return { 
+      results: locationFiltered, 
+      isLocationSearch: true,
+      hasProcedure: parsed.hasProcedure
+    };
+  }
+  
+  // If we only have procedure terms (no location), use existing search logic
+  // But still check for zip code as a special case
   if (isZipCode(trimmedQuery)) {
     const zipPrefix = getZipCodePrefix(trimmedQuery);
     
     // Filter clinics by zip code (exact match or nearby - same first 3 digits)
-    return clinics.filter(clinic => {
+    const zipFiltered = clinics.filter(clinic => {
       if (!clinic.zipCode) return false;
       
       // Exact match
@@ -242,8 +570,17 @@ export const performSearch = (searchIndex, clinics, query) => {
       
       return false;
     });
+    
+    return { results: zipFiltered, isLocationSearch: true };
   }
 
+  // If we have procedure terms but no location, filter by procedure first
+  if (parsed.hasProcedure && !parsed.hasLocation) {
+    const procedureFiltered = filterByProcedure(clinics, parsed.procedureTerms, parsed.remainingTerms);
+    return { results: procedureFiltered, isLocationSearch: false };
+  }
+
+  // Fall back to existing Lunr.js search for general queries
   try {
     // Strategy 1: Try exact search first
     let searchResults = searchIndex.search(query);
@@ -326,11 +663,14 @@ export const performSearch = (searchIndex, clinics, query) => {
     
     // If we have results from any strategy, map them back to the original clinics
     if (searchResults.length > 0) {
-      return searchResults.map(result => clinics[parseInt(result.ref)]);
+      return { 
+        results: searchResults.map(result => clinics[parseInt(result.ref)]), 
+        isLocationSearch: false 
+      };
     }
     
     // Final fallback: simple contains search on clinic data
-    return clinics.filter(clinic => {
+    const fallbackResults = clinics.filter(clinic => {
       const searchLower = query.toLowerCase();
       const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
       const categories = clinic.procedures.map(p => p.category.toLowerCase()).join(' ');
@@ -345,11 +685,13 @@ export const performSearch = (searchIndex, clinics, query) => {
         categories.includes(searchLower)
       );
     });
+    
+    return { results: fallbackResults, isLocationSearch: false };
   } catch (error) {
     console.error('Search error:', error);
     
     // Fall back to simple text matching if Lunr search fails
-    return clinics.filter(clinic => {
+    const errorFallbackResults = clinics.filter(clinic => {
       const searchLower = query.toLowerCase();
       const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
       
@@ -360,6 +702,8 @@ export const performSearch = (searchIndex, clinics, query) => {
         procedureNames.includes(searchLower)
       );
     });
+    
+    return { results: errorFallbackResults, isLocationSearch: false };
   }
 };
 

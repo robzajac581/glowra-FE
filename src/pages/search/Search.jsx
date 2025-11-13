@@ -56,6 +56,7 @@ const Search = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalResults, setTotalResults] = useState(0);
+  const [isLocationSearch, setIsLocationSearch] = useState(false);
   
   // User location state for map
   const [userLocation, setUserLocation] = useState(null);
@@ -154,15 +155,27 @@ const Search = () => {
 
     let dataToFilter;
     let rawSearchResults = [];
+    let locationSearch = false;
 
     if (!searchQuery.trim()) {
       // If no search query, use all clinics
       dataToFilter = allClinics;
+      setIsLocationSearch(false);
     } else {
       // Use the performSearch utility, which includes error handling and fallbacks
-      const results = performSearch(searchIndex, allClinics, searchQuery);
-      rawSearchResults = searchIndex.search(searchQuery); // Store raw Lunr results for scoring
-      dataToFilter = results;
+      const searchResult = performSearch(searchIndex, allClinics, searchQuery);
+      dataToFilter = searchResult.results;
+      locationSearch = searchResult.isLocationSearch || false;
+      setIsLocationSearch(locationSearch);
+      
+      // Store raw Lunr results for scoring (only if not a location search)
+      if (!locationSearch) {
+        try {
+          rawSearchResults = searchIndex.search(searchQuery);
+        } catch (e) {
+          // Ignore Lunr search errors for location searches
+        }
+      }
     }
     
     // Apply filters using our utility function
@@ -491,8 +504,17 @@ const Search = () => {
                 </div>
               ) : clinics.length === 0 ? (
                 <div className="py-8 text-center">
-                  <p className="text-xl font-medium">No clinics found matching your criteria.</p>
-                  <p className="mt-2 text-gray-600">Try adjusting your filters or search terms.</p>
+                  {isLocationSearch ? (
+                    <>
+                      <p className="text-xl font-medium">No clinics in this area.</p>
+                      <p className="mt-2 text-gray-600">Try searching for a different location or adjusting your filters.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xl font-medium">No clinics found matching your criteria.</p>
+                      <p className="mt-2 text-gray-600">Try adjusting your filters or search terms.</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <>
