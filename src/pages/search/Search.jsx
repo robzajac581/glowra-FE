@@ -1,7 +1,7 @@
 // Search.jsx
 import { Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect } from "react";
-import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, filterByProcedure } from "../../utils/searchUtils";
+import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, filterByProcedure, filterByLocationExact, filterByLocationNearby } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
@@ -228,22 +228,49 @@ const Search = () => {
       // Parse query to detect location terms
       const parsed = parseSearchQuery(searchQuery.trim(), allClinics);
       
-      // If backend returned location results, use them as exact matches
+      // If backend returned location results, properly separate exact from nearby
       if (parsed.hasLocation && backendLocationResults.length > 0) {
-        exactResults = backendLocationResults;
         locationSearch = true;
         
-        // Get nearby results if we have fewer than 9 exact matches
-        if (exactResults.length < NUMBER_OF_CARDS_PER_PAGE) {
-          const searchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
-          nearbyResults = searchResult.nearbyResults || [];
-          hasNearby = nearbyResults.length > 0;
+        // Filter backend results to separate exact location matches from nearby matches
+        // This ensures that when searching "Miami", we get Miami results first, then nearby cities
+        let exactLocationMatches = filterByLocationExact(backendLocationResults, parsed.locationTerms);
+        let nearbyLocationMatches = filterByLocationNearby(backendLocationResults, parsed.locationTerms, exactLocationMatches);
+        
+        // If we have procedure terms, filter both exact and nearby by procedure
+        if (parsed.hasProcedure) {
+          exactLocationMatches = filterByProcedure(exactLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
+          nearbyLocationMatches = filterByProcedure(nearbyLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
         }
         
-        // If we also have procedure terms, filter exact results by procedure
-        if (parsed.hasProcedure) {
-          exactResults = filterByProcedure(exactResults, parsed.procedureTerms, parsed.remainingTerms);
-          nearbyResults = filterByProcedure(nearbyResults, parsed.procedureTerms, parsed.remainingTerms);
+        // Start with exact location matches
+        exactResults = exactLocationMatches;
+        
+        // Get nearby results if we have fewer than 9 exact matches
+        // Use nearby results from backend first, then fall back to frontend search if needed
+        if (exactResults.length < NUMBER_OF_CARDS_PER_PAGE) {
+          const needed = NUMBER_OF_CARDS_PER_PAGE - exactResults.length;
+          nearbyResults = nearbyLocationMatches.slice(0, needed);
+          
+          // If we still need more results, get them from frontend search
+          if (nearbyResults.length < needed) {
+            const frontendSearchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
+            const frontendNearby = frontendSearchResult.nearbyResults || [];
+            
+            // Filter out duplicates and add remaining needed results
+            const exactIds = new Set(exactResults.map(c => c.clinicId));
+            const nearbyIds = new Set(nearbyResults.map(c => c.clinicId));
+            const additionalNearby = frontendNearby.filter(c => 
+              !exactIds.has(c.clinicId) && !nearbyIds.has(c.clinicId)
+            ).slice(0, needed - nearbyResults.length);
+            
+            nearbyResults = [...nearbyResults, ...additionalNearby];
+          }
+          
+          hasNearby = nearbyResults.length > 0;
+        } else {
+          nearbyResults = [];
+          hasNearby = false;
         }
       } else {
         // Use the performSearch utility for procedure searches or when backend didn't return results
@@ -281,14 +308,29 @@ const Search = () => {
       maxPrice
     });
     
-    // Sort the filtered results
-    const sorted = sortResults(
-      filtered,
+    // Separate exact and nearby results for independent sorting
+    // This ensures exact results always appear before nearby results
+    const filteredExact = filtered.filter(clinic => !clinic._isNearby);
+    const filteredNearby = filtered.filter(clinic => clinic._isNearby);
+    
+    // Sort exact and nearby results separately
+    const sortedExact = sortResults(
+      filteredExact,
       sortBy,
       searchQuery,
       rawSearchResults,
       userLocation
     );
+    const sortedNearby = sortResults(
+      filteredNearby,
+      sortBy,
+      searchQuery,
+      rawSearchResults,
+      userLocation
+    );
+    
+    // Combine sorted results (exact first, then nearby)
+    const sorted = [...sortedExact, ...sortedNearby];
     
     // Count exact vs nearby results after filtering/sorting
     let filteredExactCount = 0;

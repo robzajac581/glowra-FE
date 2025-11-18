@@ -444,7 +444,7 @@ const getZipCodePrefix = (zipCode) => {
  * @param {Array} locationTerms - Array of location term objects from parseSearchQuery
  * @returns {Array} Filtered clinics matching exact location criteria
  */
-const filterByLocationExact = (clinics, locationTerms) => {
+export const filterByLocationExact = (clinics, locationTerms) => {
   if (!locationTerms || locationTerms.length === 0) {
     return clinics;
   }
@@ -520,7 +520,7 @@ const filterByLocationExact = (clinics, locationTerms) => {
  * @param {Array} exactMatches - Array of clinics that already matched exactly (to exclude)
  * @returns {Array} Filtered clinics from nearby areas
  */
-const filterByLocationNearby = (clinics, locationTerms, exactMatches = []) => {
+export const filterByLocationNearby = (clinics, locationTerms, exactMatches = []) => {
   if (!locationTerms || locationTerms.length === 0) {
     return [];
   }
