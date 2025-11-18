@@ -217,6 +217,64 @@ const US_STATES = {
 };
 
 /**
+ * State adjacency mapping - defines which states are geographically adjacent
+ * Used for finding nearby results when searching by state
+ */
+const STATE_ADJACENCY = {
+  'AL': ['FL', 'GA', 'MS', 'TN'],
+  'AK': [], // Alaska has no adjacent states
+  'AZ': ['CA', 'CO', 'NM', 'NV', 'UT'],
+  'AR': ['LA', 'MO', 'MS', 'OK', 'TN', 'TX'],
+  'CA': ['AZ', 'NV', 'OR'],
+  'CO': ['AZ', 'KS', 'NE', 'NM', 'OK', 'UT', 'WY'],
+  'CT': ['MA', 'NY', 'RI'],
+  'DE': ['MD', 'NJ', 'PA'],
+  'FL': ['AL', 'GA'],
+  'GA': ['AL', 'FL', 'NC', 'SC', 'TN'],
+  'HI': [], // Hawaii has no adjacent states
+  'ID': ['MT', 'NV', 'OR', 'UT', 'WA', 'WY'],
+  'IL': ['IN', 'IA', 'KY', 'MO', 'WI'],
+  'IN': ['IL', 'KY', 'MI', 'OH'],
+  'IA': ['IL', 'MN', 'MO', 'NE', 'SD', 'WI'],
+  'KS': ['CO', 'MO', 'NE', 'OK'],
+  'KY': ['IL', 'IN', 'MO', 'OH', 'TN', 'VA', 'WV'],
+  'LA': ['AR', 'MS', 'TX'],
+  'ME': ['NH'],
+  'MD': ['DE', 'PA', 'VA', 'WV'],
+  'MA': ['CT', 'NH', 'NY', 'RI', 'VT'],
+  'MI': ['IN', 'OH', 'WI'],
+  'MN': ['IA', 'ND', 'SD', 'WI'],
+  'MS': ['AL', 'AR', 'LA', 'TN'],
+  'MO': ['AR', 'IL', 'IA', 'KS', 'KY', 'NE', 'OK', 'TN'],
+  'MT': ['ID', 'ND', 'SD', 'WY'],
+  'NE': ['CO', 'IA', 'KS', 'MO', 'SD', 'WY'],
+  'NV': ['AZ', 'CA', 'ID', 'OR', 'UT'],
+  'NH': ['ME', 'MA', 'VT'],
+  'NJ': ['DE', 'NY', 'PA'],
+  'NM': ['AZ', 'CO', 'OK', 'TX'],
+  'NY': ['CT', 'MA', 'NJ', 'PA', 'VT'],
+  'NC': ['GA', 'SC', 'TN', 'VA'],
+  'ND': ['MN', 'MT', 'SD'],
+  'OH': ['IN', 'KY', 'MI', 'PA', 'WV'],
+  'OK': ['AR', 'CO', 'KS', 'MO', 'NM', 'TX'],
+  'OR': ['CA', 'ID', 'NV', 'WA'],
+  'PA': ['DE', 'MD', 'NJ', 'NY', 'OH', 'WV'],
+  'RI': ['CT', 'MA'],
+  'SC': ['GA', 'NC'],
+  'SD': ['IA', 'MN', 'MT', 'ND', 'NE', 'WY'],
+  'TN': ['AL', 'AR', 'GA', 'KY', 'MO', 'MS', 'NC', 'VA'],
+  'TX': ['AR', 'LA', 'NM', 'OK'],
+  'UT': ['AZ', 'CO', 'ID', 'NV', 'WY'],
+  'VT': ['MA', 'NH', 'NY'],
+  'VA': ['KY', 'MD', 'NC', 'TN', 'WV'],
+  'WA': ['ID', 'OR'],
+  'WV': ['KY', 'MD', 'OH', 'PA', 'VA'],
+  'WI': ['IL', 'IA', 'MI', 'MN'],
+  'WY': ['CO', 'ID', 'MT', 'NE', 'SD', 'UT'],
+  'DC': ['MD', 'VA']
+};
+
+/**
  * Common procedure abbreviations for detection
  */
 const PROCEDURE_ABBREVIATIONS = {
@@ -380,19 +438,99 @@ const getZipCodePrefix = (zipCode) => {
 };
 
 /**
- * Filter clinics by location terms (city, state, or zip)
- * Supports geographic proximity for cities (includes nearby cities in same state)
+ * Filter clinics by exact location match (city, state, or zip)
+ * Returns only clinics that exactly match ALL location terms (AND logic)
  * @param {Array} clinics - Array of clinics to filter
  * @param {Array} locationTerms - Array of location term objects from parseSearchQuery
- * @returns {Array} Filtered clinics matching location criteria
+ * @returns {Array} Filtered clinics matching exact location criteria
  */
-const filterByLocation = (clinics, locationTerms) => {
+const filterByLocationExact = (clinics, locationTerms) => {
   if (!locationTerms || locationTerms.length === 0) {
     return clinics;
   }
 
-  // Group clinics by state for proximity matching
+  // If multiple location terms, use AND logic (clinic must match ALL terms)
+  // If single location term, use OR logic (clinic matches the term)
+  if (locationTerms.length > 1) {
+    return clinics.filter(clinic => {
+      return locationTerms.every(locationTerm => {
+        if (locationTerm.type === 'zip') {
+          return clinic.zipCode && clinic.zipCode === locationTerm.value;
+        }
+        else if (locationTerm.type === 'state') {
+          // State matching: compare uppercase values
+          // locationTerm.value is already normalized to abbreviation (e.g., "FL")
+          const stateValue = locationTerm.value.toUpperCase();
+          const clinicState = clinic.state ? clinic.state.toUpperCase().trim() : '';
+          return clinicState === stateValue;
+        }
+        else if (locationTerm.type === 'city') {
+          const cityLower = locationTerm.value.toLowerCase();
+          return clinic.city && clinic.city.toLowerCase() === cityLower;
+        }
+        return false;
+      });
+    });
+  }
+
+  // Single location term - use OR logic (original behavior)
+  const matchedClinics = new Set();
+  
+  locationTerms.forEach(locationTerm => {
+    if (locationTerm.type === 'zip') {
+      // Exact zip code match only
+      clinics.forEach(clinic => {
+        if (clinic.zipCode && clinic.zipCode === locationTerm.value) {
+          matchedClinics.add(clinic);
+        }
+      });
+    }
+    else if (locationTerm.type === 'state') {
+      // Exact state match only - compare uppercase values
+      // locationTerm.value is already normalized to abbreviation (e.g., "FL")
+      const stateValue = locationTerm.value.toUpperCase();
+      clinics.forEach(clinic => {
+        if (clinic.state) {
+          const clinicState = clinic.state.toUpperCase().trim();
+          if (clinicState === stateValue) {
+            matchedClinics.add(clinic);
+          }
+        }
+      });
+    }
+    else if (locationTerm.type === 'city') {
+      // Exact city match only
+      const cityLower = locationTerm.value.toLowerCase();
+      clinics.forEach(clinic => {
+        if (clinic.city && clinic.city.toLowerCase() === cityLower) {
+          matchedClinics.add(clinic);
+        }
+      });
+    }
+  });
+
+  return Array.from(matchedClinics);
+};
+
+/**
+ * Filter clinics by nearby location (city, state, or zip)
+ * Returns clinics from nearby areas when exact matches are insufficient
+ * @param {Array} clinics - Array of clinics to filter
+ * @param {Array} locationTerms - Array of location term objects from parseSearchQuery
+ * @param {Array} exactMatches - Array of clinics that already matched exactly (to exclude)
+ * @returns {Array} Filtered clinics from nearby areas
+ */
+const filterByLocationNearby = (clinics, locationTerms, exactMatches = []) => {
+  if (!locationTerms || locationTerms.length === 0) {
+    return [];
+  }
+
+  // Create a set of exact match clinic IDs for exclusion
+  const exactMatchIds = new Set(exactMatches.map(c => c.clinicId));
+
+  // Group clinics by state and city for proximity matching
   const clinicsByState = {};
+  const clinicsByCity = {};
   clinics.forEach(clinic => {
     if (clinic.state) {
       const state = clinic.state.toLowerCase();
@@ -401,77 +539,104 @@ const filterByLocation = (clinics, locationTerms) => {
       }
       clinicsByState[state].push(clinic);
     }
+    if (clinic.city) {
+      const city = clinic.city.toLowerCase();
+      if (!clinicsByCity[city]) {
+        clinicsByCity[city] = [];
+      }
+      clinicsByCity[city].push(clinic);
+    }
   });
 
-  const matchedClinics = new Set();
+  const nearbyClinics = new Set();
   
   locationTerms.forEach(locationTerm => {
     if (locationTerm.type === 'zip') {
+      // Nearby zip codes: same first 3 digits (excluding exact matches)
       const zipPrefix = getZipCodePrefix(locationTerm.value);
-      clinics.forEach(clinic => {
-        if (clinic.zipCode) {
-          // Exact match
-          if (clinic.zipCode === locationTerm.value) {
-            matchedClinics.add(clinic);
-          }
-          // Nearby zip codes (same first 3 digits)
-          else if (zipPrefix && clinic.zipCode.length >= 3) {
+      if (zipPrefix) {
+        clinics.forEach(clinic => {
+          if (clinic.zipCode && 
+              clinic.zipCode.length >= 3 && 
+              !exactMatchIds.has(clinic.clinicId)) {
             const clinicZipPrefix = getZipCodePrefix(clinic.zipCode);
             if (clinicZipPrefix === zipPrefix) {
-              matchedClinics.add(clinic);
+              nearbyClinics.add(clinic);
             }
           }
-        }
-      });
+        });
+      }
     }
     else if (locationTerm.type === 'state') {
-      // Match clinics in the specified state
-      const stateLower = locationTerm.value.toLowerCase();
-      clinics.forEach(clinic => {
-        if (clinic.state && clinic.state.toLowerCase() === stateLower) {
-          matchedClinics.add(clinic);
+      // Nearby states: adjacent states (excluding exact matches)
+      const stateAbbr = locationTerm.value.toUpperCase();
+      const adjacentStates = STATE_ADJACENCY[stateAbbr] || [];
+      
+      adjacentStates.forEach(adjState => {
+        const adjStateLower = adjState.toLowerCase();
+        if (clinicsByState[adjStateLower]) {
+          clinicsByState[adjStateLower].forEach(clinic => {
+            if (!exactMatchIds.has(clinic.clinicId)) {
+              nearbyClinics.add(clinic);
+            }
+          });
         }
       });
     }
     else if (locationTerm.type === 'city') {
+      // Nearby cities: other cities in same state first, then adjacent states
       const cityLower = locationTerm.value.toLowerCase();
       
-      // First, find clinics in the exact city
-      const exactMatches = [];
-      clinics.forEach(clinic => {
-        if (clinic.city && clinic.city.toLowerCase() === cityLower) {
-          matchedClinics.add(clinic);
-          exactMatches.push(clinic);
+      // Find the state(s) of the searched city from exact matches
+      const searchedStates = new Set();
+      exactMatches.forEach(clinic => {
+        if (clinic.state) {
+          searchedStates.add(clinic.state.toUpperCase());
         }
       });
       
-      // If we found exact matches, include nearby cities in the same state (metro area)
-      if (exactMatches.length > 0) {
-        const matchingStates = new Set();
-        exactMatches.forEach(clinic => {
-          if (clinic.state) {
-            matchingStates.add(clinic.state.toLowerCase());
-          }
-        });
-        
-        // Include all clinics in the same state(s) as the matched city
-        // This provides "metro area" functionality (e.g., Chicago includes all IL clinics)
-        // For better accuracy, we could limit to cities within a certain distance,
-        // but without coordinates, same-state is a reasonable approximation
-        matchingStates.forEach(state => {
-          if (clinicsByState[state]) {
-            clinicsByState[state].forEach(clinic => {
-              matchedClinics.add(clinic);
+      // Also check if we have a state term in the location terms (e.g., "Miami Florida")
+      // This helps us know which state to use for nearby searches
+      const stateTerm = locationTerms.find(lt => lt.type === 'state');
+      if (stateTerm) {
+        searchedStates.add(stateTerm.value.toUpperCase());
+      }
+      
+      // If we have exact matches or a state term, get nearby cities in same state(s)
+      if (searchedStates.size > 0) {
+        searchedStates.forEach(stateAbbr => {
+          const stateLower = stateAbbr.toLowerCase();
+          if (clinicsByState[stateLower]) {
+            clinicsByState[stateLower].forEach(clinic => {
+              // Exclude exact matches and the searched city itself
+              if (!exactMatchIds.has(clinic.clinicId) && 
+                  clinic.city && 
+                  clinic.city.toLowerCase() !== cityLower) {
+                nearbyClinics.add(clinic);
+              }
             });
           }
         });
+        
+        // Also include clinics from adjacent states (cross-border cities)
+        searchedStates.forEach(stateAbbr => {
+          const adjacentStates = STATE_ADJACENCY[stateAbbr] || [];
+          adjacentStates.forEach(adjState => {
+            const adjStateLower = adjState.toLowerCase();
+            if (clinicsByState[adjStateLower]) {
+              clinicsByState[adjStateLower].forEach(clinic => {
+                if (!exactMatchIds.has(clinic.clinicId)) {
+                  nearbyClinics.add(clinic);
+                }
+              });
+            }
+          });
+        });
       }
-      // If no exact matches found, return empty array (will trigger "No clinics in this area" message)
-      // This handles cases like "Palo Alto" where we have no clinics
     }
   });
 
-  return Array.from(matchedClinics);
+  return Array.from(nearbyClinics);
 };
 
 /**
@@ -481,7 +646,7 @@ const filterByLocation = (clinics, locationTerms) => {
  * @param {Array} remainingTerms - Remaining search terms that might be procedure names
  * @returns {Array} Filtered clinics that offer matching procedures
  */
-const filterByProcedure = (clinics, procedureTerms, remainingTerms) => {
+export const filterByProcedure = (clinics, procedureTerms, remainingTerms) => {
   if ((!procedureTerms || procedureTerms.length === 0) && (!remainingTerms || remainingTerms.length === 0)) {
     return clinics;
   }
@@ -516,14 +681,21 @@ const filterByProcedure = (clinics, procedureTerms, remainingTerms) => {
 
 /**
  * Performs a search with location-aware filtering and AND logic for combined queries
+ * Returns exact matches first, then nearby results if exact matches < 9
  * @param {Object} searchIndex - Lunr search index
  * @param {Array} clinics - Original clinics array
  * @param {String} query - Search query
- * @returns {Object} Object with results array and metadata { results: [], isLocationSearch: boolean }
+ * @param {Number} minResults - Minimum number of results to fill (default: 9)
+ * @returns {Object} Object with exactResults, nearbyResults, and metadata
  */
-export const performSearch = (searchIndex, clinics, query) => {
+export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
   if (!query || !query.trim()) {
-    return { results: clinics, isLocationSearch: false };
+    return { 
+      exactResults: clinics, 
+      nearbyResults: [], 
+      isLocationSearch: false,
+      hasNearbyResults: false
+    };
   }
 
   const trimmedQuery = query.trim();
@@ -531,19 +703,38 @@ export const performSearch = (searchIndex, clinics, query) => {
   // Parse the query to detect location and procedure terms
   const parsed = parseSearchQuery(trimmedQuery, clinics);
   
-  // If we detected location terms, use location-first filtering
+  // If we detected location terms, use location-first filtering with exact/nearby separation
   if (parsed.hasLocation) {
-    // Filter by location FIRST
-    let locationFiltered = filterByLocation(clinics, parsed.locationTerms);
+    // Get exact location matches first (ALL clinics from exact location, regardless of procedure)
+    let exactLocationMatches = filterByLocationExact(clinics, parsed.locationTerms);
     
-    // If we also have procedure terms, apply AND logic (filter location results by procedure)
+    // Get nearby location matches (for potential use if we need more results)
+    let nearbyLocationMatches = filterByLocationNearby(clinics, parsed.locationTerms, exactLocationMatches);
+    
+    // If we have procedure terms, filter both exact and nearby by procedure
+    let exactMatches = exactLocationMatches;
+    let nearbyCandidates = nearbyLocationMatches;
+    
     if (parsed.hasProcedure) {
-      locationFiltered = filterByProcedure(locationFiltered, parsed.procedureTerms, parsed.remainingTerms);
+      exactMatches = filterByProcedure(exactLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
+      nearbyCandidates = filterByProcedure(nearbyLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
+    }
+    
+    // If we have fewer than minResults exact matches, get nearby results to fill up to minResults
+    let nearbyResults = [];
+    const hasNearbyResults = exactMatches.length < minResults;
+    
+    if (hasNearbyResults) {
+      // Limit nearby results to fill up to minResults total
+      const needed = minResults - exactMatches.length;
+      nearbyResults = nearbyCandidates.slice(0, needed);
     }
     
     return { 
-      results: locationFiltered, 
+      exactResults: exactMatches,
+      nearbyResults: nearbyResults,
       isLocationSearch: true,
+      hasNearbyResults: hasNearbyResults,
       hasProcedure: parsed.hasProcedure
     };
   }
@@ -553,31 +744,50 @@ export const performSearch = (searchIndex, clinics, query) => {
   if (isZipCode(trimmedQuery)) {
     const zipPrefix = getZipCodePrefix(trimmedQuery);
     
-    // Filter clinics by zip code (exact match or nearby - same first 3 digits)
-    const zipFiltered = clinics.filter(clinic => {
+    // Get exact zip code matches
+    const exactZipMatches = clinics.filter(clinic => {
       if (!clinic.zipCode) return false;
-      
-      // Exact match
-      if (clinic.zipCode === trimmedQuery) {
-        return true;
-      }
-      
-      // Nearby zip codes (same first 3 digits)
-      if (zipPrefix && clinic.zipCode.length >= 3) {
-        const clinicZipPrefix = getZipCodePrefix(clinic.zipCode);
-        return clinicZipPrefix === zipPrefix;
-      }
-      
-      return false;
+      return clinic.zipCode === trimmedQuery;
     });
     
-    return { results: zipFiltered, isLocationSearch: true };
+    // If we have fewer than minResults, get nearby zip codes
+    let nearbyZipResults = [];
+    const hasNearbyZipResults = exactZipMatches.length < minResults;
+    
+    if (hasNearbyZipResults) {
+      const nearbyZipCandidates = clinics.filter(clinic => {
+        if (!clinic.zipCode || clinic.zipCode === trimmedQuery) return false;
+        
+        // Nearby zip codes (same first 3 digits)
+        if (zipPrefix && clinic.zipCode.length >= 3) {
+          const clinicZipPrefix = getZipCodePrefix(clinic.zipCode);
+          return clinicZipPrefix === zipPrefix;
+        }
+        
+        return false;
+      });
+      
+      const needed = minResults - exactZipMatches.length;
+      nearbyZipResults = nearbyZipCandidates.slice(0, needed);
+    }
+    
+    return { 
+      exactResults: exactZipMatches,
+      nearbyResults: nearbyZipResults,
+      isLocationSearch: true,
+      hasNearbyResults: hasNearbyZipResults
+    };
   }
 
   // If we have procedure terms but no location, filter by procedure first
   if (parsed.hasProcedure && !parsed.hasLocation) {
     const procedureFiltered = filterByProcedure(clinics, parsed.procedureTerms, parsed.remainingTerms);
-    return { results: procedureFiltered, isLocationSearch: false };
+    return { 
+      exactResults: procedureFiltered,
+      nearbyResults: [],
+      isLocationSearch: false,
+      hasNearbyResults: false
+    };
   }
 
   // Fall back to existing Lunr.js search for general queries
@@ -663,9 +873,12 @@ export const performSearch = (searchIndex, clinics, query) => {
     
     // If we have results from any strategy, map them back to the original clinics
     if (searchResults.length > 0) {
+      const lunrResults = searchResults.map(result => clinics[parseInt(result.ref)]);
       return { 
-        results: searchResults.map(result => clinics[parseInt(result.ref)]), 
-        isLocationSearch: false 
+        exactResults: lunrResults,
+        nearbyResults: [],
+        isLocationSearch: false,
+        hasNearbyResults: false
       };
     }
     
@@ -686,7 +899,12 @@ export const performSearch = (searchIndex, clinics, query) => {
       );
     });
     
-    return { results: fallbackResults, isLocationSearch: false };
+    return { 
+      exactResults: fallbackResults,
+      nearbyResults: [],
+      isLocationSearch: false,
+      hasNearbyResults: false
+    };
   } catch (error) {
     console.error('Search error:', error);
     
@@ -703,7 +921,12 @@ export const performSearch = (searchIndex, clinics, query) => {
       );
     });
     
-    return { results: errorFallbackResults, isLocationSearch: false };
+    return { 
+      exactResults: errorFallbackResults,
+      nearbyResults: [],
+      isLocationSearch: false,
+      hasNearbyResults: false
+    };
   }
 };
 

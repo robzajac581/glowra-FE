@@ -1,7 +1,7 @@
 // Search.jsx
 import { Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect } from "react";
-import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures } from "../../utils/searchUtils";
+import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, filterByProcedure } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
@@ -57,6 +57,12 @@ const Search = () => {
   const [error, setError] = useState(null);
   const [totalResults, setTotalResults] = useState(0);
   const [isLocationSearch, setIsLocationSearch] = useState(false);
+  const [hasNearbyResults, setHasNearbyResults] = useState(false);
+  const [exactResultsCount, setExactResultsCount] = useState(0);
+  
+  // State for backend-fetched location results
+  const [backendLocationResults, setBackendLocationResults] = useState([]);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
   
   // User location state for map
   const [userLocation, setUserLocation] = useState(null);
@@ -101,7 +107,7 @@ const Search = () => {
     }
   }, []);
 
-  // Fetch all clinics for indexing
+  // Fetch all clinics for indexing (for procedure searches and general use)
   useEffect(() => {
     const fetchAllClinics = async () => {
       try {
@@ -145,41 +151,131 @@ const Search = () => {
     };
     
     fetchAllClinics();
-  }, []); // Empty dependency array to fetch once on mount
+  }, []); // Fetch once on mount for procedure searches and nearby results logic
   
+  // Fetch location results from backend when searchQuery contains location terms
+  useEffect(() => {
+    const fetchLocationResults = async () => {
+      if (!searchQuery.trim() || allClinics.length === 0) {
+        setBackendLocationResults([]);
+        return;
+      }
+
+      // Parse query to detect location terms
+      const parsed = parseSearchQuery(searchQuery.trim(), allClinics);
+      
+      // Only use backend if it's a location search (has location terms)
+      if (parsed.hasLocation) {
+        try {
+          setFetchingLocation(true);
+          const params = new URLSearchParams();
+          params.append('location', searchQuery.trim());
+          
+          const response = await fetch(`${API_BASE_URL}/api/clinics/search-index?${params.toString()}`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // Filter out closed clinics
+          const locationClinics = (data.clinics || []).filter(clinic => {
+            if (clinic.businessStatus && clinic.businessStatus !== 'OPERATIONAL') {
+              return false;
+            }
+            if (clinic.clinicName && clinic.clinicName.toLowerCase().includes('(closed)')) {
+              return false;
+            }
+            return true;
+          });
+          
+          setBackendLocationResults(locationClinics);
+        } catch (error) {
+          console.error('Error fetching location results from backend:', error);
+          setBackendLocationResults([]);
+        } finally {
+          setFetchingLocation(false);
+        }
+      } else {
+        setBackendLocationResults([]);
+      }
+    };
+
+    fetchLocationResults();
+  }, [searchQuery, allClinics]);
+
   // Perform search operation, apply filters, sort, and paginate
   useEffect(() => {
     if (!searchIndex || allClinics.length === 0) {
       return;
     }
 
-    let dataToFilter;
+    let exactResults = [];
+    let nearbyResults = [];
     let rawSearchResults = [];
     let locationSearch = false;
+    let hasNearby = false;
 
     if (!searchQuery.trim()) {
-      // If no search query, use all clinics
-      dataToFilter = allClinics;
+      // If no search query, use all clinics as exact results
+      exactResults = allClinics;
+      nearbyResults = [];
       setIsLocationSearch(false);
+      setHasNearbyResults(false);
+      setExactResultsCount(allClinics.length);
     } else {
-      // Use the performSearch utility, which includes error handling and fallbacks
-      const searchResult = performSearch(searchIndex, allClinics, searchQuery);
-      dataToFilter = searchResult.results;
-      locationSearch = searchResult.isLocationSearch || false;
-      setIsLocationSearch(locationSearch);
+      // Parse query to detect location terms
+      const parsed = parseSearchQuery(searchQuery.trim(), allClinics);
       
-      // Store raw Lunr results for scoring (only if not a location search)
-      if (!locationSearch) {
-        try {
-          rawSearchResults = searchIndex.search(searchQuery);
-        } catch (e) {
-          // Ignore Lunr search errors for location searches
+      // If backend returned location results, use them as exact matches
+      if (parsed.hasLocation && backendLocationResults.length > 0) {
+        exactResults = backendLocationResults;
+        locationSearch = true;
+        
+        // Get nearby results if we have fewer than 9 exact matches
+        if (exactResults.length < NUMBER_OF_CARDS_PER_PAGE) {
+          const searchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
+          nearbyResults = searchResult.nearbyResults || [];
+          hasNearby = nearbyResults.length > 0;
+        }
+        
+        // If we also have procedure terms, filter exact results by procedure
+        if (parsed.hasProcedure) {
+          exactResults = filterByProcedure(exactResults, parsed.procedureTerms, parsed.remainingTerms);
+          nearbyResults = filterByProcedure(nearbyResults, parsed.procedureTerms, parsed.remainingTerms);
+        }
+      } else {
+        // Use the performSearch utility for procedure searches or when backend didn't return results
+        const searchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
+        exactResults = searchResult.exactResults || [];
+        nearbyResults = searchResult.nearbyResults || [];
+        locationSearch = searchResult.isLocationSearch || false;
+        hasNearby = searchResult.hasNearbyResults || false;
+        
+        // Store raw Lunr results for scoring (only if not a location search)
+        if (!locationSearch) {
+          try {
+            rawSearchResults = searchIndex.search(searchQuery);
+          } catch (e) {
+            // Ignore Lunr search errors for location searches
+          }
         }
       }
+      
+      setIsLocationSearch(locationSearch);
+      setHasNearbyResults(hasNearby);
+      setExactResultsCount(exactResults.length);
     }
     
+    // Combine exact and nearby results (exact first, then nearby)
+    // Mark nearby results with a flag so we can identify them after filtering/sorting
+    const exactWithFlag = exactResults.map(clinic => ({ ...clinic, _isNearby: false }));
+    const nearbyWithFlag = nearbyResults.map(clinic => ({ ...clinic, _isNearby: true }));
+    const combinedResults = [...exactWithFlag, ...nearbyWithFlag];
+    
     // Apply filters using our utility function
-    const filtered = applyFilters(dataToFilter, {
+    const filtered = applyFilters(combinedResults, {
       category,
       minPrice,
       maxPrice
@@ -194,18 +290,32 @@ const Search = () => {
       userLocation
     );
     
+    // Count exact vs nearby results after filtering/sorting
+    let filteredExactCount = 0;
+    sorted.forEach(clinic => {
+      if (!clinic._isNearby) {
+        filteredExactCount++;
+      }
+    });
+    
     // Add display procedures to each clinic based on search context
     const clinicsWithDisplayProcedures = sorted.map(clinic => ({
       ...clinic,
       displayProcedures: getDisplayProcedures(clinic, searchQuery)
     }));
     
+    // Update exact results count to reflect filtered results
+    setExactResultsCount(filteredExactCount);
+    
     // Handle pagination using our utility function
     const paginationData = paginateResults(clinicsWithDisplayProcedures, page, NUMBER_OF_CARDS_PER_PAGE);
     
     setTotalResults(paginationData.total);
     setClinics(paginationData.results);
-  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation]);
+    
+    // Store exact results count for reference (after filtering/sorting)
+    setExactResultsCount(filteredExactCount);
+  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults]);
   
   // Handle search submission
   const handleSearch = (e) => {
@@ -519,14 +629,37 @@ const Search = () => {
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-                    {clinics.map((clinic) => (
-                      <div className="procedure-card-wrapper" key={clinic.clinicId}>
-                        <SearchResultCard 
-                          clinic={clinic}
-                          searchQuery={searchQuery}
-                        />
-                      </div>
-                    ))}
+                    {clinics.map((clinic, index) => {
+                      // Check if this is the first nearby result on the current page
+                      // The separator should appear before the first nearby result
+                      const isFirstNearbyResult = hasNearbyResults && 
+                                                  clinic._isNearby &&
+                                                  (index === 0 || !clinics[index - 1]._isNearby);
+                      
+                      return (
+                        <React.Fragment key={clinic.clinicId}>
+                          {isFirstNearbyResult && (
+                            <div className="col-span-full my-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 border-t border-gray-300"></div>
+                                <div className="px-4 py-2 bg-gray-50 rounded-full border border-gray-200">
+                                  <span className="text-sm font-medium text-gray-600">
+                                    Results from nearby areas
+                                  </span>
+                                </div>
+                                <div className="flex-1 border-t border-gray-300"></div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="procedure-card-wrapper">
+                            <SearchResultCard 
+                              clinic={clinic}
+                              searchQuery={searchQuery}
+                            />
+                          </div>
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
                   
                   {/* Pagination controls */}
