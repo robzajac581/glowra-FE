@@ -212,6 +212,7 @@ const Clinic = () => {
 								selectedData={selectedData} 
 								clinicInfo={clinicInfo}
 								clinicId={clinicId}
+								procedures={procedures}
 							/>
 						</div>
 					</div>

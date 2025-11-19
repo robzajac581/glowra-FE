@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { procedure } from "./Icons";
 
 const ProcedureCard = ({ item, search }) => {
-	// Format price to USD currency string
+	// Format price to USD currency string with tilde prefix
 	const formatPrice = (price) => {
-		return new Intl.NumberFormat('en-US', {
+		return '~' + new Intl.NumberFormat('en-US', {
 			style: 'currency',
 			currency: 'USD',
 			minimumFractionDigits: 0,

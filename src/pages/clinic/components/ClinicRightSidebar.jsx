@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import ConsultationRequestModal from "../../../components/ConsultationRequestModal";
+import ConsultationRequestForm from "../../../components/ConsultationRequestForm";
 import useScreen from "../../../hooks/useScreen";
 
-const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId }) => {
+const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId, procedures }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const screenWidth = useScreen();
   const isMobile = screenWidth < 1024; // lg breakpoint
   
-  // Format price to USD currency string
+  // Format price to USD currency string with tilde prefix
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
+    return '~' + new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
@@ -29,44 +30,14 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId }) => {
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - Inline Form */}
       <div id="consultation-request-section" className="hidden lg:block clinic-sidebar sticky top-4">
-        <div className="clinic-sidebar-card">
-          <h4 className="text-xl font-medium mb-4">Your Selected Procedures</h4>
-          
-          {selectedData.length === 0 ? (
-            <p className="text-gray-500 py-4">
-              No procedures selected. Add procedures from the list to create your plan.
-            </p>
-          ) : (
-            <>
-              <div className="space-y-4 mb-6">
-                {selectedData.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center pb-2 border-b border-gray-100">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">{formatPrice(item.price)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="flex justify-between items-center py-3 border-t border-gray-200">
-                <span className="font-semibold">Total Estimate:</span>
-                <span className="font-bold text-xl text-primary">{formatPrice(totalPrice)}</span>
-              </div>
-              
-              <button 
-                className="btn w-full mt-4"
-                onClick={() => setIsModalOpen(true)}
-              >
-                Request Consultation
-              </button>
-            </>
-          )}
-        </div>
+        <ConsultationRequestForm 
+          clinicId={clinicId}
+          clinicInfo={clinicInfo}
+          selectedData={selectedData}
+          procedures={procedures}
+        />
       </div>
 
       {/* Mobile Sticky Bottom Bar - Only shows when procedures are selected */}
@@ -110,7 +81,7 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId }) => {
                 className="btn flex-shrink-0 px-4 sm:px-6 whitespace-nowrap shadow-md hover:shadow-lg transition-shadow text-sm sm:text-base"
                 onClick={() => setIsModalOpen(true)}
               >
-                Request Consultation
+                Review inquiry
               </button>
             </div>
           </div>
@@ -135,6 +106,7 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId }) => {
         clinicId={clinicId}
         clinicInfo={clinicInfo}
         selectedData={selectedData}
+        procedures={procedures}
       />
     </>
   );

@@ -9,12 +9,15 @@ const ConsultationRequestModal = ({
   onClose, 
   clinicId, 
   clinicInfo, 
-  selectedData 
+  selectedData,
+  procedures // All procedures offered by the clinic (organized by category)
 }) => {
+  const [patientStatus, setPatientStatus] = useState("new");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    procedureType: "",
     phone: "",
     message: ""
   });
@@ -29,11 +32,13 @@ const ConsultationRequestModal = ({
         firstName: "",
         lastName: "",
         email: "",
+        procedureType: "",
         phone: "",
         message: ""
       });
       setErrors({});
       setIsSuccess(false);
+      setPatientStatus("new");
     }
   }, [isOpen]);
 
@@ -70,6 +75,52 @@ const ConsultationRequestModal = ({
     }
   }, [isSuccess, onClose]);
 
+  // Get all procedure types offered by clinic
+  const procedureTypes = procedures ? Object.keys(procedures) : [];
+
+  // Auto-populate procedure type based on selected procedures
+  useEffect(() => {
+    if (selectedData.length === 0) {
+      setFormData(prev => ({ ...prev, procedureType: "" }));
+      return;
+    }
+
+    // Get unique categories from selected procedures
+    const selectedCategories = new Set();
+    selectedData.forEach(item => {
+      // Find which category this procedure belongs to
+      if (procedures) {
+        Object.entries(procedures).forEach(([category, data]) => {
+          if (data.procedures.some(proc => proc.id === item.id)) {
+            selectedCategories.add(category);
+          }
+        });
+      }
+    });
+
+    // Set procedure type based on selection
+    if (selectedCategories.size === 1) {
+      // Single category selected
+      setFormData(prev => ({ ...prev, procedureType: Array.from(selectedCategories)[0] }));
+    } else if (selectedCategories.size > 1) {
+      // Multiple categories selected
+      setFormData(prev => ({ ...prev, procedureType: "Multiple" }));
+    }
+  }, [selectedData, procedures]);
+
+  // Calculate total estimate
+  const totalEstimate = selectedData.reduce((sum, item) => sum + item.price, 0);
+
+  // Format price with tilde prefix
+  const formatPrice = (price) => {
+    return '~' + new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -90,6 +141,10 @@ const ConsultationRequestModal = ({
       newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.procedureType) {
+      newErrors.procedureType = "Procedure type is required";
     }
 
     setErrors(newErrors);
@@ -130,6 +185,8 @@ const ConsultationRequestModal = ({
         email: formData.email.trim(),
         phone: formData.phone.trim() || null,
         message: formData.message.trim() || null,
+        patientStatus: patientStatus, // new or returning
+        procedureType: formData.procedureType,
         // Clinic context (auto-included)
         clinicId: clinicId,
         clinicName: clinicInfo?.ClinicName || null,
@@ -256,11 +313,54 @@ const ConsultationRequestModal = ({
             // Form Screen
             <>
               <h2 className="consultation-modal-title">
-                Get in Touch
+                Request a consultation
               </h2>
               <p className="consultation-modal-description">
-                We'd love to hear from you! Please fill out the form below to send us a message.
+                * Prices are estimates and may vary based on surgeon expertise, location, and individual procedure needs. Please request a consult for a personalized quote
               </p>
+
+              {/* Patient Status Tabs */}
+              <div className="consultation-modal-tabs-container">
+                <button
+                  type="button"
+                  onClick={() => setPatientStatus("new")}
+                  className={cn(
+                    "consultation-modal-tab",
+                    patientStatus === "new" && "active"
+                  )}
+                >
+                  New patient
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPatientStatus("returning")}
+                  className={cn(
+                    "consultation-modal-tab",
+                    patientStatus === "returning" && "active"
+                  )}
+                >
+                  Returning patient
+                </button>
+              </div>
+
+              {/* Estimate Overview */}
+              {selectedData.length > 0 && (
+                <div className="consultation-modal-estimate-overview">
+                  <h5 className="consultation-modal-estimate-title">Estimate Overview</h5>
+                  <div className="consultation-modal-items">
+                    {selectedData.map((item) => (
+                      <div key={item.id} className="consultation-modal-item-row">
+                        <span>{item.name}</span>
+                        <span className="consultation-modal-item-price">{formatPrice(item.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="consultation-modal-total-row">
+                    <span>Price Estimate:</span>
+                    <span className="consultation-modal-total-price">{formatPrice(totalEstimate)}</span>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="consultation-modal-form">
                 {/* First Name & Last Name Row */}
@@ -297,6 +397,33 @@ const ConsultationRequestModal = ({
                       <p className="consultation-modal-error">{errors.lastName}</p>
                     )}
                   </div>
+                </div>
+
+                {/* Procedure Type */}
+                <div>
+                  <select
+                    name="procedureType"
+                    value={formData.procedureType}
+                    onChange={handleInputChange}
+                    className={cn(
+                      "consultation-modal-input consultation-modal-select",
+                      errors.procedureType && "error",
+                      !formData.procedureType && "placeholder"
+                    )}
+                  >
+                    <option value="">
+                      {selectedData.length === 0 ? "Select feature" : "Select procedure type"}
+                    </option>
+                    {procedureTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                    {selectedData.length > 0 && formData.procedureType === "Multiple" && (
+                      <option value="Multiple">Multiple</option>
+                    )}
+                  </select>
+                  {errors.procedureType && (
+                    <p className="consultation-modal-error">{errors.procedureType}</p>
+                  )}
                 </div>
 
                 {/* Email */}

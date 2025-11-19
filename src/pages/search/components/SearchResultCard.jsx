@@ -10,10 +10,10 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
  */
 const SearchResultCard = ({ clinic, searchQuery }) => {
 	
-	// Format price to USD currency string
+	// Format price to USD currency string with tilde prefix
 	const formatPrice = (price) => {
 		if (!price || price === 0) return 'Price on request';
-		return new Intl.NumberFormat('en-US', {
+		return '~' + new Intl.NumberFormat('en-US', {
 			style: 'currency',
 			currency: 'USD',
 			minimumFractionDigits: 0,
