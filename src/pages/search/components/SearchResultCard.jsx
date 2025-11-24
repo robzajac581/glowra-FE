@@ -202,10 +202,15 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 					</div>
 					<div className="space-y-1.5">
 						{displayProcedures.length > 0 ? (
-							displayProcedures.map((proc) => (
+							displayProcedures.map((proc) => {
+								// Handle both id and procedureId field names for compatibility
+								const procId = proc.id || proc.procedureId;
+								// Use name+category instead of ID for matching since IDs differ between endpoints
+								const procName = proc.procedureName || proc.name;
+								return (
 								<Link
-									key={proc.procedureId}
-									to={`${clinicUrl}?openCategory=${encodeURIComponent(proc.category)}`}
+									key={procId}
+									to={`${clinicUrl}?openCategory=${encodeURIComponent(proc.category)}&procedureName=${encodeURIComponent(procName)}&autoAdd=true`}
 									className="flex justify-between items-center text-xs hover:bg-gray-50 p-1.5 rounded transition-colors group/proc"
 									onClick={(e) => e.stopPropagation()}
 								>
@@ -216,7 +221,8 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 										{formatPrice(proc.price)}
 									</span>
 								</Link>
-							))
+							);
+							})
 						) : (
 							<div className="text-xs text-gray-500 italic py-2">
 								View clinic for procedure details
