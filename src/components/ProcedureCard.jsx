@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { procedure } from "./Icons";
+import { normalizeDoctorName } from "../utils/doctorNameUtils";
 
 const ProcedureCard = ({ item, search }) => {
 	// Format price to USD currency string with tilde prefix
@@ -48,16 +49,16 @@ const ProcedureCard = ({ item, search }) => {
 				
 				{/* Content area with consistent spacing */}
 				<div className="text-sm flex-1 flex flex-col justify-between">
-					<div className="space-y-3">
-						<div className="procedure-card-doc-info">
-							{/* <Link
-								to={`/clinic/${item.id}`}
-								className="text-primary font-extrabold relative z-10"
-							>
-								{item.doctor}
-							</Link> */}
-							<span>{item.doctorInfo}</span>
-						</div>
+				<div className="space-y-3">
+					<div className="procedure-card-doc-info">
+						{/* <Link
+							to={`/clinic/${item.id}`}
+							className="text-primary font-extrabold relative z-10"
+						>
+							{item.doctor}
+						</Link> */}
+						<span>{normalizeDoctorName(item.doctorInfo)}</span>
+					</div>
 						<div className="location">
 							<strong>{procedure.mapmarker2}</strong>
 							<span>

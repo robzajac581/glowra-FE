@@ -2,6 +2,7 @@
 import React, { useRef, useState } from "react";
 import { procedure } from "../../../components/Icons";
 import { cn } from "../../../utils/cn";
+import { normalizeDoctorName } from "../../../utils/doctorNameUtils";
 
 /**
  * Convert clinic name to title case (first letter of each word capitalized)
@@ -76,31 +77,32 @@ const ProviderPhotoPlaceholder = ({ name }) => {
 const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
 	const [imageError, setImageError] = useState(false);
 	const showPlaceholder = !hasValidPhoto || imageError;
+	const normalizedName = normalizeDoctorName(provider.ProviderName);
 	
 	return (
 		<div className="flex-shrink-0 w-[160px] text-center">
 			<div className="mb-3 flex justify-center">
 				{showPlaceholder ? (
-					<ProviderPhotoPlaceholder name={provider.ProviderName} />
+					<ProviderPhotoPlaceholder name={normalizedName} />
 				) : (
 					<img 
 						src={photoURL} 
 						className="w-24 h-24 rounded-full object-cover border-2 border-gray-200" 
-						alt={`${provider.ProviderName} - ${provider.Specialty}`}
+						alt={`${normalizedName} - ${provider.Specialty}`}
 						loading="lazy"
 						referrerPolicy="no-referrer"
 						onError={() => setImageError(true)}
 					/>
 				)}
 			</div>
-			<div>
-				<h5 className="text-sm font-black font-Avenir text-dark mb-1">
-					{provider.ProviderName}
-				</h5>
-				<div className="text-xs text-black text-opacity-70">
-					{provider.Specialty}
-				</div>
+		<div>
+			<h5 className="text-sm font-black font-Avenir text-dark mb-1">
+				{normalizedName}
+			</h5>
+			<div className="text-xs text-black text-opacity-70">
+				{provider.Specialty}
 			</div>
+		</div>
 		</div>
 	);
 };
