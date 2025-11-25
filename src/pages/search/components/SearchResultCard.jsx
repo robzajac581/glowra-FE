@@ -47,42 +47,49 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 	// Check if clinic has valid rating
 	const hasRating = clinic.rating && clinic.rating > 0;
 	
-	// Check if we have a valid photo URL from database
-	const hasPhotoURL = clinic.photoURL && clinic.photoURL.trim() !== '';
+	// Check if we have gallery photos to use as fallback
+	const hasGalleryPhotos = clinic.galleryPhotos && clinic.galleryPhotos.length > 0;
 	
-	// Primary photo source: Backend proxy endpoint
-	const proxyPhotoUrl = `${API_BASE_URL}/api/photos/clinic/${clinic.clinicId}`;
-	
-	// Fallback photo source: Direct Google URL (will have rate limiting)
-	const fallbackPhotoUrl = clinic.photoURL;
-	
-	// State to track image loading
+	// State to track image loading and fallback
 	const [imageError, setImageError] = useState(false);
 	const [imageLoaded, setImageLoaded] = useState(false);
-	const [useFallback, setUseFallback] = useState(false);
+	const [useGalleryFallback, setUseGalleryFallback] = useState(false);
 
-	// Handle image error with fallback strategy
+	// Handle image error with gallery photo fallback
 	const handleImageError = () => {
-		if (!useFallback && hasPhotoURL) {
-			// First error: Try fallback to direct Google URL
-			setUseFallback(true);
+		if (!useGalleryFallback && hasGalleryPhotos) {
+			// First error: Try first gallery photo
+			setUseGalleryFallback(true);
 			setImageLoaded(false);
 		} else {
-			// Second error or no fallback available: Show placeholder
+			// No gallery fallback available: Show placeholder
 			setImageError(true);
 		}
 	};
 
 	// Determine which photo URL to use
 	const getPhotoUrl = () => {
-		if (useFallback && hasPhotoURL) {
-			return fallbackPhotoUrl;
+		// If we're using gallery fallback, return first gallery photo
+		if (useGalleryFallback && hasGalleryPhotos) {
+			return clinic.galleryPhotos[0];
 		}
-		return proxyPhotoUrl;
+		
+		// Try primary photo first (backend proxy URL)
+		if (clinic.photoURL) {
+			return clinic.photoURL;
+		}
+		
+		// If no primary photo, jump straight to gallery
+		if (hasGalleryPhotos) {
+			return clinic.galleryPhotos[0];
+		}
+		
+		// No photos available at all
+		return null;
 	};
 
 	// Check if we should attempt to show an image
-	const shouldShowImage = !imageError;
+	const shouldShowImage = !imageError && getPhotoUrl();
 
 	return (
 		<div className="procedure-card group h-full flex flex-col">

@@ -383,6 +383,32 @@ const Search = () => {
   // Check if any filters are active
   const hasActiveFilters = category || minPrice || maxPrice || searchQuery;
   
+  // Helper function to shorten category names for display in filter box
+  const getShortCategoryName = (categoryName) => {
+    if (!categoryName) return "All";
+    
+    // Map of full names to shortened versions for mobile/narrow screens
+    const shortNames = {
+      "Plastic surgery clinic": "Plastic surgery",
+      "Clínica dermatológica": "Dermatológica",
+      "Nurse practitioner": "Nurse",
+      "Health consultant": "Health",
+      "Cosmetic surgeon": "Cosmetic",
+      "Skin care clinic": "Skin care",
+      "General hospital": "Hospital",
+      "Medical Center": "Medical",
+      "Surgical center": "Surgical",
+    };
+    
+    // Return shortened version if available, otherwise return original
+    return shortNames[categoryName] || categoryName;
+  };
+  
+  // Get display category name (shortened on mobile, full on desktop)
+  const displayCategory = screen < 768 
+    ? getShortCategoryName(category) 
+    : (category || "All");
+  
   return (
     <Layout>
       <div className="single-procedure-card">
@@ -439,11 +465,11 @@ const Search = () => {
                       <label className="absolute text-xs text-black text-opacity-50 top-[6px] left-2 md:left-4">
                         Category
                       </label>
-                      <div className="h-full w-full pt-4 px-4 flex items-center justify-between">
-                        <span className="text-sm font-extrabold text-black">
-                          {category || "All"}
+                      <div className="h-full w-full pt-4 px-4 flex items-center justify-between gap-2">
+                        <span className="text-sm font-extrabold text-black truncate min-w-0 flex-1">
+                          {displayCategory}
                         </span>
-                        <div className="pointer-events-none text-black">
+                        <div className="pointer-events-none text-black flex-shrink-0">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
