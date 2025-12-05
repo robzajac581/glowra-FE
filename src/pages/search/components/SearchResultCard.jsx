@@ -176,13 +176,13 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 
 			{/* Clinic Info */}
 			<div className="p-4 flex-1 flex flex-col">
-				{/* Clinic Name - Standardized 2-line height */}
-				<div className="mb-3" style={{ minHeight: '3.5rem' }}>
+				{/* Clinic Name - Fixed 2-line height for consistent alignment */}
+				<div className="mb-3 h-[3.75rem] flex items-start">
 					<Link 
 						to={clinicUrl}
 						className="hover:text-primary transition-colors"
 					>
-						<h5 className="name text-lg leading-tight line-clamp-2 font-bold">
+						<h5 className="name text-lg leading-snug line-clamp-2 font-bold">
 							{formatClinicName(clinic.clinicName)}
 						</h5>
 					</Link>
