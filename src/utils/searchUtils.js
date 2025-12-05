@@ -438,6 +438,40 @@ const getZipCodePrefix = (zipCode) => {
 };
 
 /**
+ * Check if a clinic's state matches a state location term
+ * Handles both state abbreviations (FL) and full names (Florida)
+ * @param {String} clinicState - The clinic's state value (could be "FL" or "Florida")
+ * @param {String} stateTermValue - The parsed location term value (always abbreviation like "FL")
+ * @returns {Boolean} True if the states match
+ */
+const matchesState = (clinicState, stateTermValue) => {
+  if (!clinicState || !stateTermValue) return false;
+  
+  const clinicStateUpper = clinicState.toUpperCase().trim();
+  const stateAbbrev = stateTermValue.toUpperCase();
+  
+  // Direct match (both are abbreviations)
+  if (clinicStateUpper === stateAbbrev) {
+    return true;
+  }
+  
+  // Check if clinic state is the full name that corresponds to our abbreviation
+  const fullStateName = US_STATES[stateAbbrev];
+  if (fullStateName && clinicStateUpper === fullStateName.toUpperCase()) {
+    return true;
+  }
+  
+  // Check if clinic state is a full name and convert to abbreviation for comparison
+  const clinicStateLower = clinicState.toLowerCase().trim();
+  const clinicStateAbbrev = US_STATES[clinicStateLower];
+  if (clinicStateAbbrev && clinicStateAbbrev.toUpperCase() === stateAbbrev) {
+    return true;
+  }
+  
+  return false;
+};
+
+/**
  * Filter clinics by exact location match (city, state, or zip)
  * Returns only clinics that exactly match ALL location terms (AND logic)
  * @param {Array} clinics - Array of clinics to filter
@@ -458,11 +492,8 @@ export const filterByLocationExact = (clinics, locationTerms) => {
           return clinic.zipCode && clinic.zipCode === locationTerm.value;
         }
         else if (locationTerm.type === 'state') {
-          // State matching: compare uppercase values
-          // locationTerm.value is already normalized to abbreviation (e.g., "FL")
-          const stateValue = locationTerm.value.toUpperCase();
-          const clinicState = clinic.state ? clinic.state.toUpperCase().trim() : '';
-          return clinicState === stateValue;
+          // State matching: handles both abbreviations (FL) and full names (Florida)
+          return matchesState(clinic.state, locationTerm.value);
         }
         else if (locationTerm.type === 'city') {
           const cityLower = locationTerm.value.toLowerCase();
@@ -486,15 +517,10 @@ export const filterByLocationExact = (clinics, locationTerms) => {
       });
     }
     else if (locationTerm.type === 'state') {
-      // Exact state match only - compare uppercase values
-      // locationTerm.value is already normalized to abbreviation (e.g., "FL")
-      const stateValue = locationTerm.value.toUpperCase();
+      // State matching: handles both abbreviations (FL) and full names (Florida)
       clinics.forEach(clinic => {
-        if (clinic.state) {
-          const clinicState = clinic.state.toUpperCase().trim();
-          if (clinicState === stateValue) {
-            matchedClinics.add(clinic);
-          }
+        if (matchesState(clinic.state, locationTerm.value)) {
+          matchedClinics.add(clinic);
         }
       });
     }
@@ -513,6 +539,30 @@ export const filterByLocationExact = (clinics, locationTerms) => {
 };
 
 /**
+ * Get normalized state abbreviation from a clinic's state field
+ * @param {String} clinicState - The clinic's state (could be "FL" or "Florida")
+ * @returns {String|null} State abbreviation in uppercase, or null if not found
+ */
+const getStateAbbreviation = (clinicState) => {
+  if (!clinicState) return null;
+  
+  const stateUpper = clinicState.toUpperCase().trim();
+  const stateLower = clinicState.toLowerCase().trim();
+  
+  // If it's already a 2-letter abbreviation
+  if (stateUpper.length === 2 && US_STATES[stateUpper]) {
+    return stateUpper;
+  }
+  
+  // If it's a full state name, get the abbreviation
+  if (US_STATES[stateLower]) {
+    return US_STATES[stateLower];
+  }
+  
+  return null;
+};
+
+/**
  * Filter clinics by nearby location (city, state, or zip)
  * Returns clinics from nearby areas when exact matches are insufficient
  * @param {Array} clinics - Array of clinics to filter
@@ -528,16 +578,18 @@ export const filterByLocationNearby = (clinics, locationTerms, exactMatches = []
   // Create a set of exact match clinic IDs for exclusion
   const exactMatchIds = new Set(exactMatches.map(c => c.clinicId));
 
-  // Group clinics by state and city for proximity matching
-  const clinicsByState = {};
+  // Group clinics by normalized state abbreviation and city for proximity matching
+  const clinicsByStateAbbr = {};
   const clinicsByCity = {};
   clinics.forEach(clinic => {
     if (clinic.state) {
-      const state = clinic.state.toLowerCase();
-      if (!clinicsByState[state]) {
-        clinicsByState[state] = [];
+      const stateAbbr = getStateAbbreviation(clinic.state);
+      if (stateAbbr) {
+        if (!clinicsByStateAbbr[stateAbbr]) {
+          clinicsByStateAbbr[stateAbbr] = [];
+        }
+        clinicsByStateAbbr[stateAbbr].push(clinic);
       }
-      clinicsByState[state].push(clinic);
     }
     if (clinic.city) {
       const city = clinic.city.toLowerCase();
@@ -573,9 +625,8 @@ export const filterByLocationNearby = (clinics, locationTerms, exactMatches = []
       const adjacentStates = STATE_ADJACENCY[stateAbbr] || [];
       
       adjacentStates.forEach(adjState => {
-        const adjStateLower = adjState.toLowerCase();
-        if (clinicsByState[adjStateLower]) {
-          clinicsByState[adjStateLower].forEach(clinic => {
+        if (clinicsByStateAbbr[adjState]) {
+          clinicsByStateAbbr[adjState].forEach(clinic => {
             if (!exactMatchIds.has(clinic.clinicId)) {
               nearbyClinics.add(clinic);
             }
@@ -587,11 +638,14 @@ export const filterByLocationNearby = (clinics, locationTerms, exactMatches = []
       // Nearby cities: other cities in same state first, then adjacent states
       const cityLower = locationTerm.value.toLowerCase();
       
-      // Find the state(s) of the searched city from exact matches
+      // Find the state(s) of the searched city from exact matches (normalized to abbreviations)
       const searchedStates = new Set();
       exactMatches.forEach(clinic => {
         if (clinic.state) {
-          searchedStates.add(clinic.state.toUpperCase());
+          const stateAbbr = getStateAbbreviation(clinic.state);
+          if (stateAbbr) {
+            searchedStates.add(stateAbbr);
+          }
         }
       });
       
@@ -605,9 +659,8 @@ export const filterByLocationNearby = (clinics, locationTerms, exactMatches = []
       // If we have exact matches or a state term, get nearby cities in same state(s)
       if (searchedStates.size > 0) {
         searchedStates.forEach(stateAbbr => {
-          const stateLower = stateAbbr.toLowerCase();
-          if (clinicsByState[stateLower]) {
-            clinicsByState[stateLower].forEach(clinic => {
+          if (clinicsByStateAbbr[stateAbbr]) {
+            clinicsByStateAbbr[stateAbbr].forEach(clinic => {
               // Exclude exact matches and the searched city itself
               if (!exactMatchIds.has(clinic.clinicId) && 
                   clinic.city && 
@@ -622,9 +675,8 @@ export const filterByLocationNearby = (clinics, locationTerms, exactMatches = []
         searchedStates.forEach(stateAbbr => {
           const adjacentStates = STATE_ADJACENCY[stateAbbr] || [];
           adjacentStates.forEach(adjState => {
-            const adjStateLower = adjState.toLowerCase();
-            if (clinicsByState[adjStateLower]) {
-              clinicsByState[adjStateLower].forEach(clinic => {
+            if (clinicsByStateAbbr[adjState]) {
+              clinicsByStateAbbr[adjState].forEach(clinic => {
                 if (!exactMatchIds.has(clinic.clinicId)) {
                   nearbyClinics.add(clinic);
                 }
