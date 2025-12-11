@@ -438,17 +438,22 @@ const ClinicListingModal = ({ isOpen, onClose }) => {
                 {/* Category - Only for List Your Clinic */}
                 {isNewListing && (
                   <div>
-                    <input
-                      type="text"
+                    <select
                       name="clinicCategory"
-                      placeholder="Category"
                       value={formData.clinicCategory}
                       onChange={handleInputChange}
                       className={cn(
                         "clinic-listing-modal-input",
                         errors.clinicCategory && "error"
                       )}
-                    />
+                    >
+                      <option value="">Select Category</option>
+                      <option value="Plastic Surgery">Plastic Surgery</option>
+                      <option value="Medspa / Aesthetics">Medspa / Aesthetics</option>
+                      <option value="Medical">Medical</option>
+                      <option value="Dermatology">Dermatology</option>
+                      <option value="Other">Other</option>
+                    </select>
                     {errors.clinicCategory && (
                       <p className="clinic-listing-modal-error">{errors.clinicCategory}</p>
                     )}

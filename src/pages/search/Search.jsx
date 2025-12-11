@@ -389,15 +389,11 @@ const Search = () => {
     
     // Map of full names to shortened versions for mobile/narrow screens
     const shortNames = {
-      "Plastic surgery clinic": "Plastic surgery",
-      "Clínica dermatológica": "Dermatológica",
-      "Nurse practitioner": "Nurse",
-      "Health consultant": "Health",
-      "Cosmetic surgeon": "Cosmetic",
-      "Skin care clinic": "Skin care",
-      "General hospital": "Hospital",
-      "Medical Center": "Medical",
-      "Surgical center": "Surgical",
+      "Plastic Surgery": "Plastic Surgery",
+      "Medspa / Aesthetics": "Medspa",
+      "Medical": "Medical",
+      "Dermatology": "Dermatology",
+      "Other": "Other",
     };
     
     // Return shortened version if available, otherwise return original
@@ -503,128 +499,47 @@ const Search = () => {
                       <div 
                         className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
                         onClick={() => {
-                          updateSearchState('category', 'Plastic surgery clinic');
+                          updateSearchState('category', 'Plastic Surgery');
                           setCategoryOpen(false);
                         }}
                       >
-                        Plastic surgery clinic
+                        Plastic Surgery
                       </div>
                       <div 
                         className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
                         onClick={() => {
-                          updateSearchState('category', 'Plastic surgeon');
+                          updateSearchState('category', 'Medspa / Aesthetics');
                           setCategoryOpen(false);
                         }}
                       >
-                        Plastic surgeon
+                        Medspa / Aesthetics
                       </div>
                       <div 
                         className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
                         onClick={() => {
-                          updateSearchState('category', 'Cosmetic surgeon');
+                          updateSearchState('category', 'Medical');
                           setCategoryOpen(false);
                         }}
                       >
-                        Cosmetic surgeon
+                        Medical
                       </div>
                       <div 
                         className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
                         onClick={() => {
-                          updateSearchState('category', 'Medical spa');
+                          updateSearchState('category', 'Dermatology');
                           setCategoryOpen(false);
                         }}
                       >
-                        Medical spa
+                        Dermatology
                       </div>
                       <div 
                         className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
                         onClick={() => {
-                          updateSearchState('category', 'Dermatologist');
+                          updateSearchState('category', 'Other');
                           setCategoryOpen(false);
                         }}
                       >
-                        Dermatologist
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Skin care clinic');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Skin care clinic
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Nurse practitioner');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Nurse practitioner
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'General hospital');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        General hospital
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Medical Center');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Medical Center
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Surgical center');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Surgical center
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Doctor');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Doctor
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Health consultant');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Health consultant
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Ophthalmologist');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Ophthalmologist
-                      </div>
-                      <div 
-                        className="px-4 py-2 text-sm font-medium hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          updateSearchState('category', 'Clínica dermatológica');
-                          setCategoryOpen(false);
-                        }}
-                      >
-                        Clínica dermatológica
+                        Other
                       </div>
                     </div>
                   </PopoverContent>
