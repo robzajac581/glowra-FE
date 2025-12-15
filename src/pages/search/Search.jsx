@@ -409,10 +409,21 @@ const Search = () => {
     <Layout>
       <div className="single-procedure-card">
         <div className="container xl:max-w-[1226px]">
-          <h1 className="title">
-            {searchQuery ? `Search results for "${searchQuery}":` : "Search Locations or Procedures:"}
-          </h1>
-          <div className="subtitle">{totalResults} {totalResults === 1 ? 'Clinic' : 'Clinics'} Found</div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-4">
+            <div className="flex-1">
+              <h1 className="title">
+                {searchQuery ? `Search results for "${searchQuery}":` : "Search Locations or Procedures:"}
+              </h1>
+              <div className="subtitle">{totalResults} {totalResults === 1 ? 'Clinic' : 'Clinics'} Found</div>
+            </div>
+            {/* Sort Filter - Positioned near title */}
+            <div className="flex items-center md:items-start md:pt-2 -mt-1 md:mt-0">
+              <SortFilter
+                value={sortBy}
+                onChange={(value) => updateSearchState('sortBy', value)}
+              />
+            </div>
+          </div>
           
           <div className="flex flex-col md:flex-row gap-4 items-start relative z-10">
             {/* Search Bar - Full width on mobile, 60% on desktop */}
@@ -569,12 +580,6 @@ const Search = () => {
           <div className="flex flex-col xl:flex-row gap-8 mt-4 md:mt-6">
             {/* Sidebar */}
             <div className="w-full xl:w-[208px] xl:flex-shrink-0 order-2 xl:order-1">
-              {/* Sort Filter */}
-              <SortFilter
-                value={sortBy}
-                onChange={(value) => updateSearchState('sortBy', value)}
-              />
-              
               {/* Map */}
               <div className="mb-8">
                 <h5 className="font-medium mb-2 font-Avenir">
