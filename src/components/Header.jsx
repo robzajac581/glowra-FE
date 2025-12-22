@@ -3,11 +3,9 @@ import { Link } from "react-router-dom";
 import useScreen from "../hooks/useScreen";
 // import { cn } from "../utils/cn";
 import { icons } from "./Icons";
-import ClinicListingModal from "./ClinicListingModal";
 
 const Header = ({ fixed }) => {
 	const [open, setOpen] = useState(false);
-	const [isClinicListingModalOpen, setIsClinicListingModalOpen] = useState(false);
 	const screen = useScreen();
 
 	return (
@@ -29,20 +27,9 @@ const Header = ({ fixed }) => {
 							<ul className="menu">
 								{menu?.map((item, index) => (
 									<li key={index}>
-										{item.name === "List your clinic on Glowra" ? (
-											<button
-												type="button"
-												onClick={() => setIsClinicListingModalOpen(true)}
-												className="menu-link"
-												style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
-											>
-												{item.name}
-											</button>
-										) : (
-											<Link to={item.url} className="menu-link">
-												{item.name}
-											</Link>
-										)}
+										<Link to={item.url} className="menu-link">
+											{item.name}
+										</Link>
 									</li>
 								))}
 							</ul>
@@ -69,10 +56,6 @@ const Header = ({ fixed }) => {
 					</button>
 				</div>
 			</div>
-			<ClinicListingModal
-				isOpen={isClinicListingModalOpen}
-				onClose={() => setIsClinicListingModalOpen(false)}
-			/>
 		</header>
 	);
 };
@@ -113,7 +96,7 @@ const menu = [
 	},
 	{
 		name: "List your clinic on Glowra",
-		url: "/",
+		url: "/list-your-clinic",
 	},
 ];
 export default Header;

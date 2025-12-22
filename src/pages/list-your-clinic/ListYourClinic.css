@@ -1,0 +1,88 @@
+/* List Your Clinic Wizard Styles */
+
+.list-your-clinic-page {
+  font-family: 'Avenir', sans-serif;
+}
+
+.wizard-content {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Progress Indicator */
+.wizard-progress {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Form Inputs - ensure consistent styling */
+.list-your-clinic-page input[type="text"],
+.list-your-clinic-page input[type="email"],
+.list-your-clinic-page input[type="tel"],
+.list-your-clinic-page input[type="number"],
+.list-your-clinic-page select,
+.list-your-clinic-page textarea {
+  font-family: 'Avenir', sans-serif;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .list-your-clinic-page {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+  
+  .wizard-progress {
+    margin-bottom: 2rem;
+  }
+  
+  /* Stack buttons vertically on mobile */
+  .list-your-clinic-page button {
+    width: 100%;
+  }
+}
+
+/* Smooth transitions for step changes */
+.wizard-step-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.wizard-step-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.wizard-step-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.wizard-step-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+

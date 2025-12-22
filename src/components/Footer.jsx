@@ -1,9 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import ClinicListingModal from "./ClinicListingModal";
 
 const Footer = () => {
-	const [isClinicListingModalOpen, setIsClinicListingModalOpen] = useState(false);
 	return (
 		<footer className="footer">
 			<div className="container">
@@ -26,17 +24,7 @@ const Footer = () => {
 							<ul className="flex flex-col gap-[11px]">
 								{menu2.map((item, index) => (
 									<li key={index}>
-										{item.name === "List your clinic" ? (
-											<button
-												type="button"
-												onClick={() => setIsClinicListingModalOpen(true)}
-												style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: 'inherit', textAlign: 'left' }}
-											>
-												{item.name}
-											</button>
-										) : (
-											<Link to={item.url}>{item.name}</Link>
-										)}
+										<Link to={item.url}>{item.name}</Link>
 									</li>
 								))}
 							</ul>
@@ -59,10 +47,6 @@ const Footer = () => {
 					</div>
 				</div>
 			</div>
-			<ClinicListingModal
-				isOpen={isClinicListingModalOpen}
-				onClose={() => setIsClinicListingModalOpen(false)}
-			/>
 		</footer>
 	);
 };
@@ -84,7 +68,7 @@ const menu2 = [
 	},
 	{
 		name: "List your clinic",
-		url: "/",
+		url: "/list-your-clinic",
 	},
 ];
 
