@@ -5,7 +5,7 @@ import { processImage } from '../../../list-your-clinic/utils/imageUtils';
 import ClinicInitialAvatar from '../../../../components/ClinicInitialAvatar';
 import { cn } from '../../../../utils/cn';
 
-const PhotosTab = ({ draft, onUpdate }) => {
+const PhotosTab = ({ draft, onUpdate, clinicId }) => {
   const [fetchingGooglePhotos, setFetchingGooglePhotos] = useState(false);
   const [error, setError] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -15,6 +15,12 @@ const PhotosTab = ({ draft, onUpdate }) => {
   const logoPhoto = photos.find(p => p.photoType === 'logo' || p.photoType === 'icon');
   const userPhotos = photos.filter(p => p.source === 'user' && p.photoType !== 'logo' && p.photoType !== 'icon');
   const googlePhotos = photos.filter(p => p.source === 'google');
+  
+  // Check what identifiers we have available
+  const hasDraftId = !!draft.draftId;
+  const hasPlaceId = !!draft.placeId;
+  const hasClinicId = !!clinicId;
+  const canFetchGooglePhotos = hasDraftId || hasPlaceId || hasClinicId;
 
   const handleLogoUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -67,8 +73,20 @@ const PhotosTab = ({ draft, onUpdate }) => {
   };
 
   const handleFetchGooglePhotos = async () => {
-    if (!draft.placeId) {
-      setError('PlaceID is required to fetch Google photos');
+    // Determine which endpoint to use based on available identifiers
+    let url;
+    
+    if (hasDraftId) {
+      // Existing draft flow - use draft endpoint
+      url = `${API_BASE_URL}/api/admin/drafts/${draft.draftId}/google-photos`;
+    } else if (hasPlaceId) {
+      // Lazy draft creation - use placeId directly (Option A - preferred)
+      url = `${API_BASE_URL}/api/clinic-management/admin/google-photos?placeId=${encodeURIComponent(draft.placeId)}`;
+    } else if (hasClinicId) {
+      // Lazy draft creation - lookup via clinicId (Option B)
+      url = `${API_BASE_URL}/api/clinic-management/admin/clinics/${clinicId}/google-photos`;
+    } else {
+      setError('Cannot fetch Google photos: no PlaceID or Clinic ID available. Add a PlaceID in the Location tab first.');
       return;
     }
 
@@ -76,21 +94,19 @@ const PhotosTab = ({ draft, onUpdate }) => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/drafts/${draft.draftId}/google-photos`,
-        {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(url, {
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+      });
 
       const data = await response.json();
 
       if (data.success) {
         const newGooglePhotos = data.photos.map((p, idx) => ({
           ...p,
+          photoUrl: p.url || p.urls?.medium || p.photoUrl,
           source: 'google',
           draftPhotoId: `google-${Date.now()}-${idx}`,
           selected: true,
@@ -282,7 +298,7 @@ const PhotosTab = ({ draft, onUpdate }) => {
           <h4 className="text-sm font-semibold text-dark">
             Google Photos ({googlePhotos.length})
           </h4>
-          {draft.placeId && (
+          {canFetchGooglePhotos && (
             <button
               onClick={handleFetchGooglePhotos}
               disabled={fetchingGooglePhotos}
@@ -296,7 +312,7 @@ const PhotosTab = ({ draft, onUpdate }) => {
         {googlePhotos.length === 0 ? (
           <div className="text-center py-8 bg-slate-50 rounded-lg">
             <p className="text-text text-sm mb-2">No Google photos fetched</p>
-            {draft.placeId ? (
+            {canFetchGooglePhotos ? (
               <button
                 onClick={handleFetchGooglePhotos}
                 disabled={fetchingGooglePhotos}

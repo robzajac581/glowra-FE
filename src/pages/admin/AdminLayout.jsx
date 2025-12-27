@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, useLocation, Link, Outlet } from 'react-router-dom';
+import { Navigate, useLocation, Link, Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 
 /**
@@ -23,6 +23,10 @@ const AdminLayout = () => {
   if (!isAuthenticated) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
+
+  // Determine which section is active
+  const isExistingClinicsSection = location.pathname.startsWith('/admin/clinics');
+  const isReviewPage = location.pathname.startsWith('/admin/review');
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -58,6 +62,35 @@ const AdminLayout = () => {
             </div>
           </div>
         </div>
+
+        {/* Section Navigation - hide on review pages */}
+        {!isReviewPage && (
+          <div className="bg-slate-50 border-t border-border">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <nav className="flex gap-1">
+                <NavLink
+                  to="/admin"
+                  end
+                  className={({ isActive }) =>
+                    `admin-section-nav-item ${isActive && !isExistingClinicsSection ? 'active' : ''}`
+                  }
+                >
+                  <span className="mr-2">📋</span>
+                  Submissions
+                </NavLink>
+                <NavLink
+                  to="/admin/clinics"
+                  className={({ isActive }) =>
+                    `admin-section-nav-item ${isActive || isExistingClinicsSection ? 'active' : ''}`
+                  }
+                >
+                  <span className="mr-2">🏥</span>
+                  Existing Clinics
+                </NavLink>
+              </nav>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}

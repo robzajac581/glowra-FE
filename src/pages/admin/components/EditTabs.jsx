@@ -22,6 +22,11 @@ const EditTabs = ({
   onDraftUpdate,
   onSave,
   onCancel,
+  // Optional props for clinic edit mode
+  saveDisabled = false,
+  saveLabel,
+  saving = false,
+  clinicId, // For fetching Google photos when no draftId
   // Data sources props
   photoSource,
   setPhotoSource,
@@ -37,21 +42,36 @@ const EditTabs = ({
   const [error, setError] = useState(null);
   const [localDraft, setLocalDraft] = useState(draft);
 
+  // Check if we're in clinic edit mode (no draftId)
+  const isClinicEditMode = !draft.draftId;
+
   // Sync localDraft with draft prop when it changes
   useEffect(() => {
     setLocalDraft(draft);
   }, [draft]);
 
-  // Update local draft state
+  // Update local draft state and notify parent
   const handleLocalUpdate = (updates) => {
-    setLocalDraft((prev) => ({
-      ...prev,
+    const newDraft = {
+      ...localDraft,
       ...updates,
-    }));
+    };
+    setLocalDraft(newDraft);
+    // Notify parent of changes for change tracking
+    if (onDraftUpdate) {
+      onDraftUpdate(newDraft);
+    }
   };
 
   // Save draft to server
   const handleSave = async () => {
+    // For clinic edit mode, just call onSave which handles the submission
+    if (isClinicEditMode) {
+      onSave();
+      return;
+    }
+
+    // For draft mode, save to server
     setIsSaving(true);
     setError(null);
 
@@ -83,6 +103,10 @@ const EditTabs = ({
       setIsSaving(false);
     }
   };
+
+  // Determine button state
+  const isButtonDisabled = saveDisabled || isSaving || saving;
+  const buttonLabel = saving ? 'Saving...' : (isSaving ? 'Saving...' : (saveLabel || 'Save & Return to Preview'));
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -119,6 +143,7 @@ const EditTabs = ({
           <PhotosTab
             draft={localDraft}
             onUpdate={handleLocalUpdate}
+            clinicId={clinicId}
           />
         );
       case 'datasources':
@@ -175,17 +200,21 @@ const EditTabs = ({
       <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-border">
         <button
           onClick={onCancel}
-          disabled={isSaving}
+          disabled={isSaving || saving}
           className="px-6 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-white transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           onClick={handleSave}
-          disabled={isSaving}
-          className="px-6 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50"
+          disabled={isButtonDisabled}
+          className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+            saveDisabled 
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+              : 'bg-primary text-white hover:bg-opacity-90'
+          }`}
         >
-          {isSaving ? 'Saving...' : 'Save & Return to Preview'}
+          {buttonLabel}
         </button>
       </div>
     </div>

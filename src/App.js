@@ -10,6 +10,7 @@ import { AuthProvider } from "./pages/admin/hooks/useAuth";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import ExistingClinicsPage from "./pages/admin/ExistingClinicsPage";
 import ReviewPage from "./pages/admin/ReviewPage";
 
 function App() {
@@ -37,7 +38,9 @@ function App() {
 						<Route path="/admin/login" element={<AdminLogin />} />
 						<Route path="/admin" element={<AdminLayout />}>
 							<Route index element={<AdminDashboard />} />
+							<Route path="clinics" element={<ExistingClinicsPage />} />
 							<Route path="review/:draftId" element={<ReviewPage />} />
+							<Route path="edit-clinic/:clinicId" element={<ReviewPage />} />
 						</Route>
 						
 						<Route path="*" element={<Home />} />
