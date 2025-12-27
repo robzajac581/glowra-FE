@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import { PROCEDURE_CATEGORIES, PRICE_UNITS } from '../constants';
 import { cn } from '../../../utils/cn';
 
-const Procedures = ({ initialProcedures, providers, onContinue, onSkip, onBack }) => {
+const Procedures = ({ initialProcedures, providers, onContinue, onSkip, onBack, isEditMode = false }) => {
   const [procedures, setProcedures] = useState(
     initialProcedures && initialProcedures.length > 0
-      ? initialProcedures
+      ? initialProcedures.map(p => ({
+          ...p,
+          // Ensure price fields are strings for form inputs
+          priceMin: p.priceMin !== null && p.priceMin !== undefined ? String(p.priceMin) : '',
+          priceMax: p.priceMax !== null && p.priceMax !== undefined ? String(p.priceMax) : '',
+          averagePrice: p.averagePrice !== null && p.averagePrice !== undefined ? String(p.averagePrice) : '',
+        }))
       : [{
           procedureName: '',
           category: '',
@@ -16,6 +22,19 @@ const Procedures = ({ initialProcedures, providers, onContinue, onSkip, onBack }
           providerNames: []
         }]
   );
+
+  // Sync with initialProcedures when they change (e.g., when loading existing clinic data)
+  React.useEffect(() => {
+    if (initialProcedures && initialProcedures.length > 0) {
+      setProcedures(initialProcedures.map(p => ({
+        ...p,
+        // Ensure price fields are strings for form inputs
+        priceMin: p.priceMin !== null && p.priceMin !== undefined ? String(p.priceMin) : '',
+        priceMax: p.priceMax !== null && p.priceMax !== undefined ? String(p.priceMax) : '',
+        averagePrice: p.averagePrice !== null && p.averagePrice !== undefined ? String(p.averagePrice) : '',
+      })));
+    }
+  }, [initialProcedures]);
 
   const addProcedure = () => {
     setProcedures([...procedures, {
@@ -90,18 +109,39 @@ const Procedures = ({ initialProcedures, providers, onContinue, onSkip, onBack }
         <span className="mr-2">←</span> Back
       </button>
 
-      <h2 className="text-3xl font-bold mb-6">Procedures Offered</h2>
+      <h2 className="text-3xl font-bold mb-6">
+        {isEditMode ? 'Edit Procedures' : 'Procedures Offered'}
+      </h2>
       
-      <p className="text-text mb-6">
-        Add procedures and their pricing. You can skip this step.
-      </p>
+      {isEditMode && procedures.length > 0 && procedures[0].procedureName ? (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            Review and edit the existing procedures below. You can add new procedures, update pricing, or remove existing ones.
+          </p>
+        </div>
+      ) : (
+        <p className="text-text mb-6">
+          Add procedures and their pricing. You can skip this step.
+        </p>
+      )}
 
       <div className="space-y-6 mb-6">
-        {procedures.map((procedure, index) => (
+        {procedures.map((procedure, index) => {
+          // Check if this is an existing procedure (loaded from API)
+          const isExistingProcedure = !!procedure.procedureId;
+          
+          return (
           <div
             key={index}
-            className="p-6 border border-border rounded-lg"
+            className="p-6 border border-border rounded-lg relative"
           >
+            {/* Existing badge */}
+            {isExistingProcedure && (
+              <div className="absolute -top-2 -right-2 bg-blue-500 text-white px-2 py-0.5 rounded text-xs font-semibold shadow-sm">
+                Existing
+              </div>
+            )}
+            
             {/* Procedure Name & Category */}
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               <div>
@@ -238,7 +278,8 @@ const Procedures = ({ initialProcedures, providers, onContinue, onSkip, onBack }
               </button>
             )}
           </div>
-        ))}
+        );
+        })}
       </div>
 
       <button

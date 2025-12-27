@@ -4,7 +4,7 @@ import { US_STATES, CLINIC_CATEGORIES } from '../constants';
 import { cn } from '../../../utils/cn';
 import WorkingHoursEditor from './WorkingHoursEditor';
 
-const ClinicInfo = ({ initialData, initialAdvanced, onContinue, onBack }) => {
+const ClinicInfo = ({ initialData, initialAdvanced, onContinue, onBack, isEditMode = false }) => {
   const {
     register,
     handleSubmit,
@@ -40,7 +40,17 @@ const ClinicInfo = ({ initialData, initialAdvanced, onContinue, onBack }) => {
         <span className="mr-2">←</span> Back
       </button>
 
-      <h2 className="text-3xl font-bold mb-6">Clinic Information</h2>
+      <h2 className="text-3xl font-bold mb-6">
+        {isEditMode ? 'Edit Clinic Information' : 'Clinic Information'}
+      </h2>
+      
+      {isEditMode && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            Review and edit the clinic details below. These are the current details on file.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Clinic Name */}
@@ -242,8 +252,9 @@ const ClinicInfo = ({ initialData, initialAdvanced, onContinue, onBack }) => {
             type="tel"
             {...register('phone', {
               pattern: {
-                value: /^(\(\d{3}\)\s?\d{3}-\d{4}|\d{3}-\d{3}-\d{4})$/,
-                message: 'Format: (XXX) XXX-XXXX or XXX-XXX-XXXX'
+                // Accept various formats: (XXX) XXX-XXXX, XXX-XXX-XXXX, +1 XXX-XXX-XXXX, +1 (XXX) XXX-XXXX, etc.
+                value: /^[\+]?[\d\s\-\(\)\.]{7,20}$/,
+                message: 'Please enter a valid phone number'
               }
             })}
             placeholder="(305) 555-1234"

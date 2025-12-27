@@ -40,7 +40,7 @@ const ProviderPhotoPlaceholder = ({ name, size = 80 }) => {
   );
 };
 
-const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
+const Providers = ({ initialProviders, onContinue, onSkip, onBack, isEditMode = false }) => {
   const [providers, setProviders] = useState(
     initialProviders && initialProviders.length > 0
       ? initialProviders
@@ -48,6 +48,18 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
   );
   const [uploadingIndex, setUploadingIndex] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+
+  // Sync with initialProviders when they change (e.g., when loading existing clinic data)
+  React.useEffect(() => {
+    if (initialProviders && initialProviders.length > 0) {
+      setProviders(initialProviders);
+    }
+  }, [initialProviders]);
+
+  // Helper to get photo display URL (supports both photoData and photoURL)
+  const getProviderPhotoUrl = (provider) => {
+    return provider.photoData || provider.photoURL || provider.photoUrl || '';
+  };
 
   const addProvider = () => {
     setProviders([...providers, { providerName: '', specialty: '', photoData: null, photoURL: '' }]);
@@ -92,6 +104,7 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
     const updated = [...providers];
     updated[index].photoData = null;
     updated[index].photoURL = '';
+    updated[index].photoUrl = null;
     updated[index].fileName = null;
     updated[index].mimeType = null;
     updated[index].fileSize = null;
@@ -117,12 +130,22 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
         <span className="mr-2">←</span> Back
       </button>
 
-      <h2 className="text-3xl font-bold mb-6">Providers at This Clinic</h2>
+      <h2 className="text-3xl font-bold mb-6">
+        {isEditMode ? 'Edit Providers' : 'Providers at This Clinic'}
+      </h2>
       
-      <p className="text-text mb-6">
-        Add the doctors, nurses, or practitioners at this clinic.
-        You can skip this step if you don't have this information.
-      </p>
+      {isEditMode && providers.length > 0 && providers[0].providerName ? (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            Review and edit the existing providers below. You can add new providers or remove existing ones.
+          </p>
+        </div>
+      ) : (
+        <p className="text-text mb-6">
+          Add the doctors, nurses, or practitioners at this clinic.
+          You can skip this step if you don't have this information.
+        </p>
+      )}
 
       {uploadError && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
@@ -178,13 +201,19 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
               <div className="flex items-center gap-4">
                 {/* Circular photo preview */}
                 <div className="relative group">
-                  {provider.photoData || provider.photoURL ? (
+                  {getProviderPhotoUrl(provider) ? (
                     <>
                       <img
-                        src={provider.photoData || provider.photoURL}
+                        src={getProviderPhotoUrl(provider)}
                         alt={provider.providerName || 'Provider'}
                         className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 shadow-sm"
                       />
+                      {/* Show indicator for existing photo (from API, not uploaded) */}
+                      {!provider.photoData && (provider.photoURL || provider.photoUrl) && (
+                        <div className="absolute -top-1 -right-1 bg-blue-500 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+                          Existing
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-full flex items-center justify-center">
                         <button
                           type="button"
@@ -211,10 +240,10 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
                     id={`provider-photo-${index}`}
                   />
                   
-                  {provider.photoData || provider.photoURL ? (
+                  {getProviderPhotoUrl(provider) ? (
                     <div className="flex flex-col gap-1">
                       <p className="text-sm text-text">
-                        {provider.fileName || 'Photo uploaded'}
+                        {provider.fileName || (!provider.photoData && (provider.photoURL || provider.photoUrl) ? 'Existing photo' : 'Photo uploaded')}
                       </p>
                       <div className="flex gap-3">
                         <label

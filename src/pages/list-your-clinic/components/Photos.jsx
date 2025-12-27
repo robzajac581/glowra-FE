@@ -4,7 +4,7 @@ import { cn } from '../../../utils/cn';
 import { processImage } from '../utils/imageUtils';
 import ClinicInitialAvatar from '../../../components/ClinicInitialAvatar';
 
-const Photos = ({ initialPhotos, clinicName, onContinue, onSkip, onBack }) => {
+const Photos = ({ initialPhotos, clinicName, onContinue, onSkip, onBack, isEditMode = false, clinicId = null }) => {
   const [photos, setPhotos] = useState(initialPhotos || []);
   // Support both 'logo' and 'icon' for backwards compatibility
   const [logoPhoto, setLogoPhoto] = useState(
@@ -13,8 +13,24 @@ const Photos = ({ initialPhotos, clinicName, onContinue, onSkip, onBack }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Sync with initialPhotos when they change (e.g., when loading existing clinic data)
+  React.useEffect(() => {
+    if (initialPhotos && initialPhotos.length > 0) {
+      setPhotos(initialPhotos);
+      const existingLogo = initialPhotos.find(p => p.photoType === 'logo' || p.photoType === 'icon');
+      if (existingLogo) {
+        setLogoPhoto(existingLogo);
+      }
+    }
+  }, [initialPhotos]);
+
   // Separate clinic photos from logo
   const clinicPhotos = photos.filter(p => p.photoType === 'clinic');
+
+  // Helper to get photo display URL (supports both photoData and photoUrl)
+  const getPhotoDisplayUrl = (photo) => {
+    return photo.photoData || photo.photoUrl || photo.photoURL || '';
+  };
 
   const handleClinicPhotoUpload = async (files) => {
     setUploading(true);
@@ -133,12 +149,22 @@ const Photos = ({ initialPhotos, clinicName, onContinue, onSkip, onBack }) => {
         <span className="mr-2">←</span> Back
       </button>
 
-      <h2 className="text-3xl font-bold mb-6">Add Photos (Optional)</h2>
+      <h2 className="text-3xl font-bold mb-6">
+        {isEditMode ? 'Edit Photos' : 'Add Photos (Optional)'}
+      </h2>
       
-      <p className="text-text mb-8">
-        Photos help patients recognize your clinic and build trust.
-        You can skip this step if you don't have photos ready.
-      </p>
+      {isEditMode && clinicPhotos.length > 0 ? (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            Review the existing photos below. You can add new photos, set a different primary photo, or remove existing ones.
+          </p>
+        </div>
+      ) : (
+        <p className="text-text mb-8">
+          Photos help patients recognize your clinic and build trust.
+          You can skip this step if you don't have photos ready.
+        </p>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -158,13 +184,19 @@ const Photos = ({ initialPhotos, clinicName, onContinue, onSkip, onBack }) => {
           {clinicPhotos.map((photo) => (
             <div key={photo.id} className="relative group">
               <img
-                src={photo.photoData}
+                src={getPhotoDisplayUrl(photo)}
                 alt={photo.caption || 'Clinic photo'}
                 className="w-full h-32 object-cover rounded-lg border-2 border-border"
               />
               {photo.isPrimary && (
                 <div className="absolute top-2 left-2 bg-primary text-white px-2 py-1 rounded text-xs font-semibold">
                   ★ Primary
+                </div>
+              )}
+              {/* Show source indicator for existing photos */}
+              {(photo.source === 'google' || photo.photoUrl) && !photo.photoData && (
+                <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                  Existing
                 </div>
               )}
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center gap-2">
@@ -226,10 +258,16 @@ const Photos = ({ initialPhotos, clinicName, onContinue, onSkip, onBack }) => {
               {logoPhoto ? (
                 <div className="relative group">
                   <img
-                    src={logoPhoto.photoData}
+                    src={getPhotoDisplayUrl(logoPhoto)}
                     alt="Clinic logo"
                     className="w-24 h-24 object-cover rounded-full border-2 border-gray-200 shadow-md"
                   />
+                  {/* Show source indicator for existing logo */}
+                  {(logoPhoto.source === 'existing' || logoPhoto.photoUrl) && !logoPhoto.photoData && (
+                    <div className="absolute -top-1 -right-1 bg-blue-500 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+                      Existing
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-full flex items-center justify-center">
                     <button
                       onClick={() => removePhoto(logoPhoto.id)}

@@ -37,6 +37,25 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
   const [error, setError] = useState(null);
 
   const { clinic, advanced, photos, providers, procedures, flow, existingClinicId, submitterKey } = wizardState;
+  
+  // Helper to get correct step number based on flow
+  const isExistingFlow = flow === 'add_to_existing';
+  const getEditStep = (section) => {
+    // For add_to_existing: 1=Search, 2=ClinicInfo, 3=Providers, 4=Procedures, 5=Photos
+    // For new_clinic: 1=ClinicInfo, 2=Providers, 3=Procedures, 4=Photos
+    const steps = {
+      clinic: isExistingFlow ? 2 : 1,
+      providers: isExistingFlow ? 3 : 2,
+      procedures: isExistingFlow ? 4 : 3,
+      photos: isExistingFlow ? 5 : 4,
+    };
+    return steps[section];
+  };
+
+  // Helper to get photo display URL (supports both photoData and photoUrl)
+  const getPhotoUrl = (photo) => {
+    return photo?.photoData || photo?.photoUrl || photo?.photoURL || '';
+  };
 
   // Helper to format working hours for display
   const formatWorkingHours = (workingHours) => {
@@ -167,7 +186,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
   const clinicPhotos = photos?.filter(p => p.photoType === 'clinic') || [];
   // Support both 'logo' and 'icon' for backwards compatibility
   const logoPhoto = photos?.find(p => p.photoType === 'logo' || p.photoType === 'icon');
-  const providersWithPhotos = providers?.filter(p => p.photoData || p.photoURL) || [];
+  const providersWithPhotos = providers?.filter(p => p.photoData || p.photoURL || p.photoUrl) || [];
   
   const hasAdvancedInfo = advanced && (
     advanced.latitude || advanced.longitude || advanced.placeID || 
@@ -195,7 +214,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
         <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-b border-border">
           <h3 className="font-semibold">CLINIC INFORMATION</h3>
           <button
-            onClick={() => onEdit(1)}
+            onClick={() => onEdit(getEditStep('clinic'))}
             className="text-primary hover:underline text-sm"
           >
             Edit
@@ -247,7 +266,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
               PHOTOS ({clinicPhotos.length + (logoPhoto ? 1 : 0) + providersWithPhotos.length})
             </h3>
             <button
-              onClick={() => onEdit(4)}
+              onClick={() => onEdit(getEditStep('photos'))}
               className="text-primary hover:underline text-sm"
             >
               Edit
@@ -258,13 +277,15 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
             {logoPhoto && (
               <div className="flex items-center gap-4">
                 <img
-                  src={logoPhoto.photoData}
+                  src={getPhotoUrl(logoPhoto)}
                   alt="Clinic logo"
                   className="w-14 h-14 rounded-full object-cover border-2 border-gray-200 shadow-sm"
                 />
                 <div>
                   <span className="text-sm font-medium">Clinic Logo</span>
-                  <p className="text-xs text-text">✓ Uploaded</p>
+                  <p className="text-xs text-text">
+                    {logoPhoto.photoData ? '✓ Uploaded' : '✓ Existing'}
+                  </p>
                 </div>
               </div>
             )}
@@ -277,13 +298,18 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
                   {clinicPhotos.map((photo, idx) => (
                     <div key={idx} className="relative">
                       <img
-                        src={photo.photoData}
+                        src={getPhotoUrl(photo)}
                         alt="Clinic"
                         className="w-16 h-16 object-cover rounded border border-border"
                       />
                       {photo.isPrimary && (
                         <div className="absolute -top-1 -right-1 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                           ★
+                        </div>
+                      )}
+                      {!photo.photoData && (photo.photoUrl || photo.photoURL) && (
+                        <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full px-1 text-[10px]">
+                          Existing
                         </div>
                       )}
                     </div>
@@ -303,7 +329,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
                   {providersWithPhotos.map((provider, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <img
-                        src={provider.photoData || provider.photoURL}
+                        src={getPhotoUrl(provider)}
                         alt={provider.providerName}
                         className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                       />
@@ -323,7 +349,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
           <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-b border-border">
             <h3 className="font-semibold">PROVIDERS ({providers.length})</h3>
             <button
-              onClick={() => onEdit(2)}
+              onClick={() => onEdit(getEditStep('providers'))}
               className="text-primary hover:underline text-sm"
             >
               Edit
@@ -334,9 +360,9 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
               {providers.map((provider, index) => (
                 <li key={index} className="flex items-center gap-3">
                   {/* Circular photo or placeholder */}
-                  {provider.photoData || provider.photoURL ? (
+                  {getPhotoUrl(provider) ? (
                     <img
-                      src={provider.photoData || provider.photoURL}
+                      src={getPhotoUrl(provider)}
                       alt={provider.providerName}
                       className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
                     />
@@ -360,7 +386,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
           <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-b border-border">
             <h3 className="font-semibold">PROCEDURES ({procedures.length})</h3>
             <button
-              onClick={() => onEdit(3)}
+              onClick={() => onEdit(getEditStep('procedures'))}
               className="text-primary hover:underline text-sm"
             >
               Edit
@@ -394,7 +420,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
           <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-b border-border">
             <h3 className="font-semibold">ADVANCED INFO</h3>
             <button
-              onClick={() => onEdit(1)}
+              onClick={() => onEdit(getEditStep('clinic'))}
               className="text-primary hover:underline text-sm"
             >
               Edit

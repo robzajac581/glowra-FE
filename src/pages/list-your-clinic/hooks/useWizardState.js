@@ -104,8 +104,41 @@ export const useWizardState = () => {
     updateWizard({ procedures });
   };
 
-  const setFlow = (flow) => {
-    updateWizard({ flow });
+  const setFlow = (flow, resetData = false) => {
+    if (resetData) {
+      // When switching flows, reset all data to initial state but keep the new flow
+      const resetState = {
+        ...INITIAL_WIZARD_STATE,
+        flow,
+        currentStep: wizardState.currentStep
+      };
+      setWizardState(resetState);
+      methods.reset(resetState);
+    } else {
+      updateWizard({ flow });
+    }
+  };
+
+  // Reset wizard state for new clinic flow (clears all clinic-related data)
+  const resetForNewClinic = () => {
+    const resetState = {
+      ...INITIAL_WIZARD_STATE,
+      flow: 'new_clinic',
+      currentStep: 1
+    };
+    setWizardState(resetState);
+    methods.reset(resetState);
+  };
+
+  // Reset wizard state for add to existing flow
+  const resetForExistingClinic = () => {
+    const resetState = {
+      ...INITIAL_WIZARD_STATE,
+      flow: 'add_to_existing',
+      currentStep: 1
+    };
+    setWizardState(resetState);
+    methods.reset(resetState);
   };
 
   const setSubmitterKey = (key) => {
@@ -142,7 +175,9 @@ export const useWizardState = () => {
     setSubmitterKey,
     setExistingClinicId,
     clearWizard,
-    updateWizard
+    updateWizard,
+    resetForNewClinic,
+    resetForExistingClinic
   };
 };
 

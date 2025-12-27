@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API_BASE_URL from '../../../config/api';
 import { cn } from '../../../utils/cn';
 
-const SearchClinic = ({ onSelectClinic, onAddNew, onBack }) => {
+const SearchClinic = ({ onSelectClinic, onAddNew, onBack, loading = false }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [selectedClinic, setSelectedClinic] = useState(null);
@@ -136,22 +136,33 @@ const SearchClinic = ({ onSelectClinic, onAddNew, onBack }) => {
         <button
           onClick={onAddNew}
           className="text-primary hover:underline"
+          disabled={loading}
         >
           Don't see your clinic? Add it as new
         </button>
         
         <button
           onClick={handleContinue}
-          disabled={!selectedClinic}
+          disabled={!selectedClinic || loading}
           className={cn(
-            'px-6 py-3 rounded-lg font-medium transition-all',
+            'px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2',
             {
-              'bg-primary text-white hover:bg-opacity-90': selectedClinic,
-              'bg-gray-200 text-gray-400 cursor-not-allowed': !selectedClinic
+              'bg-primary text-white hover:bg-opacity-90': selectedClinic && !loading,
+              'bg-gray-200 text-gray-400 cursor-not-allowed': !selectedClinic || loading
             }
           )}
         >
-          Continue with Selected →
+          {loading ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Loading Clinic Data...
+            </>
+          ) : (
+            'Continue with Selected →'
+          )}
         </button>
       </div>
     </div>
