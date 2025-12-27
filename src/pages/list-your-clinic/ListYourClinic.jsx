@@ -24,10 +24,8 @@ const ListYourClinic = () => {
     updateProviders,
     updateProcedures,
     setFlow,
-    setSubmitterKey,
     setExistingClinicId,
     clearWizard,
-    updateWizard
   } = useWizardState();
 
   const [submissionResult, setSubmissionResult] = useState(null);
@@ -131,8 +129,6 @@ const ListYourClinic = () => {
         return (
           <ChooseAction
             onSelectFlow={handleSelectFlow}
-            submitterKey={wizardState.submitterKey}
-            setSubmitterKey={setSubmitterKey}
           />
         );
 
@@ -181,6 +177,7 @@ const ListYourClinic = () => {
         return (
           <Photos
             initialPhotos={wizardState.photos}
+            clinicName={wizardState.clinic?.clinicName}
             onContinue={handlePhotosContinue}
             onSkip={handlePhotosSkip}
             onBack={prevStep}

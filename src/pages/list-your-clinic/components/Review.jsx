@@ -1,5 +1,36 @@
 import React, { useState } from 'react';
 import API_BASE_URL from '../../../config/api';
+import ClinicInitialAvatar from '../../../components/ClinicInitialAvatar';
+
+/**
+ * Helper function to get initials from provider name (matching clinic page styling)
+ */
+const getInitials = (name) => {
+  if (!name) return '?';
+  const cleanName = name.replace(/^Dr\.?\s*/i, '').trim();
+  const parts = cleanName.split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return cleanName[0]?.toUpperCase() || '?';
+};
+
+/**
+ * Placeholder component for providers without photos
+ */
+const ProviderPhotoPlaceholder = ({ name, size = 40 }) => {
+  const initials = getInitials(name);
+  return (
+    <div 
+      className="rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center border border-blue-300"
+      style={{ width: size, height: size }}
+    >
+      <span className="text-sm font-bold text-blue-700">
+        {initials}
+      </span>
+    </div>
+  );
+};
 
 const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,7 +165,8 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
   };
 
   const clinicPhotos = photos?.filter(p => p.photoType === 'clinic') || [];
-  const iconPhoto = photos?.find(p => p.photoType === 'icon');
+  // Support both 'logo' and 'icon' for backwards compatibility
+  const logoPhoto = photos?.find(p => p.photoType === 'logo' || p.photoType === 'icon');
   const providersWithPhotos = providers?.filter(p => p.photoData || p.photoURL) || [];
   
   const hasAdvancedInfo = advanced && (
@@ -208,11 +240,11 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
       </div>
 
       {/* Photos */}
-      {(clinicPhotos.length > 0 || iconPhoto || providersWithPhotos.length > 0) && (
+      {(clinicPhotos.length > 0 || logoPhoto || providersWithPhotos.length > 0) && (
         <div className="mb-6 border border-border rounded-lg overflow-hidden">
           <div className="bg-gray-50 px-6 py-3 flex justify-between items-center border-b border-border">
             <h3 className="font-semibold">
-              PHOTOS ({clinicPhotos.length + (iconPhoto ? 1 : 0) + providersWithPhotos.length})
+              PHOTOS ({clinicPhotos.length + (logoPhoto ? 1 : 0) + providersWithPhotos.length})
             </h3>
             <button
               onClick={() => onEdit(4)}
@@ -221,11 +253,27 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
               Edit
             </button>
           </div>
-          <div className="px-6 py-4 space-y-3">
+          <div className="px-6 py-4 space-y-4">
+            {/* Clinic Logo - Circular preview */}
+            {logoPhoto && (
+              <div className="flex items-center gap-4">
+                <img
+                  src={logoPhoto.photoData}
+                  alt="Clinic logo"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                />
+                <div>
+                  <span className="text-sm font-medium">Clinic Logo</span>
+                  <p className="text-xs text-text">✓ Uploaded</p>
+                </div>
+              </div>
+            )}
+
+            {/* Clinic Gallery Photos */}
             {clinicPhotos.length > 0 && (
               <div>
                 <span className="text-sm font-medium">Clinic Photos:</span>
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 mt-2 flex-wrap">
                   {clinicPhotos.map((photo, idx) => (
                     <div key={idx} className="relative">
                       <img
@@ -247,21 +295,22 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
               </div>
             )}
 
-            {iconPhoto && (
-              <div>
-                <span className="text-sm font-medium">Icon/Logo:</span>
-                <span className="text-sm text-text ml-2">✓ Uploaded</span>
-              </div>
-            )}
-
+            {/* Provider Photos - Circular previews */}
             {providersWithPhotos.length > 0 && (
               <div>
-                <span className="text-sm font-medium">Provider Photos:</span>
-                <ul className="list-disc list-inside text-sm text-text mt-1">
+                <span className="text-sm font-medium mb-2 block">Provider Photos:</span>
+                <div className="flex gap-4 flex-wrap">
                   {providersWithPhotos.map((provider, idx) => (
-                    <li key={idx}>{provider.providerName} - ✓ Photo</li>
+                    <div key={idx} className="flex items-center gap-2">
+                      <img
+                        src={provider.photoData || provider.photoURL}
+                        alt={provider.providerName}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                      />
+                      <span className="text-sm text-text">{provider.providerName}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </div>
@@ -281,13 +330,22 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
             </button>
           </div>
           <div className="px-6 py-4">
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {providers.map((provider, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="mr-2">•</span>
+                <li key={index} className="flex items-center gap-3">
+                  {/* Circular photo or placeholder */}
+                  {provider.photoData || provider.photoURL ? (
+                    <img
+                      src={provider.photoData || provider.photoURL}
+                      alt={provider.providerName}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
+                    />
+                  ) : (
+                    <ProviderPhotoPlaceholder name={provider.providerName} size={40} />
+                  )}
                   <span>
                     {provider.providerName}
-                    {provider.specialty && ` - ${provider.specialty}`}
+                    {provider.specialty && <span className="text-text"> - {provider.specialty}</span>}
                   </span>
                 </li>
               ))}

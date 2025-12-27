@@ -6,6 +6,12 @@ import Home from "./pages/home/Home";
 import Search from "./pages/search/Search";
 import AboutUs from "./pages/aboutus/AboutUs";
 import ListYourClinic from "./pages/list-your-clinic/ListYourClinic";
+import { AuthProvider } from "./pages/admin/hooks/useAuth";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ReviewPage from "./pages/admin/ReviewPage";
+
 function App() {
 	const Wrapper = ({ children }) => {
 		const location = useLocation();
@@ -16,18 +22,29 @@ function App() {
 		return children;
 	};
 	return (
-		<BrowserRouter>
-			<Wrapper>
-				<Routes>
-					<Route path="/" element={<Home />} />
-					<Route path="/search" element={<Search />} />
-					<Route path="/about-us" element={<AboutUs />} />
-					<Route path="/clinic/:id" element={<Clinic />} />
-					<Route path="/list-your-clinic" element={<ListYourClinic />} />
-					<Route path="*" element={<Home />} />
-				</Routes>
-			</Wrapper>
-		</BrowserRouter>
+		<AuthProvider>
+			<BrowserRouter>
+				<Wrapper>
+					<Routes>
+						{/* Public Routes */}
+						<Route path="/" element={<Home />} />
+						<Route path="/search" element={<Search />} />
+						<Route path="/about-us" element={<AboutUs />} />
+						<Route path="/clinic/:id" element={<Clinic />} />
+						<Route path="/list-your-clinic" element={<ListYourClinic />} />
+						
+						{/* Admin Routes */}
+						<Route path="/admin/login" element={<AdminLogin />} />
+						<Route path="/admin" element={<AdminLayout />}>
+							<Route index element={<AdminDashboard />} />
+							<Route path="review/:draftId" element={<ReviewPage />} />
+						</Route>
+						
+						<Route path="*" element={<Home />} />
+					</Routes>
+				</Wrapper>
+			</BrowserRouter>
+		</AuthProvider>
 	);
 }
 

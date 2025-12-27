@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '../../../utils/cn';
 import { processImage } from '../utils/imageUtils';
+import ClinicInitialAvatar from '../../../components/ClinicInitialAvatar';
 
-const Photos = ({ initialPhotos, onContinue, onSkip, onBack }) => {
+const Photos = ({ initialPhotos, clinicName, onContinue, onSkip, onBack }) => {
   const [photos, setPhotos] = useState(initialPhotos || []);
-  const [iconPhoto, setIconPhoto] = useState(
-    initialPhotos?.find(p => p.photoType === 'icon') || null
+  // Support both 'logo' and 'icon' for backwards compatibility
+  const [logoPhoto, setLogoPhoto] = useState(
+    initialPhotos?.find(p => p.photoType === 'logo' || p.photoType === 'icon') || null
   );
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Separate clinic photos from icon
+  // Separate clinic photos from logo
   const clinicPhotos = photos.filter(p => p.photoType === 'clinic');
 
   const handleClinicPhotoUpload = async (files) => {
@@ -44,15 +46,15 @@ const Photos = ({ initialPhotos, onContinue, onSkip, onBack }) => {
     }
   };
 
-  const handleIconUpload = async (file) => {
+  const handleLogoUpload = async (file) => {
     setUploading(true);
     setError(null);
 
     try {
       const { photoData, fileName, mimeType, fileSize } = await processImage(file);
-      const icon = {
-        id: `icon-${Date.now()}`,
-        photoType: 'icon',
+      const logo = {
+        id: `logo-${Date.now()}`,
+        photoType: 'logo',
         photoData,
         fileName,
         mimeType,
@@ -61,9 +63,9 @@ const Photos = ({ initialPhotos, onContinue, onSkip, onBack }) => {
         displayOrder: 0
       };
 
-      setIconPhoto(icon);
-      // Remove old icon if exists and add new one
-      setPhotos([...photos.filter(p => p.photoType !== 'icon'), icon]);
+      setLogoPhoto(logo);
+      // Remove old logo/icon if exists and add new one
+      setPhotos([...photos.filter(p => p.photoType !== 'logo' && p.photoType !== 'icon'), logo]);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -84,7 +86,7 @@ const Photos = ({ initialPhotos, onContinue, onSkip, onBack }) => {
     disabled: uploading
   });
 
-  const { getRootProps: getIconRootProps, getInputProps: getIconInputProps, isDragActive: isIconDragActive } = useDropzone({
+  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps, isDragActive: isLogoDragActive } = useDropzone({
     accept: {
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
@@ -93,7 +95,7 @@ const Photos = ({ initialPhotos, onContinue, onSkip, onBack }) => {
     },
     multiple: false,
     maxSize: 10 * 1024 * 1024,
-    onDrop: (files) => files[0] && handleIconUpload(files[0]),
+    onDrop: (files) => files[0] && handleLogoUpload(files[0]),
     disabled: uploading
   });
 
@@ -101,8 +103,8 @@ const Photos = ({ initialPhotos, onContinue, onSkip, onBack }) => {
     const updatedPhotos = photos.filter(p => p.id !== photoId);
     setPhotos(updatedPhotos);
     
-    if (photoId === iconPhoto?.id) {
-      setIconPhoto(null);
+    if (photoId === logoPhoto?.id) {
+      setLogoPhoto(null);
     }
   };
 
@@ -213,58 +215,78 @@ const Photos = ({ initialPhotos, onContinue, onSkip, onBack }) => {
         </p>
       </div>
 
-      {/* Clinic Icon/Logo */}
+      {/* Clinic Logo */}
       <div className="mb-8 border border-border rounded-lg p-6">
-        <h3 className="font-semibold text-lg mb-4">CLINIC ICON/LOGO</h3>
+        <h3 className="font-semibold text-lg mb-4">CLINIC LOGO</h3>
         
         <div className="flex items-start gap-6">
-          {iconPhoto ? (
-            <div className="relative group">
-              <img
-                src={iconPhoto.photoData}
-                alt="Clinic icon"
-                className="w-32 h-32 object-cover rounded-lg border-2 border-border"
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
-                <button
-                  onClick={() => removePhoto(iconPhoto.id)}
-                  className="opacity-0 group-hover:opacity-100 px-3 py-1 bg-red-500 text-white rounded text-sm font-medium"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div
-              {...getIconRootProps()}
-              className={cn(
-                'w-32 h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all',
-                {
-                  'border-primary bg-primary bg-opacity-5': isIconDragActive,
-                  'border-border hover:border-primary': !isIconDragActive && !uploading,
-                  'border-gray-300 bg-gray-100 cursor-not-allowed': uploading
-                }
-              )}
-            >
-              <input {...getIconInputProps()} />
-              {uploading ? (
-                <div className="text-sm text-text">...</div>
+          <div className="flex flex-col items-center gap-3">
+            {/* Preview circle - matching clinic page styling */}
+            <div className="relative">
+              {logoPhoto ? (
+                <div className="relative group">
+                  <img
+                    src={logoPhoto.photoData}
+                    alt="Clinic logo"
+                    className="w-24 h-24 object-cover rounded-full border-2 border-gray-200 shadow-md"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-full flex items-center justify-center">
+                    <button
+                      onClick={() => removePhoto(logoPhoto.id)}
+                      className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-red-500 text-white rounded text-xs font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <div className="text-2xl mb-1">+</div>
-                  <div className="text-xs text-text text-center">Upload</div>
-                </>
+                <ClinicInitialAvatar clinicName={clinicName || 'C'} size={96} />
               )}
             </div>
-          )}
+            
+            {/* Upload button below preview */}
+            {!logoPhoto && (
+              <div
+                {...getLogoRootProps()}
+                className={cn(
+                  'px-4 py-2 border-2 border-dashed rounded-lg flex items-center gap-2 cursor-pointer transition-all text-sm',
+                  {
+                    'border-primary bg-primary bg-opacity-5': isLogoDragActive,
+                    'border-border hover:border-primary': !isLogoDragActive && !uploading,
+                    'border-gray-300 bg-gray-100 cursor-not-allowed': uploading
+                  }
+                )}
+              >
+                <input {...getLogoInputProps()} />
+                {uploading ? (
+                  <span className="text-text">Uploading...</span>
+                ) : (
+                  <span className="text-primary font-medium">+ Upload Logo</span>
+                )}
+              </div>
+            )}
+            
+            {logoPhoto && (
+              <div
+                {...getLogoRootProps()}
+                className="text-primary text-sm hover:underline cursor-pointer"
+              >
+                <input {...getLogoInputProps()} />
+                Change Logo
+              </div>
+            )}
+          </div>
           
           <div className="flex-1">
             <p className="text-sm text-text mb-2">
-              Upload your clinic's logo or icon
+              Upload your clinic's logo
             </p>
-            <p className="text-xs text-text">
+            <p className="text-xs text-text mb-3">
+              This will appear as a circular avatar on your clinic page
+            </p>
+            <div className="text-xs text-gray-400">
               Recommended: Square image, at least 200x200px
-            </p>
+            </div>
           </div>
         </div>
       </div>

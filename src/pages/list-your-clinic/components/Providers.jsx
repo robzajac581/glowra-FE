@@ -3,6 +3,43 @@ import { PROVIDER_SPECIALTIES } from '../constants';
 import { cn } from '../../../utils/cn';
 import { processImage } from '../utils/imageUtils';
 
+/**
+ * Helper function to get initials from provider name (matching clinic page styling)
+ */
+const getInitials = (name) => {
+  if (!name) return '?';
+  
+  // Remove "Dr." prefix and split by space
+  const cleanName = name.replace(/^Dr\.?\s*/i, '').trim();
+  const parts = cleanName.split(/\s+/);
+  
+  if (parts.length >= 2) {
+    // First and last name initials
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  
+  // Single name - return first letter
+  return cleanName[0]?.toUpperCase() || '?';
+};
+
+/**
+ * Placeholder component for providers without photos (matching clinic page styling)
+ */
+const ProviderPhotoPlaceholder = ({ name, size = 80 }) => {
+  const initials = getInitials(name);
+  
+  return (
+    <div 
+      className="rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center border-2 border-blue-300"
+      style={{ width: size, height: size }}
+    >
+      <span className="text-xl font-bold text-blue-700">
+        {initials}
+      </span>
+    </div>
+  );
+};
+
 const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
   const [providers, setProviders] = useState(
     initialProviders && initialProviders.length > 0
@@ -132,34 +169,39 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
               </div>
             </div>
 
-            {/* Provider Photo Upload */}
+            {/* Provider Photo Upload - Circular like clinic page */}
             <div className="mb-4 pt-4 border-t border-border">
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-3">
                 Provider Photo (optional)
               </label>
               
-              {provider.photoData || provider.photoURL ? (
-                <div className="flex items-center gap-4">
-                  <img
-                    src={provider.photoData || provider.photoURL}
-                    alt={provider.providerName}
-                    className="w-20 h-20 rounded-lg object-cover border border-border"
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm text-text mb-2">
-                      {provider.fileName || 'Photo uploaded'}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(index)}
-                      className="text-red-500 hover:text-red-700 text-sm transition-colors"
-                    >
-                      Remove Photo
-                    </button>
-                  </div>
+              <div className="flex items-center gap-4">
+                {/* Circular photo preview */}
+                <div className="relative group">
+                  {provider.photoData || provider.photoURL ? (
+                    <>
+                      <img
+                        src={provider.photoData || provider.photoURL}
+                        alt={provider.providerName || 'Provider'}
+                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-full flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-red-500 text-white rounded text-xs font-medium"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <ProviderPhotoPlaceholder name={provider.providerName} size={80} />
+                  )}
                 </div>
-              ) : (
-                <div>
+                
+                {/* Upload controls */}
+                <div className="flex-1">
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
@@ -168,32 +210,58 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack }) => {
                     className="hidden"
                     id={`provider-photo-${index}`}
                   />
-                  <label
-                    htmlFor={`provider-photo-${index}`}
-                    className={cn(
-                      'inline-flex items-center px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors text-sm',
-                      {
-                        'opacity-50 cursor-not-allowed': uploadingIndex === index
-                      }
-                    )}
-                  >
-                    {uploadingIndex === index ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Uploading...
-                      </>
-                    ) : (
-                      <>+ Add Photo</>
-                    )}
-                  </label>
-                  <p className="text-xs text-text mt-1">
-                    Recommended: 400x400px headshot, max 10MB
-                  </p>
+                  
+                  {provider.photoData || provider.photoURL ? (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm text-text">
+                        {provider.fileName || 'Photo uploaded'}
+                      </p>
+                      <div className="flex gap-3">
+                        <label
+                          htmlFor={`provider-photo-${index}`}
+                          className="text-primary text-sm hover:underline cursor-pointer"
+                        >
+                          Change
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label
+                        htmlFor={`provider-photo-${index}`}
+                        className={cn(
+                          'inline-flex items-center px-4 py-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors text-sm',
+                          {
+                            'opacity-50 cursor-not-allowed': uploadingIndex === index
+                          }
+                        )}
+                      >
+                        {uploadingIndex === index ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Uploading...
+                          </>
+                        ) : (
+                          <span className="text-primary font-medium">+ Add Photo</span>
+                        )}
+                      </label>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Circular headshot, 400x400px recommended
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {providers.length > 1 && (
