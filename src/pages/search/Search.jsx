@@ -27,7 +27,6 @@ const Search = () => {
     category: "",
     minPrice: "",
     maxPrice: "",
-    specialty: "",
     sortBy: "relevance",
     page: 1
   });

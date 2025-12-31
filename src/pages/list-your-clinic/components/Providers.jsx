@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { PROVIDER_SPECIALTIES } from '../constants';
 import { cn } from '../../../utils/cn';
 import { processImage } from '../utils/imageUtils';
 
@@ -44,7 +43,7 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack, isEditMode = 
   const [providers, setProviders] = useState(
     initialProviders && initialProviders.length > 0
       ? initialProviders
-      : [{ providerName: '', specialty: '', photoData: null, photoURL: '' }]
+      : [{ providerName: '', photoData: null, photoURL: '' }]
   );
   const [uploadingIndex, setUploadingIndex] = useState(null);
   const [uploadError, setUploadError] = useState(null);
@@ -62,7 +61,7 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack, isEditMode = 
   };
 
   const addProvider = () => {
-    setProviders([...providers, { providerName: '', specialty: '', photoData: null, photoURL: '' }]);
+    setProviders([...providers, { providerName: '', photoData: null, photoURL: '' }]);
   };
 
   const removeProvider = (index) => {
@@ -159,37 +158,17 @@ const Providers = ({ initialProviders, onContinue, onSkip, onBack, isEditMode = 
             key={index}
             className="p-4 border border-border rounded-lg"
           >
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Provider Name {index === 0 && <span className="text-red-500">*</span>}
-                </label>
-                <input
-                  type="text"
-                  value={provider.providerName}
-                  onChange={(e) => updateProvider(index, 'providerName', e.target.value)}
-                  placeholder="Dr. Sarah Johnson"
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Specialty
-                </label>
-                <select
-                  value={provider.specialty}
-                  onChange={(e) => updateProvider(index, 'specialty', e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary"
-                >
-                  <option value="">Select Specialty</option>
-                  {PROVIDER_SPECIALTIES.map((spec) => (
-                    <option key={spec.value} value={spec.value}>
-                      {spec.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                Provider Name {index === 0 && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="text"
+                value={provider.providerName}
+                onChange={(e) => updateProvider(index, 'providerName', e.target.value)}
+                placeholder="Dr. Sarah Johnson"
+                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary"
+              />
             </div>
 
             {/* Provider Photo Upload - Circular like clinic page */}

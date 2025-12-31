@@ -62,15 +62,6 @@ export const CLINIC_CATEGORIES = [
   { value: 'Other', label: 'Other' }
 ];
 
-// Provider Specialties
-export const PROVIDER_SPECIALTIES = [
-  { value: 'Plastic Surgery', label: 'Plastic Surgery' },
-  { value: 'Med Spa / Aesthetics', label: 'Med Spa / Aesthetics' },
-  { value: 'Medical', label: 'Medical' },
-  { value: 'Dermatology', label: 'Dermatology' },
-  { value: 'Other', label: 'Other' }
-];
-
 // Procedure Categories
 export const PROCEDURE_CATEGORIES = [
   { value: 'Face', label: 'Face' },

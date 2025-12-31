@@ -81,7 +81,6 @@ const ListYourClinic = () => {
       const formattedProviders = (providersData.providers || []).map((p, idx) => ({
         providerId: p.ProviderID || p.providerId || `provider-${idx}`,
         providerName: p.ProviderName || p.providerName || '',
-        specialty: p.Specialty || p.specialty || '',
         photoURL: p.PhotoURL || p.photoUrl || p.PhotoUrl || null,
         photoData: null, // Will be populated if user uploads new photo
       }));

@@ -1,30 +1,90 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+
+/**
+ * Helper to flatten grouped procedures from clinic API format to a flat array
+ * Input format (grouped): { "Face": { procedures: [...] }, "Body": { procedures: [...] } }
+ * Output format (flat): [{ ProcedureName: "...", category: "Face", ... }, ...]
+ */
+const flattenExistingProcedures = (procedures) => {
+  if (!procedures) return [];
+  
+  // If it's already a flat array, return it
+  if (Array.isArray(procedures)) {
+    return procedures;
+  }
+  
+  // If it's a grouped object, flatten it
+  if (typeof procedures === 'object') {
+    const flattened = [];
+    Object.entries(procedures).forEach(([category, data]) => {
+      const procs = data?.procedures || data || [];
+      if (Array.isArray(procs)) {
+        procs.forEach(proc => {
+          flattened.push({
+            ...proc,
+            category,
+            ProcedureName: proc.ProcedureName || proc.procedureName || proc.name || '',
+          });
+        });
+      }
+    });
+    return flattened;
+  }
+  
+  return [];
+};
 
 /**
  * Component to display a diff view for adjustment submissions
  * Shows what's being added/modified compared to the existing clinic
  */
 const AdjustmentDiff = ({ draft, existingClinic }) => {
+  // Use pre-flattened procedures if available, otherwise flatten
+  // NOTE: This hook must be called before any early returns
+  const existingProceduresFlat = useMemo(() => {
+    if (!existingClinic) return [];
+    return existingClinic.proceduresFlat || flattenExistingProcedures(existingClinic.procedures);
+  }, [existingClinic]);
+  
   if (!existingClinic) {
     return null;
   }
 
-  // Compare basic fields
+  // Compare basic fields - includes ALL fields that can be modified
   const fieldChanges = [];
+  
+  // Helper to get draft value with both casing options
+  const getDraftValue = (camelKey, pascalKey) => {
+    return draft[camelKey] ?? draft[pascalKey] ?? '';
+  };
+  
   const basicFields = [
-    { key: 'clinicName', label: 'Clinic Name', existing: existingClinic.ClinicName },
-    { key: 'address', label: 'Address', existing: existingClinic.Address },
-    { key: 'phone', label: 'Phone', existing: existingClinic.Phone },
-    { key: 'website', label: 'Website', existing: existingClinic.Website },
-    { key: 'email', label: 'Email', existing: existingClinic.Email },
-    { key: 'category', label: 'Category', existing: existingClinic.Category },
+    { key: 'clinicName', pascalKey: 'ClinicName', label: 'Clinic Name', existing: existingClinic.ClinicName || existingClinic.clinicName },
+    { key: 'address', pascalKey: 'Address', label: 'Address', existing: existingClinic.Address || existingClinic.address },
+    { key: 'city', pascalKey: 'City', label: 'City', existing: existingClinic.City || existingClinic.city },
+    { key: 'state', pascalKey: 'State', label: 'State', existing: existingClinic.State || existingClinic.state },
+    { key: 'zipCode', pascalKey: 'ZipCode', label: 'Zip Code', existing: existingClinic.ZipCode || existingClinic.zipCode },
+    { key: 'phone', pascalKey: 'Phone', label: 'Phone', existing: existingClinic.Phone || existingClinic.phone },
+    { key: 'website', pascalKey: 'Website', label: 'Website', existing: existingClinic.Website || existingClinic.website },
+    { key: 'email', pascalKey: 'Email', label: 'Email', existing: existingClinic.Email || existingClinic.email },
+    { key: 'category', pascalKey: 'Category', label: 'Category', existing: existingClinic.Category || existingClinic.category },
   ];
 
   basicFields.forEach(field => {
-    const draftValue = draft[field.key];
-    const existingValue = field.existing;
+    // Get draft value handling both camelCase and PascalCase
+    const draftValue = getDraftValue(field.key, field.pascalKey);
+    const existingValue = field.existing || '';
     
-    if (draftValue && draftValue !== existingValue) {
+    // Skip comparison if draft value is a placeholder or empty
+    const isPlaceholder = draftValue === 'See existing clinic' || 
+                          draftValue === 'Existing Clinic Update' ||
+                          !draftValue;
+    
+    // Normalize for comparison (trim whitespace)
+    const normalizedDraft = (draftValue || '').toString().trim();
+    const normalizedExisting = (existingValue || '').toString().trim();
+    
+    if (!isPlaceholder && normalizedDraft !== normalizedExisting) {
       fieldChanges.push({
         field: field.label,
         old: existingValue || '(empty)',
@@ -36,18 +96,18 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
 
   // Find new providers
   const existingProviderNames = (existingClinic.providers || []).map(p => 
-    p.ProviderName?.toLowerCase()
+    (p.ProviderName || p.providerName || '').toLowerCase()
   );
   const newProviders = (draft.providers || []).filter(p => 
-    !existingProviderNames.includes(p.providerName?.toLowerCase())
+    !existingProviderNames.includes((p.providerName || '').toLowerCase())
   );
 
-  // Find new procedures
-  const existingProcedureNames = (existingClinic.procedures || []).map(p => 
-    p.ProcedureName?.toLowerCase()
+  // Find new procedures using flattened existing procedures
+  const existingProcedureNames = existingProceduresFlat.map(p => 
+    (p.ProcedureName || p.procedureName || '').toLowerCase()
   );
   const newProcedures = (draft.procedures || []).filter(p => 
-    !existingProcedureNames.includes(p.procedureName?.toLowerCase())
+    !existingProcedureNames.includes((p.procedureName || '').toLowerCase())
   );
 
   // Find new photos
@@ -131,11 +191,6 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
                 >
                   <span className="text-xs">👨‍⚕️</span>
                   {provider.providerName}
-                  {provider.specialty && (
-                    <span className="text-green-600 text-xs">
-                      - {provider.specialty}
-                    </span>
-                  )}
                   <span className="ml-1 px-1.5 py-0.5 bg-green-200 text-green-900 rounded text-xs font-medium">
                     NEW
                   </span>

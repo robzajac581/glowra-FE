@@ -1,5 +1,5 @@
 // ClinicBanner.jsx
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import { procedure } from "../../../components/Icons";
 import { cn } from "../../../utils/cn";
 import { normalizeDoctorName } from "../../../utils/doctorNameUtils";
@@ -88,7 +88,7 @@ const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
 					<img 
 						src={photoURL} 
 						className="w-24 h-24 rounded-full object-cover border-2 border-gray-200" 
-						alt={`${normalizedName} - ${provider.Specialty}`}
+						alt={normalizedName}
 						loading="lazy"
 						referrerPolicy="no-referrer"
 						onError={() => setImageError(true)}
@@ -99,9 +99,6 @@ const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
 			<h5 className="text-sm font-black font-Avenir text-dark mb-1">
 				{normalizedName}
 			</h5>
-			<div className="text-xs text-black text-opacity-70">
-				{provider.Specialty}
-			</div>
 		</div>
 		</div>
 	);
@@ -115,6 +112,27 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 	const carouselRef = useRef(null);
 	const [showLeftArrow, setShowLeftArrow] = useState(false);
 	const [showRightArrow, setShowRightArrow] = useState(true);
+
+	// Build full address from clinic data (Address, City, State, ZipCode)
+	// Must be called before any early returns to comply with React hooks rules
+	const fullAddress = useMemo(() => {
+		if (!clinicInfo) return '';
+		
+		// Start with the street address
+		let addressParts = [clinicInfo.Address];
+		
+		// Build city/state/zip part
+		const locationParts = [];
+		if (clinicInfo.City) locationParts.push(clinicInfo.City);
+		if (clinicInfo.State) locationParts.push(clinicInfo.State);
+		if (clinicInfo.ZipCode) locationParts.push(clinicInfo.ZipCode);
+		
+		if (locationParts.length > 0) {
+			addressParts.push(locationParts.join(', '));
+		}
+		
+		return addressParts.filter(Boolean).join(', ');
+	}, [clinicInfo]);
 
 	if (!clinicInfo) {
 		return <div>Loading clinic information...</div>;
@@ -195,7 +213,7 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 						
 						<div className="text-black text-opacity-70">
 							<div className="mb-1">
-								{clinicInfo.Address}
+								{fullAddress || clinicInfo.Address}
 							</div>
 							{isOpenNow !== null && (
 								<div className="flex items-center text-xs text-black">

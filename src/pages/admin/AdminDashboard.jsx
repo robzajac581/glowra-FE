@@ -171,13 +171,6 @@ const AdminDashboard = () => {
         const data = await response.json();
 
         if (data.success) {
-          // Debug: Log first draft to see structure
-          if (data.drafts && data.drafts.length > 0) {
-            console.log('First draft structure:', data.drafts[0]);
-            console.log('Draft ID field:', data.drafts[0].draftId || data.drafts[0].id || data.drafts[0].draft_id || 'NOT FOUND');
-            console.log('Clinic Name field:', data.drafts[0].clinicName || data.drafts[0].clinic_name || data.drafts[0].ClinicName || 'NOT FOUND');
-            console.log('All draft keys:', Object.keys(data.drafts[0]));
-          }
           setDrafts(data.drafts || []);
           setTotalPages(data.pagination?.totalPages || 1);
         } else {

@@ -84,7 +84,6 @@ export const convertProviders = (providers) => {
 
   return providers.map((p) => ({
     providerName: getField(p, 'ProviderName', 'providerName') || '',
-    specialty: getField(p, 'Specialty', 'specialty') || null,
     photoURL: getField(p, 'PhotoURL', 'photoUrl') || 
               getField(p, 'PhotoUrl', 'photoUrl') || null,
   }));

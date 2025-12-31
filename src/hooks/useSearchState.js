@@ -25,7 +25,6 @@ const useSearchState = (defaultValues = {}) => {
       category: searchParams.get('category') || (hasAnyUrlParams ? '' : defaultValues.category || ''),
       minPrice: searchParams.get('minPrice') || (hasAnyUrlParams ? '' : defaultValues.minPrice || ''),
       maxPrice: searchParams.get('maxPrice') || (hasAnyUrlParams ? '' : defaultValues.maxPrice || ''),
-      specialty: searchParams.get('specialty') || (hasAnyUrlParams ? '' : defaultValues.specialty || ''),
       sortBy: searchParams.get('sortBy') || (hasAnyUrlParams ? 'relevance' : defaultValues.sortBy || 'relevance'),
       page: parseInt(searchParams.get('page')) || (hasAnyUrlParams ? 1 : defaultValues.page || 1)
     };
@@ -52,7 +51,6 @@ const useSearchState = (defaultValues = {}) => {
       category: searchParams.get('category') || '',
       minPrice: searchParams.get('minPrice') || '',
       maxPrice: searchParams.get('maxPrice') || '',
-      specialty: searchParams.get('specialty') || '',
       sortBy: searchParams.get('sortBy') || 'relevance',
       page: parseInt(searchParams.get('page')) || 1
     };
@@ -110,7 +108,6 @@ const useSearchState = (defaultValues = {}) => {
       category: defaultValues.category || '',
       minPrice: defaultValues.minPrice || '',
       maxPrice: defaultValues.maxPrice || '',
-      specialty: defaultValues.specialty || '',
       sortBy: defaultValues.sortBy || 'relevance',
       page: 1
     });

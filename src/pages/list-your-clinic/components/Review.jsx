@@ -131,7 +131,6 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
         })),
         providers: providers.map(p => ({
           providerName: p.providerName,
-          specialty: p.specialty || null,
           photoData: p.photoData || null,
           photoURL: p.photoURL || null
         })),
@@ -369,10 +368,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
                   ) : (
                     <ProviderPhotoPlaceholder name={provider.providerName} size={40} />
                   )}
-                  <span>
-                    {provider.providerName}
-                    {provider.specialty && <span className="text-text"> - {provider.specialty}</span>}
-                  </span>
+                  <span>{provider.providerName}</span>
                 </li>
               ))}
             </ul>

@@ -90,7 +90,6 @@ export const transformProviders = (providers) => {
 
   return providers.map((provider, index) => {
     const providerName = getField(provider, 'ProviderName', 'providerName') || '';
-    const specialty = getField(provider, 'Specialty', 'specialty') || '';
     // Check photoUrl first, then fall back to photoData (base64 for newly uploaded photos)
     const photoUrl = getField(provider, 'PhotoURL', 'photoUrl') || 
                      getField(provider, 'PhotoUrl', 'photoUrl') || 
@@ -103,7 +102,6 @@ export const transformProviders = (providers) => {
     return {
       ProviderID: providerId,
       ProviderName: providerName,
-      Specialty: specialty,
       PhotoURL: photoUrl,
       hasPhoto: !!photoUrl,
     };
@@ -247,7 +245,6 @@ const normalizeProvidersArray = (providers) => {
   return providers.map((p, idx) => ({
     draftProviderId: getField(p, 'DraftProviderID', 'draftProviderId') || `provider-${idx}`,
     providerName: getField(p, 'ProviderName', 'providerName') || '',
-    specialty: getField(p, 'Specialty', 'specialty') || '',
     // Handle all URL casing variations: PhotoURL, photoUrl, PhotoUrl, photoURL
     photoUrl: getField(p, 'PhotoURL', 'photoUrl') || getField(p, 'PhotoUrl', 'photoUrl') || p.photoURL,
     // Preserve photo upload fields (critical for newly uploaded photos)

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { PROVIDER_SPECIALTIES } from '../../../list-your-clinic/constants';
 import { processImage } from '../../../list-your-clinic/utils/imageUtils';
 import { cn } from '../../../../utils/cn';
 
@@ -88,12 +87,15 @@ const ProvidersTab = ({ draft, onUpdate }) => {
   };
 
   const handleAddProvider = () => {
+    // Generate a temporary ID for new providers
+    // This helps the backend distinguish between new providers (temp IDs) and existing ones (numeric IDs)
+    const tempId = `new-provider-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     onUpdate({
       providers: [
         ...providers,
         {
+          draftProviderId: tempId,
           providerName: '',
-          specialty: '',
           photoData: null,
           photoUrl: null,
         },
@@ -146,38 +148,18 @@ const ProvidersTab = ({ draft, onUpdate }) => {
             >
               <div className="flex items-start gap-4">
                 <div className="flex-1 space-y-4">
-                  {/* Name and Specialty */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-dark mb-2">
-                        Provider Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={provider.providerName || ''}
-                        onChange={(e) => handleProviderChange(index, 'providerName', e.target.value)}
-                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Dr. Jane Smith"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-dark mb-2">
-                        Specialty
-                      </label>
-                      <select
-                        value={provider.specialty || ''}
-                        onChange={(e) => handleProviderChange(index, 'specialty', e.target.value)}
-                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-                      >
-                        <option value="">Select Specialty</option>
-                        {PROVIDER_SPECIALTIES.map((spec) => (
-                          <option key={spec.value} value={spec.value}>
-                            {spec.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  {/* Provider Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark mb-2">
+                      Provider Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={provider.providerName || ''}
+                      onChange={(e) => handleProviderChange(index, 'providerName', e.target.value)}
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Dr. Jane Smith"
+                    />
                   </div>
 
                   {/* Provider Photo - Circular like clinic page */}

@@ -28,10 +28,14 @@ const ProceduresTab = ({ draft, onUpdate }) => {
   };
 
   const handleAddProcedure = () => {
+    // Generate a temporary ID for new procedures
+    // This helps the backend distinguish between new procedures (temp IDs) and existing ones (numeric IDs)
+    const tempId = `new-procedure-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     onUpdate({
       procedures: [
         ...procedures,
         {
+          draftProcedureId: tempId,
           procedureName: '',
           category: '',
           priceMin: null,
