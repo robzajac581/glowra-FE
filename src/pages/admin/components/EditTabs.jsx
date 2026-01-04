@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import API_BASE_URL from '../../../config/api';
 import { getAuthHeaders } from '../hooks/useAuth';
 import BasicInfoTab from './tabs/BasicInfoTab';
@@ -40,27 +40,17 @@ const EditTabs = ({
   const [activeTab, setActiveTab] = useState('basic');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [localDraft, setLocalDraft] = useState(draft);
 
   // Check if we're in clinic edit mode (no draftId)
   const isClinicEditMode = !draft.draftId;
 
-  // Sync localDraft with draft prop when it changes
-  useEffect(() => {
-    setLocalDraft(draft);
-  }, [draft]);
-
-  // Update local draft state and notify parent
-  const handleLocalUpdate = (updates) => {
+  // Handle updates - directly notify parent (single source of truth)
+  const handleUpdate = (updates) => {
     const newDraft = {
-      ...localDraft,
+      ...draft,
       ...updates,
     };
-    setLocalDraft(newDraft);
-    // Notify parent of changes for change tracking
-    if (onDraftUpdate) {
-      onDraftUpdate(newDraft);
-    }
+    onDraftUpdate(newDraft);
   };
 
   // Save draft to server
@@ -84,14 +74,17 @@ const EditTabs = ({
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(localDraft),
+          body: JSON.stringify(draft),
         }
       );
 
       const data = await response.json();
 
       if (data.success) {
-        onDraftUpdate(data.draft || localDraft);
+        // Update with server response if available
+        if (data.draft) {
+          onDraftUpdate(data.draft);
+        }
         onSave();
       } else {
         setError(data.error || 'Failed to save changes');
@@ -113,43 +106,43 @@ const EditTabs = ({
       case 'basic':
         return (
           <BasicInfoTab
-            draft={localDraft}
-            onUpdate={handleLocalUpdate}
+            draft={draft}
+            onUpdate={handleUpdate}
           />
         );
       case 'location':
         return (
           <LocationTab
-            draft={localDraft}
-            onUpdate={handleLocalUpdate}
+            draft={draft}
+            onUpdate={handleUpdate}
           />
         );
       case 'providers':
         return (
           <ProvidersTab
-            draft={localDraft}
-            onUpdate={handleLocalUpdate}
+            draft={draft}
+            onUpdate={handleUpdate}
           />
         );
       case 'procedures':
         return (
           <ProceduresTab
-            draft={localDraft}
-            onUpdate={handleLocalUpdate}
+            draft={draft}
+            onUpdate={handleUpdate}
           />
         );
       case 'photos':
         return (
           <PhotosTab
-            draft={localDraft}
-            onUpdate={handleLocalUpdate}
+            draft={draft}
+            onUpdate={handleUpdate}
             clinicId={clinicId}
           />
         );
       case 'datasources':
         return (
           <DataSourcesTab
-            draft={localDraft}
+            draft={draft}
             photoSource={photoSource}
             setPhotoSource={setPhotoSource}
             ratingSource={ratingSource}
@@ -158,10 +151,7 @@ const EditTabs = ({
             setManualRating={setManualRating}
             manualReviewCount={manualReviewCount}
             setManualReviewCount={setManualReviewCount}
-            onDraftUpdate={(updatedDraft) => {
-              setLocalDraft(updatedDraft);
-              onDraftUpdate(updatedDraft);
-            }}
+            onDraftUpdate={onDraftUpdate}
           />
         );
       default:
@@ -222,4 +212,3 @@ const EditTabs = ({
 };
 
 export default EditTabs;
-

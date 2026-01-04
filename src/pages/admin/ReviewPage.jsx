@@ -11,55 +11,6 @@ import { normalizeDraft } from './utils/draftToClinicFormat';
 import './admin.css';
 
 /**
- * Helper to flatten grouped procedures from clinic API format to a flat array
- * Also normalizes prices - if min/max are 0 but averagePrice exists, use average
- */
-const flattenExistingProcedures = (procedures) => {
-  if (!procedures) return [];
-  if (Array.isArray(procedures)) return procedures;
-  
-  if (typeof procedures === 'object') {
-    const flattened = [];
-    Object.entries(procedures).forEach(([category, data]) => {
-      const procs = data?.procedures || data || [];
-      if (Array.isArray(procs)) {
-        procs.forEach(proc => {
-          // Get raw price values (treat 0 as null)
-          const rawMin = proc.PriceMin || proc.priceMin;
-          const rawMax = proc.PriceMax || proc.priceMax;
-          const rawAvg = proc.AveragePrice || proc.averagePrice || proc.price;
-          
-          // Normalize prices - if min/max are 0 but we have average, use average
-          let priceMin = (rawMin && rawMin > 0) ? rawMin : null;
-          let priceMax = (rawMax && rawMax > 0) ? rawMax : null;
-          const averagePrice = (rawAvg && rawAvg > 0) ? rawAvg : null;
-          
-          // If no min/max but have average, use average as both
-          if (!priceMin && !priceMax && averagePrice) {
-            priceMin = averagePrice;
-            priceMax = averagePrice;
-          }
-          
-          flattened.push({
-            draftProcedureId: proc.ProcedureID || proc.procedureId || `existing-${category}-${procs.indexOf(proc)}`,
-            procedureName: proc.ProcedureName || proc.procedureName || proc.name || '',
-            category,
-            priceMin,
-            priceMax,
-            priceUnit: proc.PriceUnit || proc.priceUnit || '',
-            averagePrice,
-            providerNames: proc.ProviderNames || proc.providerNames || [],
-          });
-        });
-      }
-    });
-    return flattened;
-  }
-  
-  return [];
-};
-
-/**
  * Helper to check if a value is a placeholder that should be ignored
  */
 const isPlaceholderValue = (value) => {
@@ -81,11 +32,6 @@ const isPlaceholderValue = (value) => {
 const mergeDraftWithExistingClinic = (draft, existingClinic) => {
   if (!existingClinic) return draft;
   
-  // Helper to get existing clinic field (handles both PascalCase and camelCase)
-  const getExisting = (pascalKey, camelKey) => {
-    return existingClinic[pascalKey] ?? existingClinic[camelKey] ?? '';
-  };
-  
   // Helper to merge a field - use draft value if valid, otherwise use existing
   const mergeField = (draftValue, existingValue) => {
     if (!isPlaceholderValue(draftValue)) {
@@ -94,20 +40,29 @@ const mergeDraftWithExistingClinic = (draft, existingClinic) => {
     return existingValue || '';
   };
   
-  // Flatten existing procedures for comparison
-  const existingProceduresFlat = flattenExistingProcedures(existingClinic.procedures);
-  
-  // Get existing providers
+  // Get existing providers (already in camelCase from API)
   const existingProviders = (existingClinic.providers || []).map((p, idx) => ({
-    draftProviderId: p.ProviderID || p.providerId || `existing-provider-${idx}`,
-    providerName: p.ProviderName || p.providerName || '',
-    photoUrl: p.PhotoURL || p.photoUrl || p.PhotoUrl || null,
+    draftProviderId: p.providerId || `existing-provider-${idx}`,
+    providerName: p.providerName || '',
+    photoUrl: p.photoUrl || null,
+  }));
+  
+  // Get existing procedures (already flat from API)
+  const existingProcedures = (existingClinic.procedures || []).map((p, idx) => ({
+    draftProcedureId: p.procedureId || `existing-procedure-${idx}`,
+    procedureName: p.procedureName || '',
+    category: p.category || '',
+    priceMin: p.priceMin || null,
+    priceMax: p.priceMax || null,
+    priceUnit: p.priceUnit || '',
+    averagePrice: p.averageCost || p.price || null,
+    providerNames: p.providerNames || [],
   }));
   
   // Merge procedures - keep draft procedures and merge with existing data
   const mergedProcedures = (draft.procedures || []).map(draftProc => {
     // Find matching existing procedure by name
-    const existingProc = existingProceduresFlat.find(ep => 
+    const existingProc = existingProcedures.find(ep => 
       (ep.procedureName || '').toLowerCase() === (draftProc.procedureName || '').toLowerCase()
     );
     
@@ -121,7 +76,7 @@ const mergeDraftWithExistingClinic = (draft, existingClinic) => {
       };
       
       // Get the best available average price
-      const existingAvg = existingProc.averagePrice || existingProc.price || null;
+      const existingAvg = existingProc.averagePrice || null;
       const mergedAvg = draftProc.averagePrice || existingAvg;
       
       // For min/max: if both are 0/null but we have an average, use the average
@@ -154,7 +109,7 @@ const mergeDraftWithExistingClinic = (draft, existingClinic) => {
   const draftProcNames = (draft.procedures || []).map(p => 
     (p.procedureName || '').toLowerCase()
   );
-  const missingProcedures = existingProceduresFlat.filter(ep => 
+  const missingProcedures = existingProcedures.filter(ep => 
     !draftProcNames.includes((ep.procedureName || '').toLowerCase())
   );
   
@@ -168,21 +123,21 @@ const mergeDraftWithExistingClinic = (draft, existingClinic) => {
   
   return {
     ...draft,
-    clinicName: mergeField(draft.clinicName, getExisting('ClinicName', 'clinicName')),
-    address: mergeField(draft.address, getExisting('Address', 'address')),
-    city: mergeField(draft.city, getExisting('City', 'city')),
-    state: mergeField(draft.state, getExisting('State', 'state')),
-    zipCode: draft.zipCode || getExisting('ZipCode', 'zipCode') || '',
-    category: draft.category || getExisting('Category', 'category') || '',
-    website: draft.website || getExisting('Website', 'website') || '',
-    phone: draft.phone || getExisting('Phone', 'phone') || '',
-    email: draft.email || getExisting('Email', 'email') || '',
-    description: draft.description || getExisting('Description', 'description') || '',
-    placeId: draft.placeId || getExisting('PlaceID', 'placeId') || '',
-    googleRating: draft.googleRating || getExisting('GoogleRating', 'googleRating') || 0,
-    googleReviewCount: draft.googleReviewCount || getExisting('GoogleReviewCount', 'googleReviewCount') || 0,
-    workingHours: draft.workingHours || getExisting('WorkingHours', 'workingHours') || null,
-    iconUrl: draft.iconUrl || getExisting('Logo', 'logo') || getExisting('Photo', 'photo') || null,
+    clinicName: mergeField(draft.clinicName, existingClinic.clinicName),
+    address: mergeField(draft.address, existingClinic.address),
+    city: mergeField(draft.city, existingClinic.city),
+    state: mergeField(draft.state, existingClinic.state),
+    zipCode: draft.zipCode || existingClinic.zipCode || '',
+    category: draft.category || existingClinic.category || '',
+    website: draft.website || existingClinic.website || '',
+    phone: draft.phone || existingClinic.phone || '',
+    email: draft.email || existingClinic.email || '',
+    description: draft.description || existingClinic.description || '',
+    placeId: draft.placeId || existingClinic.placeId || '',
+    googleRating: draft.googleRating || existingClinic.googleRating || 0,
+    googleReviewCount: draft.googleReviewCount || existingClinic.googleReviewCount || 0,
+    workingHours: draft.workingHours || existingClinic.workingHours || null,
+    iconUrl: draft.iconUrl || existingClinic.logo || existingClinic.photo || null,
     // Merge providers - keep draft providers, add missing existing providers
     providers: [...(draft.providers || []), ...missingProviders],
     // Merge procedures - merged draft procedures + missing existing procedures
@@ -191,87 +146,57 @@ const mergeDraftWithExistingClinic = (draft, existingClinic) => {
 };
 
 /**
- * Helper to convert existing clinic data to a draft-like format
+ * Convert existing clinic data to a draft-like format
+ * Simplified version - API now returns camelCase directly
  */
-const clinicToDraftFormat = (clinic, providers, procedures, photos) => {
-  // Flatten procedures from grouped format
-  // Use a global counter to ensure unique keys across all categories
-  const flatProcedures = [];
-  let globalProcedureIndex = 0;
-  
-  if (procedures && typeof procedures === 'object') {
-    Object.entries(procedures).forEach(([category, data]) => {
-      const procs = data?.procedures || data || [];
-      if (Array.isArray(procs)) {
-        procs.forEach((proc) => {
-          // Get raw values - handle 0 as valid for prices
-          const rawPriceMin = proc.PriceMin ?? proc.priceMin;
-          const rawPriceMax = proc.PriceMax ?? proc.priceMax;
-          const rawAvgPrice = proc.AveragePrice ?? proc.averagePrice ?? proc.price;
-          
-          // Normalize: if min/max are 0 but we have average, use average
-          let priceMin = (rawPriceMin !== null && rawPriceMin !== undefined && rawPriceMin > 0) ? rawPriceMin : null;
-          let priceMax = (rawPriceMax !== null && rawPriceMax !== undefined && rawPriceMax > 0) ? rawPriceMax : null;
-          const averagePrice = (rawAvgPrice !== null && rawAvgPrice !== undefined && rawAvgPrice > 0) ? rawAvgPrice : null;
-          
-          // If no min/max but have average, use average as both
-          if (!priceMin && !priceMax && averagePrice) {
-            priceMin = averagePrice;
-            priceMax = averagePrice;
-          }
-          
-          // Use global counter for unique IDs instead of per-category index
-          flatProcedures.push({
-            draftProcedureId: proc.ProcedureID || proc.procedureId || `procedure-${category}-${globalProcedureIndex}`,
-            procedureName: proc.ProcedureName || proc.procedureName || proc.name || '',
-            category: category,
-            priceMin,
-            priceMax,
-            priceUnit: proc.PriceUnit || proc.priceUnit || '',
-            averagePrice,
-            providerNames: proc.ProviderNames || proc.providerNames || [],
-          });
-          globalProcedureIndex++;
-        });
-      }
-    });
-  }
+const clinicToDraftFormat = (clinicData, photos) => {
+  // Format providers (already included in clinicData from ?include=providers)
+  const formattedProviders = (clinicData.providers || []).map((p, idx) => ({
+    draftProviderId: p.providerId || `provider-${idx}`,
+    providerName: p.providerName || '',
+    photoUrl: p.photoUrl || null,
+  }));
 
-  // Format providers
-  const formattedProviders = (providers || []).map((p, idx) => ({
-    draftProviderId: p.ProviderID || p.providerId || `provider-${idx}`,
-    providerName: p.ProviderName || p.providerName || '',
-    photoUrl: p.PhotoURL || p.photoUrl || p.PhotoUrl || null,
+  // Format procedures (already included in clinicData from ?include=procedures)
+  const formattedProcedures = (clinicData.procedures || []).map((p, idx) => ({
+    draftProcedureId: p.procedureId || `procedure-${idx}`,
+    procedureName: p.procedureName || '',
+    category: p.category || '',
+    priceMin: p.priceMin || null,
+    priceMax: p.priceMax || null,
+    priceUnit: p.priceUnit || '',
+    averagePrice: p.averageCost || p.price || null,
+    providerNames: p.providerNames || [],
   }));
 
   // Format photos
   const formattedPhotos = (photos || []).map((p, idx) => ({
-    draftPhotoId: p.PhotoID || p.photoId || `photo-${idx}`,
-    photoUrl: p.url || p.urls?.medium || p.PhotoUrl || p.photoUrl || '',
+    draftPhotoId: p.photoId || `photo-${idx}`,
+    photoUrl: p.url || p.urls?.medium || p.photoUrl || '',
     source: p.source || 'google',
     isPrimary: p.isPrimary || false,
   }));
 
   return {
     draftId: null, // No draft yet
-    clinicName: clinic.ClinicName || clinic.clinicName || '',
-    address: clinic.Address || clinic.address || '',
-    city: clinic.City || clinic.city || '',
-    state: clinic.State || clinic.state || '',
-    zipCode: clinic.ZipCode || clinic.zipCode || '',
-    category: clinic.Category || clinic.category || '',
-    website: clinic.Website || clinic.website || '',
-    phone: clinic.Phone || clinic.phone || '',
-    email: clinic.Email || clinic.email || '',
-    description: clinic.Description || clinic.description || '',
-    placeId: clinic.PlaceID || clinic.placeId || '',
-    googleRating: clinic.GoogleRating || clinic.googleRating || 0,
-    googleReviewCount: clinic.GoogleReviewCount || clinic.googleReviewCount || 0,
-    workingHours: clinic.WorkingHours || clinic.workingHours || null,
-    iconUrl: clinic.Logo || clinic.Photo || clinic.logo || clinic.photo || null,
+    clinicName: clinicData.clinicName || '',
+    address: clinicData.address || '',
+    city: clinicData.city || '',
+    state: clinicData.state || '',
+    zipCode: clinicData.zipCode || '',
+    category: clinicData.category || '',
+    website: clinicData.website || '',
+    phone: clinicData.phone || '',
+    email: clinicData.email || '',
+    description: clinicData.description || '',
+    placeId: clinicData.placeId || '',
+    googleRating: clinicData.googleRating || 0,
+    googleReviewCount: clinicData.googleReviewCount || 0,
+    workingHours: clinicData.workingHours || null,
+    iconUrl: clinicData.logo || clinicData.photo || null,
     submissionFlow: 'add_to_existing',
     providers: formattedProviders,
-    procedures: flatProcedures,
+    procedures: formattedProcedures,
     photos: formattedPhotos,
   };
 };
@@ -322,6 +247,7 @@ const hasChanges = (original, current) => {
 const ReviewPage = () => {
   const { draftId, clinicId } = useParams();
   const navigate = useNavigate();
+  // eslint-disable-next-line no-unused-vars
   const [searchParams] = useSearchParams();
   
   // Determine the mode: 'draft' (reviewing existing draft) or 'clinic' (editing existing clinic)
@@ -338,7 +264,7 @@ const ReviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [mode, setMode] = useState(isClinicEditMode ? 'preview' : 'preview'); // 'preview' or 'edit'
+  const [mode, setMode] = useState('preview'); // 'preview' or 'edit'
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   
@@ -362,15 +288,9 @@ const ReviewPage = () => {
 
       try {
         if (isClinicEditMode) {
-          // Clinic edit mode: fetch clinic data directly
-          const [clinicRes, providersRes, proceduresRes, photosRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/clinics/${clinicId}`, {
-              headers: { 'Content-Type': 'application/json' },
-            }),
-            fetch(`${API_BASE_URL}/api/clinics/${clinicId}/providers`, {
-              headers: { 'Content-Type': 'application/json' },
-            }),
-            fetch(`${API_BASE_URL}/api/clinics/${clinicId}/procedures`, {
+          // Clinic edit mode: fetch clinic data with providers and procedures included
+          const [clinicRes, photosRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/clinics/${clinicId}?include=providers,procedures`, {
               headers: { 'Content-Type': 'application/json' },
             }),
             fetch(`${API_BASE_URL}/api/clinics/${clinicId}/photos`, {
@@ -383,30 +303,19 @@ const ReviewPage = () => {
           }
 
           const clinicData = await clinicRes.json();
-          const providersData = await providersRes.json();
-          const proceduresData = await proceduresRes.json();
           let photosData = { photos: [] };
           if (photosRes.ok) {
             photosData = await photosRes.json();
           }
 
-          // Convert to draft format
-          const draftFormat = clinicToDraftFormat(
-            clinicData,
-            providersData.providers || [],
-            proceduresData,
-            photosData.photos || []
-          );
+          // Convert to draft format (simplified - data is already camelCase)
+          const draftFormat = clinicToDraftFormat(clinicData, photosData.photos || []);
 
           setDraft(draftFormat);
           setOriginalDraft(JSON.parse(JSON.stringify(draftFormat))); // Deep copy for comparison
           setExistingClinic({
             ...clinicData,
-            ClinicID: parseInt(clinicId, 10),
-            providers: providersData.providers || [],
-            procedures: proceduresData,
-            // Include flattened procedures for consistent comparison
-            proceduresFlat: flattenExistingProcedures(proceduresData),
+            clinicId: parseInt(clinicId, 10),
           });
 
           // Set photo source based on available photos
@@ -416,10 +325,10 @@ const ReviewPage = () => {
           }
 
           // Set rating source
-          if (clinicData.GoogleRating || clinicData.googleRating) {
+          if (clinicData.googleRating) {
             setRatingSource('google');
-            setManualRating((clinicData.GoogleRating || clinicData.googleRating || 0).toString());
-            setManualReviewCount((clinicData.GoogleReviewCount || clinicData.googleReviewCount || 0).toString());
+            setManualRating((clinicData.googleRating || 0).toString());
+            setManualReviewCount((clinicData.googleReviewCount || 0).toString());
           }
         } else {
           // Draft review mode: fetch draft data
@@ -445,59 +354,16 @@ const ReviewPage = () => {
             let normalizedDraft = normalizeDraft(data.draft);
             let existingClinicData = data.existingClinic || null;
             
-            // For adjustment drafts, we need to fetch the existing clinic's procedures/providers
-            // since the draft endpoint doesn't include them
+            // For adjustment drafts, existingClinic now includes providers and procedures
+            // from the API, so no additional fetches needed
             if (existingClinicData && normalizedDraft.submissionFlow === 'add_to_existing') {
-              const existingClinicId = existingClinicData.ClinicID || existingClinicData.clinicId || existingClinicData.id;
-              
-              if (existingClinicId) {
-                try {
-                  const [proceduresRes, providersRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/clinics/${existingClinicId}/procedures`, {
-                      headers: { 'Content-Type': 'application/json' },
-                    }),
-                    fetch(`${API_BASE_URL}/api/clinics/${existingClinicId}/providers`, {
-                      headers: { 'Content-Type': 'application/json' },
-                    }),
-                  ]);
-                  
-                  if (proceduresRes.ok) {
-                    const proceduresData = await proceduresRes.json();
-                    existingClinicData = {
-                      ...existingClinicData,
-                      procedures: proceduresData,
-                    };
-                  }
-                  
-                  if (providersRes.ok) {
-                    const providersData = await providersRes.json();
-                    existingClinicData = {
-                      ...existingClinicData,
-                      providers: providersData.providers || [],
-                    };
-                  }
-                } catch (fetchErr) {
-                  console.warn('Failed to fetch existing clinic details for merge:', fetchErr);
-                }
-              }
-              
               // Merge draft with existing clinic data to fill in missing fields
               normalizedDraft = mergeDraftWithExistingClinic(normalizedDraft, existingClinicData);
             }
             
             setDraft(normalizedDraft);
             setOriginalDraft(JSON.parse(JSON.stringify(normalizedDraft)));
-            
-            // Ensure existingClinic has flattened procedures for proper comparison
-            if (existingClinicData) {
-              setExistingClinic({
-                ...existingClinicData,
-                // Keep original procedures for reference but also flatten for comparison
-                proceduresFlat: flattenExistingProcedures(existingClinicData.procedures),
-              });
-            } else {
-              setExistingClinic(null);
-            }
+            setExistingClinic(existingClinicData);
             
             // Set default photo source
             const userPhotoCount = normalizedDraft.photos?.filter(p => p.source === 'user').length || 0;
@@ -535,8 +401,7 @@ const ReviewPage = () => {
 
   // Handle draft update from edit mode
   const handleDraftUpdate = useCallback((updatedDraft) => {
-    const normalizedDraft = normalizeDraft(updatedDraft);
-    setDraft(normalizedDraft);
+    setDraft(updatedDraft);
   }, []);
 
   // Handle saving changes (creates a draft for clinic edit mode)
@@ -576,7 +441,7 @@ const ReviewPage = () => {
         },
         providers: (draft.providers || []).map(p => ({
           providerName: p.providerName,
-          photoURL: p.photoUrl || p.photoURL || null,
+          photoUrl: p.photoUrl || null,
         })),
         procedures: (draft.procedures || []).map(p => ({
           procedureName: p.procedureName,

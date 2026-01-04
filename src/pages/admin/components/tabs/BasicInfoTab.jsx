@@ -2,11 +2,6 @@ import React from 'react';
 import { US_STATES, CLINIC_CATEGORIES } from '../../../list-your-clinic/constants';
 
 const BasicInfoTab = ({ draft, onUpdate }) => {
-  // Helper to get value with both casing options (for API data that may have PascalCase)
-  const getValue = (camelKey, pascalKey) => {
-    return draft[camelKey] ?? draft[pascalKey] ?? '';
-  };
-  
   const handleChange = (field, value) => {
     onUpdate({ [field]: value });
   };
@@ -22,7 +17,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
         </label>
         <input
           type="text"
-          value={getValue('clinicName', 'ClinicName')}
+          value={draft.clinicName || ''}
           onChange={(e) => handleChange('clinicName', e.target.value)}
           className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           placeholder="Enter clinic name"
@@ -36,7 +31,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
         </label>
         <input
           type="text"
-          value={getValue('address', 'Address')}
+          value={draft.address || ''}
           onChange={(e) => handleChange('address', e.target.value)}
           className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           placeholder="123 Main St, Suite 100"
@@ -51,7 +46,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
           </label>
           <input
             type="text"
-            value={getValue('city', 'City')}
+            value={draft.city || ''}
             onChange={(e) => handleChange('city', e.target.value)}
             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             placeholder="City"
@@ -63,7 +58,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
             State *
           </label>
           <select
-            value={getValue('state', 'State')}
+            value={draft.state || ''}
             onChange={(e) => handleChange('state', e.target.value)}
             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
           >
@@ -82,7 +77,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
           </label>
           <input
             type="text"
-            value={getValue('zipCode', 'ZipCode')}
+            value={draft.zipCode || ''}
             onChange={(e) => handleChange('zipCode', e.target.value)}
             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             placeholder="12345"
@@ -97,7 +92,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
           Category *
         </label>
         <select
-          value={getValue('category', 'Category')}
+          value={draft.category || ''}
           onChange={(e) => handleChange('category', e.target.value)}
           className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
         >
@@ -121,7 +116,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
             </label>
             <input
               type="url"
-              value={getValue('website', 'Website')}
+              value={draft.website || ''}
               onChange={(e) => handleChange('website', e.target.value)}
               className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="https://example.com"
@@ -134,7 +129,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
             </label>
             <input
               type="tel"
-              value={getValue('phone', 'Phone')}
+              value={draft.phone || ''}
               onChange={(e) => handleChange('phone', e.target.value)}
               className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="(555) 123-4567"
@@ -148,7 +143,7 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
           </label>
           <input
             type="email"
-            value={getValue('email', 'Email')}
+            value={draft.email || ''}
             onChange={(e) => handleChange('email', e.target.value)}
             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             placeholder="contact@clinic.com"
@@ -160,4 +155,3 @@ const BasicInfoTab = ({ draft, onUpdate }) => {
 };
 
 export default BasicInfoTab;
-

@@ -29,6 +29,7 @@ const ListYourClinic = () => {
     clearWizard,
     resetForNewClinic,
     resetForExistingClinic,
+    // eslint-disable-next-line no-unused-vars
     updateWizard,
   } = useWizardState();
 
@@ -56,15 +57,9 @@ const ListYourClinic = () => {
     setLoadingClinicData(true);
     
     try {
-      // Fetch full clinic data including providers, procedures, and photos
-      const [clinicRes, providersRes, proceduresRes, photosRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/clinics/${clinic.id}`, {
-          headers: { 'Content-Type': 'application/json' },
-        }),
-        fetch(`${API_BASE_URL}/api/clinics/${clinic.id}/providers`, {
-          headers: { 'Content-Type': 'application/json' },
-        }),
-        fetch(`${API_BASE_URL}/api/clinics/${clinic.id}/procedures`, {
+      // Fetch clinic data with providers and procedures included, plus photos separately
+      const [clinicRes, photosRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/clinics/${clinic.id}?include=providers,procedures`, {
           headers: { 'Content-Type': 'application/json' },
         }),
         fetch(`${API_BASE_URL}/api/clinics/${clinic.id}/photos`, {
@@ -73,49 +68,37 @@ const ListYourClinic = () => {
       ]);
 
       const clinicData = clinicRes.ok ? await clinicRes.json() : clinic;
-      const providersData = providersRes.ok ? await providersRes.json() : { providers: [] };
-      const proceduresData = proceduresRes.ok ? await proceduresRes.json() : {};
       const photosData = photosRes.ok ? await photosRes.json() : { photos: [] };
 
-      // Format providers for wizard state
-      const formattedProviders = (providersData.providers || []).map((p, idx) => ({
-        providerId: p.ProviderID || p.providerId || `provider-${idx}`,
-        providerName: p.ProviderName || p.providerName || '',
-        photoURL: p.PhotoURL || p.photoUrl || p.PhotoUrl || null,
+      // Format providers for wizard state (API now returns camelCase)
+      const formattedProviders = (clinicData.providers || []).map((p, idx) => ({
+        providerId: p.providerId || `provider-${idx}`,
+        providerName: p.providerName || '',
+        photoURL: p.photoUrl || null,
         photoData: null, // Will be populated if user uploads new photo
       }));
 
-      // Format procedures from grouped format to flat array
-      const formattedProcedures = [];
-      if (proceduresData && typeof proceduresData === 'object') {
-        Object.entries(proceduresData).forEach(([category, data]) => {
-          const procs = data?.procedures || data || [];
-          if (Array.isArray(procs)) {
-            procs.forEach((proc, idx) => {
-              formattedProcedures.push({
-                procedureId: proc.ProcedureID || proc.procedureId || `procedure-${idx}`,
-                procedureName: proc.ProcedureName || proc.procedureName || proc.name || '',
-                category: category,
-                priceMin: proc.PriceMin || proc.priceMin || '',
-                priceMax: proc.PriceMax || proc.priceMax || '',
-                unit: proc.PriceUnit || proc.priceUnit || '',
-                averagePrice: proc.AveragePrice || proc.averagePrice || proc.price || '',
-                providerNames: proc.ProviderNames || proc.providerNames || [],
-              });
-            });
-          }
-        });
-      }
+      // Format procedures (API returns flat array with ?include=procedures)
+      const formattedProcedures = (clinicData.procedures || []).map((p, idx) => ({
+        procedureId: p.procedureId || `procedure-${idx}`,
+        procedureName: p.procedureName || '',
+        category: p.category || '',
+        priceMin: p.priceMin || '',
+        priceMax: p.priceMax || '',
+        unit: p.priceUnit || '',
+        averagePrice: p.averageCost || p.price || '',
+        providerNames: p.providerNames || [],
+      }));
 
-      // Format photos
+      // Format photos (API returns camelCase)
       const formattedPhotos = [];
       
       // Add clinic photos
       (photosData.photos || []).forEach((p, idx) => {
         formattedPhotos.push({
-          id: p.PhotoID || p.photoId || `photo-${idx}`,
+          id: p.photoId || `photo-${idx}`,
           photoType: 'clinic',
-          photoUrl: p.url || p.urls?.medium || p.PhotoUrl || p.photoUrl || '',
+          photoUrl: p.url || p.urls?.medium || p.photoUrl || '',
           photoData: null, // Will be populated if user uploads new photo
           source: p.source || 'google',
           isPrimary: p.isPrimary || idx === 0,
@@ -124,7 +107,7 @@ const ListYourClinic = () => {
       });
 
       // Add logo if exists
-      const logoUrl = clinicData.Logo || clinicData.logo || clinicData.Photo || clinicData.photo || clinicData.iconUrl;
+      const logoUrl = clinicData.logo || clinicData.photo;
       if (logoUrl) {
         formattedPhotos.push({
           id: 'logo-existing',
@@ -137,26 +120,26 @@ const ListYourClinic = () => {
         });
       }
 
-      // Update wizard state with all fetched data
+      // Update wizard state with all fetched data (API now returns camelCase)
       setExistingClinicId(clinic.id);
       updateClinic({
-        clinicName: clinicData.ClinicName || clinicData.clinicName || clinic.clinicName,
-        address: clinicData.Address || clinicData.address || clinic.address,
-        city: clinicData.City || clinicData.city || clinic.city,
-        state: clinicData.State || clinicData.state || clinic.state,
-        zipCode: clinicData.ZipCode || clinicData.zipCode || clinic.zipCode || '',
-        category: clinicData.Category || clinicData.category || clinic.category || '',
-        website: clinicData.Website || clinicData.website || clinic.website || '',
-        phone: clinicData.Phone || clinicData.phone || clinic.phone || '',
-        email: clinicData.Email || clinicData.email || clinic.email || ''
+        clinicName: clinicData.clinicName || clinic.clinicName,
+        address: clinicData.address || clinic.address,
+        city: clinicData.city || clinic.city,
+        state: clinicData.state || clinic.state,
+        zipCode: clinicData.zipCode || clinic.zipCode || '',
+        category: clinicData.category || clinic.category || '',
+        website: clinicData.website || clinic.website || '',
+        phone: clinicData.phone || clinic.phone || '',
+        email: clinicData.email || clinic.email || ''
       });
       updateAdvanced({
-        latitude: clinicData.Latitude || clinicData.latitude || '',
-        longitude: clinicData.Longitude || clinicData.longitude || '',
-        placeID: clinicData.PlaceID || clinicData.placeId || '',
-        description: clinicData.Description || clinicData.description || '',
-        googleProfileLink: clinicData.GoogleProfileLink || clinicData.googleProfileLink || '',
-        workingHours: clinicData.WorkingHours || clinicData.workingHours || {}
+        latitude: clinicData.latitude || '',
+        longitude: clinicData.longitude || '',
+        placeID: clinicData.placeId || '',
+        description: clinicData.description || '',
+        googleProfileLink: clinicData.googleProfileLink || '',
+        workingHours: clinicData.workingHours || {}
       });
       updateProviders(formattedProviders);
       updateProcedures(formattedProcedures);

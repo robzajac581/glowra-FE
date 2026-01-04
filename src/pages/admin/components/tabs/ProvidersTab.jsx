@@ -77,8 +77,7 @@ const ProvidersTab = ({ draft, onUpdate }) => {
     updatedProviders[index] = {
       ...updatedProviders[index],
       photoData: null,
-      photoUrl: null,  // Use consistent camelCase
-      photoURL: null,  // Also clear uppercase variant for backward compatibility
+      photoUrl: null,
       fileName: null,
       mimeType: null,
       fileSize: null,
@@ -107,6 +106,9 @@ const ProvidersTab = ({ draft, onUpdate }) => {
     const updatedProviders = providers.filter((_, i) => i !== index);
     onUpdate({ providers: updatedProviders });
   };
+
+  // Helper to get the photo URL (photoData for uploads, photoUrl for existing)
+  const getPhotoSrc = (provider) => provider.photoData || provider.photoUrl;
 
   return (
     <div className="space-y-6">
@@ -171,10 +173,10 @@ const ProvidersTab = ({ draft, onUpdate }) => {
                     <div className="flex items-center gap-4">
                       {/* Circular photo preview */}
                       <div className="relative group">
-                        {provider.photoData || provider.photoUrl || provider.photoURL ? (
+                        {getPhotoSrc(provider) ? (
                           <>
                             <img
-                              src={provider.photoData || provider.photoUrl || provider.photoURL}
+                              src={getPhotoSrc(provider)}
                               alt={provider.providerName || 'Provider'}
                               className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 shadow-sm"
                             />
@@ -204,7 +206,7 @@ const ProvidersTab = ({ draft, onUpdate }) => {
                           id={`provider-photo-admin-${index}`}
                         />
                         
-                        {provider.photoData || provider.photoUrl || provider.photoURL ? (
+                        {getPhotoSrc(provider) ? (
                           <div className="flex flex-col gap-1">
                             <p className="text-sm text-text">
                               {provider.fileName || 'Photo uploaded'}
@@ -275,4 +277,3 @@ const ProvidersTab = ({ draft, onUpdate }) => {
 };
 
 export default ProvidersTab;
-
