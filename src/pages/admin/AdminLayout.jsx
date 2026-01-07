@@ -25,8 +25,9 @@ const AdminLayout = () => {
   }
 
   // Determine which section is active
-  const isExistingClinicsSection = location.pathname.startsWith('/admin/clinics');
-  const isReviewPage = location.pathname.startsWith('/admin/review');
+  const isExistingClinicsSection = location.pathname.startsWith('/admin/clinics') && !location.pathname.startsWith('/admin/deleted-clinics');
+  const isDeletedClinicsSection = location.pathname.startsWith('/admin/deleted-clinics');
+  const isReviewPage = location.pathname.startsWith('/admin/review') || location.pathname.startsWith('/admin/edit-clinic') || location.pathname.startsWith('/admin/restore-clinic');
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -72,7 +73,7 @@ const AdminLayout = () => {
                   to="/admin"
                   end
                   className={({ isActive }) =>
-                    `admin-section-nav-item ${isActive && !isExistingClinicsSection ? 'active' : ''}`
+                    `admin-section-nav-item ${isActive && !isExistingClinicsSection && !isDeletedClinicsSection ? 'active' : ''}`
                   }
                 >
                   <span className="mr-2">📋</span>
@@ -86,6 +87,15 @@ const AdminLayout = () => {
                 >
                   <span className="mr-2">🏥</span>
                   Existing Clinics
+                </NavLink>
+                <NavLink
+                  to="/admin/deleted-clinics"
+                  className={({ isActive }) =>
+                    `admin-section-nav-item ${isActive || isDeletedClinicsSection ? 'active' : ''}`
+                  }
+                >
+                  <span className="mr-2">🗑️</span>
+                  Recently Deleted
                 </NavLink>
               </nav>
             </div>

@@ -31,6 +31,28 @@ const DataSourcesTab = ({
   const userPhotoCount = draft.photos?.filter(p => p.source === 'user').length || 0;
   const googlePhotoCount = draft.photos?.filter(p => p.source === 'google').length || 0;
 
+  // Helper to save draft placeId to backend
+  const savePlaceIdToBackend = async (placeId) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/drafts/${draft.draftId}`,
+        {
+          method: 'PUT',
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...draft, placeId }),
+        }
+      );
+      const data = await response.json();
+      return data.success;
+    } catch (err) {
+      console.error('Failed to save placeId to backend:', err);
+      return false;
+    }
+  };
+
   // Lookup PlaceID
   const handleLookupPlaceId = async () => {
     setLookingUpPlaceId(true);
@@ -52,11 +74,20 @@ const DataSourcesTab = ({
       const data = await response.json();
 
       if (data.success && data.placeId) {
+        // Save placeId to backend so it's available for subsequent API calls
+        const saved = await savePlaceIdToBackend(data.placeId);
+        
+        // Update local state
         onDraftUpdate({
           ...draft,
           placeId: data.placeId,
         });
-        setSuccess('PlaceID found successfully!');
+        
+        if (saved) {
+          setSuccess('PlaceID found and saved successfully!');
+        } else {
+          setSuccess('PlaceID found! Note: You may need to save the draft before fetching Google data.');
+        }
       } else {
         setError(data.error || 'Could not find a matching PlaceID');
       }
@@ -70,6 +101,11 @@ const DataSourcesTab = ({
 
   // Fetch Google Photos
   const handleFetchGooglePhotos = async () => {
+    if (!draft.placeId) {
+      setError('PlaceID is required to fetch Google photos. Please lookup PlaceID first.');
+      return;
+    }
+
     setFetchingGooglePhotos(true);
     setError(null);
     setSuccess(null);
@@ -78,10 +114,12 @@ const DataSourcesTab = ({
       const response = await fetch(
         `${API_BASE_URL}/api/admin/drafts/${draft.draftId}/google-photos`,
         {
+          method: 'POST',
           headers: {
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ placeId: draft.placeId }),
         }
       );
 
@@ -114,6 +152,11 @@ const DataSourcesTab = ({
 
   // Fetch Google Data (rating, review count)
   const handleFetchGoogleData = async () => {
+    if (!draft.placeId) {
+      setError('PlaceID is required to fetch Google data. Please lookup PlaceID first.');
+      return;
+    }
+
     setFetchingGoogleData(true);
     setError(null);
     setSuccess(null);
@@ -127,20 +170,55 @@ const DataSourcesTab = ({
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ 
+            placeId: draft.placeId,
+            save: true, // Save rating data to draft
+          }),
         }
       );
 
       const data = await response.json();
 
       if (data.success) {
-        onDraftUpdate({
+        // Update local state first
+        const updatedDraft = {
           ...draft,
           googleRating: data.googleData.rating,
           googleReviewCount: data.googleData.reviewCount,
-        });
+        };
+        
+        onDraftUpdate(updatedDraft);
         setManualRating(data.googleData.rating?.toString() || '');
         setManualReviewCount(data.googleData.reviewCount?.toString() || '');
-        setSuccess('Google rating data fetched successfully!');
+        
+        // Explicitly save rating data to backend via PUT to ensure it's persisted
+        // (in case the fetch-google-data endpoint doesn't save it properly)
+        try {
+          const saveResponse = await fetch(
+            `${API_BASE_URL}/api/admin/drafts/${draft.draftId}`,
+            {
+              method: 'PUT',
+              headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                googleRating: data.googleData.rating,
+                googleReviewCount: data.googleData.reviewCount,
+              }),
+            }
+          );
+          
+          const saveData = await saveResponse.json();
+          if (saveData.success) {
+            setSuccess('Google rating data fetched and saved successfully!');
+          } else {
+            setSuccess('Google rating data fetched! Note: You may need to save the draft manually.');
+          }
+        } catch (saveErr) {
+          console.error('Failed to save rating data:', saveErr);
+          setSuccess('Google rating data fetched! Note: You may need to save the draft manually.');
+        }
       } else {
         setError(data.error || 'Failed to fetch Google data');
       }

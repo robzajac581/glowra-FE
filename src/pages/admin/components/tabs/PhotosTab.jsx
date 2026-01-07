@@ -73,12 +73,20 @@ const PhotosTab = ({ draft, onUpdate, clinicId }) => {
   };
 
   const handleFetchGooglePhotos = async () => {
-    // Determine which endpoint to use based on available identifiers
+    // Determine which endpoint and method to use based on available identifiers
     let url;
+    let fetchOptions = {
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+    };
     
     if (hasDraftId) {
-      // Existing draft flow - use draft endpoint
+      // Existing draft flow - use POST with placeId in body
       url = `${API_BASE_URL}/api/admin/drafts/${draft.draftId}/google-photos`;
+      fetchOptions.method = 'POST';
+      fetchOptions.body = JSON.stringify({ placeId: draft.placeId });
     } else if (hasPlaceId) {
       // Lazy draft creation - use placeId directly (Option A - preferred)
       url = `${API_BASE_URL}/api/clinic-management/admin/google-photos?placeId=${encodeURIComponent(draft.placeId)}`;
@@ -94,12 +102,7 @@ const PhotosTab = ({ draft, onUpdate, clinicId }) => {
     setError(null);
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(url, fetchOptions);
 
       const data = await response.json();
 

@@ -8,6 +8,7 @@ import ApprovalDialog from './components/ApprovalDialog';
 import RejectDialog from './components/RejectDialog';
 import AdjustmentDiff from './components/AdjustmentDiff';
 import { normalizeDraft } from './utils/draftToClinicFormat';
+import Toast from '../../components/Toast';
 import './admin.css';
 
 /**
@@ -146,6 +147,41 @@ const mergeDraftWithExistingClinic = (draft, existingClinic) => {
 };
 
 /**
+ * Convert deleted clinic data to a draft-like format
+ * Deleted clinics have a simpler structure from the list endpoint
+ */
+const deletedClinicToDraftFormat = (deletedClinicData) => {
+  // Parse address to extract city/state if possible
+  const addressParts = (deletedClinicData.address || '').split(',').map(s => s.trim());
+  const city = addressParts.length > 1 ? addressParts[addressParts.length - 2] : '';
+  const state = addressParts.length > 1 ? addressParts[addressParts.length - 1].split(' ')[0] : '';
+  const zipCode = addressParts.length > 1 ? addressParts[addressParts.length - 1].split(' ')[1] || '' : '';
+
+  return {
+    draftId: null,
+    clinicName: deletedClinicData.clinicName || '',
+    address: deletedClinicData.address || '',
+    city: city,
+    state: state,
+    zipCode: zipCode,
+    category: '',
+    website: deletedClinicData.website || '',
+    phone: deletedClinicData.phone || '',
+    email: '',
+    description: '',
+    placeId: '',
+    googleRating: deletedClinicData.rating || 0,
+    googleReviewCount: deletedClinicData.reviewCount || 0,
+    workingHours: null,
+    iconUrl: null,
+    submissionFlow: 'add_to_existing',
+    providers: [],
+    procedures: [],
+    photos: [],
+  };
+};
+
+/**
  * Convert existing clinic data to a draft-like format
  * Simplified version - API now returns camelCase directly
  */
@@ -245,17 +281,18 @@ const hasChanges = (original, current) => {
 };
 
 const ReviewPage = () => {
-  const { draftId, clinicId } = useParams();
+  const { draftId, clinicId, deletedClinicId } = useParams();
   const navigate = useNavigate();
   // eslint-disable-next-line no-unused-vars
   const [searchParams] = useSearchParams();
   
-  // Determine the mode: 'draft' (reviewing existing draft) or 'clinic' (editing existing clinic)
-  const isClinicEditMode = !!clinicId && !draftId;
+  // Determine the mode: 'draft' (reviewing existing draft), 'clinic' (editing existing clinic), or 'deleted' (restoring deleted clinic)
+  const isClinicEditMode = !!clinicId && !draftId && !deletedClinicId;
+  const isDeletedClinicMode = !!deletedClinicId && !draftId && !clinicId;
   
   // Navigation context
-  const backPath = '/admin/clinics';
-  const backLabel = 'Back to Existing Clinics';
+  const backPath = isDeletedClinicMode ? '/admin/deleted-clinics' : '/admin/clinics';
+  const backLabel = isDeletedClinicMode ? 'Back to Recently Deleted' : 'Back to Existing Clinics';
   
   // State
   const [draft, setDraft] = useState(null);
@@ -267,6 +304,10 @@ const ReviewPage = () => {
   const [mode, setMode] = useState('preview'); // 'preview' or 'edit'
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [toastVisible, setToastVisible] = useState(false);
   
   // Data sources state
   const [photoSource, setPhotoSource] = useState('google');
@@ -287,7 +328,50 @@ const ReviewPage = () => {
       setError(null);
 
       try {
-        if (isClinicEditMode) {
+        if (isDeletedClinicMode) {
+          // Deleted clinic restore mode: fetch deleted clinic data from list
+          // Note: We fetch from the list endpoint and find the matching clinic
+          const response = await fetch(
+            `${API_BASE_URL}/api/admin/clinics/deleted?page=1&limit=100`,
+            {
+              headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (data.success) {
+            const deletedClinic = data.clinics.find(
+              c => c.id === parseInt(deletedClinicId, 10)
+            );
+
+            if (!deletedClinic) {
+              throw new Error('Deleted clinic not found');
+            }
+
+            // Convert to draft format
+            const draftFormat = deletedClinicToDraftFormat(deletedClinic);
+
+            setDraft(draftFormat);
+            setOriginalDraft(JSON.parse(JSON.stringify(draftFormat)));
+            setExistingClinic(null);
+
+            // Set photo source
+            setPhotoSource('google');
+
+            // Set rating source
+            if (deletedClinic.rating) {
+              setRatingSource('google');
+              setManualRating((deletedClinic.rating || 0).toString());
+              setManualReviewCount((deletedClinic.reviewCount || 0).toString());
+            }
+          } else {
+            throw new Error(data.error || 'Failed to fetch deleted clinic');
+          }
+        } else if (isClinicEditMode) {
           // Clinic edit mode: fetch clinic data with providers and procedures included
           const [clinicRes, photosRes] = await Promise.all([
             fetch(`${API_BASE_URL}/api/clinics/${clinicId}?include=providers,procedures`, {
@@ -397,7 +481,7 @@ const ReviewPage = () => {
     };
 
     fetchData();
-  }, [draftId, clinicId, isClinicEditMode]);
+  }, [draftId, clinicId, deletedClinicId, isClinicEditMode, isDeletedClinicMode]);
 
   // Handle draft update from edit mode
   const handleDraftUpdate = useCallback((updatedDraft) => {
@@ -566,11 +650,98 @@ const ReviewPage = () => {
 
   // Handle cancel in edit mode
   const handleCancelEdit = () => {
-    if (isClinicEditMode) {
+    if (isClinicEditMode || isDeletedClinicMode) {
       // Reset to original data
       setDraft(JSON.parse(JSON.stringify(originalDraft)));
     }
     setMode('preview');
+  };
+
+  // Handle restore clinic
+  const handleRestoreClinic = async () => {
+    if (!deletedClinicId || !draft) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/clinics/deleted/${deletedClinicId}/restore`,
+        {
+          method: 'POST',
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToastMessage(`Clinic "${data.clinicName || draft.clinicName}" restored successfully`);
+        setToastVisible(true);
+        // Navigate back to clinics page after a short delay
+        setTimeout(() => {
+          navigate('/admin/clinics', {
+            state: {
+              success: `Clinic "${data.clinicName || draft.clinicName}" has been restored successfully.`
+            }
+          });
+        }, 1500);
+      } else {
+        throw new Error(data.error || 'Failed to restore clinic');
+      }
+    } catch (err) {
+      console.error('Restore failed:', err);
+      setError(`Failed to restore clinic: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle delete clinic
+  const handleDeleteClinic = async () => {
+    if (!clinicId || !draft) return;
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/clinics/${clinicId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToastMessage(`Clinic "${data.clinicName || draft.clinicName}" deleted successfully`);
+        setToastVisible(true);
+        // Navigate back to clinics page after a short delay
+        setTimeout(() => {
+          navigate('/admin/clinics', {
+            state: {
+              success: `Clinic "${data.clinicName || draft.clinicName}" has been deleted. It can be restored within 30 days.`
+            }
+          });
+        }, 1500);
+      } else {
+        throw new Error(data.error || 'Failed to delete clinic');
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setError(`Failed to delete clinic: ${err.message}`);
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -602,10 +773,10 @@ const ReviewPage = () => {
       <div className="max-w-2xl mx-auto text-center py-12">
         <div className="text-4xl mb-4">🔍</div>
         <h2 className="text-xl font-semibold text-dark mb-2">
-          {isClinicEditMode ? 'Clinic not found' : 'Draft not found'}
+          {isDeletedClinicMode ? 'Deleted clinic not found' : isClinicEditMode ? 'Clinic not found' : 'Draft not found'}
         </h2>
         <p className="text-text mb-4">
-          The requested {isClinicEditMode ? 'clinic' : 'draft'} could not be found.
+          The requested {isDeletedClinicMode ? 'deleted clinic' : isClinicEditMode ? 'clinic' : 'draft'} could not be found.
         </p>
         <Link
           to={backPath}
@@ -618,7 +789,9 @@ const ReviewPage = () => {
   }
 
   const isAdjustment = draft.submissionFlow === 'add_to_existing';
-  const pageTitle = isClinicEditMode 
+  const pageTitle = isDeletedClinicMode
+    ? `Restore: ${draft.clinicName}`
+    : isClinicEditMode 
     ? `Edit: ${draft.clinicName}` 
     : `Review: ${draft.clinicName}`;
 
@@ -650,10 +823,24 @@ const ReviewPage = () => {
               Adjustment
             </span>
           )}
-          {isClinicEditMode && (
-            <span className="status-badge bg-blue-100 text-blue-800">
-              Editing Live Clinic
+          {isDeletedClinicMode && (
+            <span className="status-badge bg-amber-100 text-amber-800">
+              Restoring Deleted Clinic
             </span>
+          )}
+          {isClinicEditMode && (
+            <>
+              <span className="status-badge bg-blue-100 text-blue-800">
+                Editing Live Clinic
+              </span>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : '🗑️ Delete Clinic'}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -684,6 +871,24 @@ const ReviewPage = () => {
 
       {mode === 'preview' ? (
         <>
+          {/* Info banner for deleted clinic restore mode */}
+          {isDeletedClinicMode && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <span className="text-xl">⚠️</span>
+                <div>
+                  <h4 className="font-medium text-amber-900 mb-1">
+                    Restoring Deleted Clinic
+                  </h4>
+                  <p className="text-sm text-amber-700">
+                    This clinic was previously deleted. You can preview and edit the data before restoring it.
+                    Once restored, the clinic will immediately appear in regular clinic listings.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Info banner for clinic edit mode */}
           {isClinicEditMode && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -722,27 +927,47 @@ const ReviewPage = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-border">
-            <button
-              onClick={() => setMode('edit')}
-              className="px-6 py-3 border border-border rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
-            >
-              ✏️ Edit Data
-            </button>
-            
-            {!isClinicEditMode && (
+            {isDeletedClinicMode ? (
               <>
                 <button
-                  onClick={() => setShowRejectDialog(true)}
-                  className="px-6 py-3 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+                  onClick={() => setMode('edit')}
+                  className="px-6 py-3 border border-border rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
                 >
-                  ✗ Reject
+                  ✏️ Edit Data
                 </button>
                 <button
-                  onClick={() => setShowApprovalDialog(true)}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                  onClick={handleRestoreClinic}
+                  disabled={saving}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ✓ Approve
+                  {saving ? 'Restoring...' : '✓ Restore Clinic'}
                 </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setMode('edit')}
+                  className="px-6 py-3 border border-border rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+                >
+                  ✏️ Edit Data
+                </button>
+                
+                {!isClinicEditMode && (
+                  <>
+                    <button
+                      onClick={() => setShowRejectDialog(true)}
+                      className="px-6 py-3 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+                    >
+                      ✗ Reject
+                    </button>
+                    <button
+                      onClick={() => setShowApprovalDialog(true)}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                    >
+                      ✓ Approve
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -752,11 +977,11 @@ const ReviewPage = () => {
         <EditTabs
           draft={draft}
           onDraftUpdate={handleDraftUpdate}
-          onSave={isClinicEditMode ? handleSaveChanges : () => setMode('preview')}
+          onSave={isClinicEditMode ? handleSaveChanges : isDeletedClinicMode ? () => setMode('preview') : () => setMode('preview')}
           onCancel={handleCancelEdit}
           // For clinic edit mode, disable save if no changes
           saveDisabled={isClinicEditMode && !hasUnsavedChanges}
-          saveLabel={isClinicEditMode ? (hasUnsavedChanges ? 'Save Changes' : 'No Changes') : 'Save & Return to Preview'}
+          saveLabel={isClinicEditMode ? (hasUnsavedChanges ? 'Save Changes' : 'No Changes') : isDeletedClinicMode ? 'Save & Return to Preview' : 'Save & Return to Preview'}
           saving={saving}
           // Pass clinicId for Google Photos fetching in clinic edit mode
           clinicId={isClinicEditMode ? parseInt(clinicId, 10) : null}
@@ -789,6 +1014,48 @@ const ReviewPage = () => {
           draft={draft}
           onConfirm={handleReject}
           onCancel={() => setShowRejectDialog(false)}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && isClinicEditMode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-dark mb-4">
+              Delete Clinic
+            </h3>
+            <p className="text-text mb-6">
+              Are you sure you want to delete "{draft?.clinicName}"? This action can be undone within 30 days by restoring the clinic from the Recently Deleted section.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-4 py-2 border border-border rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteClinic}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete Clinic'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          isVisible={toastVisible}
+          onClose={() => {
+            setToastVisible(false);
+            setToastMessage(null);
+          }}
         />
       )}
     </div>

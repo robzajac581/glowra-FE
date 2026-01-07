@@ -1,0 +1,56 @@
+# Cursor Rules for Glowra Frontend
+
+## Backend Communication
+
+When planning any changes that require backend modifications:
+1. **Identify backend changes** and create a prompt ready to copy/paste to the Backend cursor
+2. **Default behavior**: Keep the prompt in chat only (not as a separate document)
+3. **For long prompts**: If the backend prompt is especially long, ask the user if they'd like it as a separate document, or recommend creating one - but **NEVER create a new backend communication document without explicit user confirmation first**
+4. **Always assume**: Default answer is "keep it in chat only" unless user confirms otherwise
+
+## Documentation Guidelines
+
+1. **Do NOT write** "what was changed/updated/etc." documents - keep change summaries in chat only
+2. **Update existing docs** with details of new features or functionality when appropriate
+3. **New feature docs**: Only create documentation for especially large new features, and **always ask the user before creating a new doc**
+4. **Documentation goal**: Create documentation that helps both developers and future Cursor Agents understand the codebase and its features
+
+## API Patterns
+
+1. **Always use** `API_BASE_URL` from `src/config/api.js` (never hardcode URLs)
+2. **Use** `getAuthHeaders()` from `src/hooks/useAuth` for authenticated requests
+3. **Handle API errors** with try/catch blocks and provide user-friendly error messages
+4. **Use** `CONSULTATION_REQUEST_API_URL` for consultation request endpoints (separate service)
+5. **Follow** existing API call patterns in the codebase for consistency
+
+## Component Structure
+
+1. **Keep components focused** - single responsibility principle
+2. **Extract reusable logic** into custom hooks when appropriate
+3. **Use JSDoc comments** for complex components and functions
+4. **Follow existing folder structure**: `components/`, `hooks/`, `pages/`, `utils/`
+5. **Component files** should use `.jsx` extension
+6. **Use PascalCase** for component names
+
+## State Management
+
+1. **Prefer custom hooks** for complex state logic (follow `use[HookName]` pattern)
+2. **Use URL parameters** for shareable/searchable state (like `useSearchState` pattern)
+3. **Keep component state local** when it doesn't need to be shared or persisted
+4. **Follow existing patterns** - check similar components for state management approaches
+
+## Environment Variables
+
+1. **Use `REACT_APP_` prefix** for all environment variables
+2. **Document new env vars** in relevant documentation when appropriate
+3. **Default to sensible development values** in `src/config/api.js`
+4. **Never commit** sensitive values - use environment variables for all config
+
+## Error Handling
+
+1. **Always include error handling** for async operations (API calls, file operations, etc.)
+2. **Show user-friendly error messages** using toasts/notifications where appropriate
+3. **Log errors to console** for debugging purposes (`console.error`)
+4. **Provide fallback UI states** - loading, error, and empty states should be handled
+5. **Use try/catch blocks** for error handling, especially around API calls
+

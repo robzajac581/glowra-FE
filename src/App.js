@@ -11,6 +11,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ExistingClinicsPage from "./pages/admin/ExistingClinicsPage";
+import DeletedClinicsPage from "./pages/admin/DeletedClinicsPage";
 import ReviewPage from "./pages/admin/ReviewPage";
 
 function App() {
@@ -39,8 +40,10 @@ function App() {
 						<Route path="/admin" element={<AdminLayout />}>
 							<Route index element={<AdminDashboard />} />
 							<Route path="clinics" element={<ExistingClinicsPage />} />
+							<Route path="deleted-clinics" element={<DeletedClinicsPage />} />
 							<Route path="review/:draftId" element={<ReviewPage />} />
 							<Route path="edit-clinic/:clinicId" element={<ReviewPage />} />
+							<Route path="restore-clinic/:deletedClinicId" element={<ReviewPage />} />
 						</Route>
 						
 						<Route path="*" element={<Home />} />

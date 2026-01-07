@@ -12,6 +12,28 @@ const LocationTab = ({ draft, onUpdate }) => {
     onUpdate({ [field]: value });
   };
 
+  // Helper to save draft placeId to backend
+  const savePlaceIdToBackend = async (placeId) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/drafts/${draft.draftId}`,
+        {
+          method: 'PUT',
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...draft, placeId }),
+        }
+      );
+      const data = await response.json();
+      return data.success;
+    } catch (err) {
+      console.error('Failed to save placeId to backend:', err);
+      return false;
+    }
+  };
+
   // Lookup PlaceID
   const handleLookupPlaceId = async () => {
     setIsLookingUp(true);
@@ -37,6 +59,9 @@ const LocationTab = ({ draft, onUpdate }) => {
       const data = await response.json();
 
       if (data.success && data.placeId) {
+        // Save placeId to backend so it's available for subsequent API calls
+        await savePlaceIdToBackend(data.placeId);
+        
         setLookupResult(data);
         onUpdate({ placeId: data.placeId });
       } else {
@@ -69,18 +94,51 @@ const LocationTab = ({ draft, onUpdate }) => {
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ 
+            placeId: draft.placeId,
+            save: true, // Save rating data to draft
+          }),
         }
       );
 
       const data = await response.json();
 
       if (data.success) {
-        onUpdate({
+        // Update local state first
+        const updates = {
           googleRating: data.googleData.rating,
           googleReviewCount: data.googleData.reviewCount,
           latitude: data.googleData.latitude || draft.latitude,
           longitude: data.googleData.longitude || draft.longitude,
-        });
+        };
+        
+        onUpdate(updates);
+        
+        // Explicitly save rating data to backend via PUT to ensure it's persisted
+        // (in case the fetch-google-data endpoint doesn't save it properly)
+        if (draft.draftId) {
+          try {
+            await fetch(
+              `${API_BASE_URL}/api/admin/drafts/${draft.draftId}`,
+              {
+                method: 'PUT',
+                headers: {
+                  ...getAuthHeaders(),
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  googleRating: data.googleData.rating,
+                  googleReviewCount: data.googleData.reviewCount,
+                  latitude: updates.latitude,
+                  longitude: updates.longitude,
+                }),
+              }
+            );
+          } catch (saveErr) {
+            console.error('Failed to save rating data:', saveErr);
+            // Non-blocking error - data is still in local state
+          }
+        }
       } else {
         setError(data.error || 'Failed to fetch Google data');
       }

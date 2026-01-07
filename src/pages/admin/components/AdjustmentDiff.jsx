@@ -68,6 +68,8 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
     { key: 'website', pascalKey: 'Website', label: 'Website', existing: existingClinic.Website || existingClinic.website },
     { key: 'email', pascalKey: 'Email', label: 'Email', existing: existingClinic.Email || existingClinic.email },
     { key: 'category', pascalKey: 'Category', label: 'Category', existing: existingClinic.Category || existingClinic.category },
+    { key: 'googleRating', pascalKey: 'GoogleRating', label: 'Google Rating', existing: existingClinic.GoogleRating || existingClinic.googleRating || 0 },
+    { key: 'googleReviewCount', pascalKey: 'GoogleReviewCount', label: 'Google Review Count', existing: existingClinic.GoogleReviewCount || existingClinic.googleReviewCount || 0 },
   ];
 
   basicFields.forEach(field => {
@@ -76,20 +78,30 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
     const existingValue = field.existing || '';
     
     // Skip comparison if draft value is a placeholder or empty
+    // For numeric fields (rating, reviewCount), allow 0 as a valid value
+    const isNumericField = field.key === 'googleRating' || field.key === 'googleReviewCount';
     const isPlaceholder = draftValue === 'See existing clinic' || 
                           draftValue === 'Existing Clinic Update' ||
-                          !draftValue;
+                          (!isNumericField && !draftValue);
     
-    // Normalize for comparison (trim whitespace)
-    const normalizedDraft = (draftValue || '').toString().trim();
-    const normalizedExisting = (existingValue || '').toString().trim();
+    // Normalize for comparison
+    // For numeric fields, compare numbers directly
+    // For text fields, trim whitespace
+    let normalizedDraft, normalizedExisting;
+    if (isNumericField) {
+      normalizedDraft = draftValue !== null && draftValue !== undefined ? Number(draftValue) : 0;
+      normalizedExisting = existingValue !== null && existingValue !== undefined ? Number(existingValue) : 0;
+    } else {
+      normalizedDraft = (draftValue || '').toString().trim();
+      normalizedExisting = (existingValue || '').toString().trim();
+    }
     
     if (!isPlaceholder && normalizedDraft !== normalizedExisting) {
       fieldChanges.push({
         field: field.label,
-        old: existingValue || '(empty)',
+        old: existingValue || (isNumericField ? '0' : '(empty)'),
         new: draftValue,
-        type: existingValue ? 'changed' : 'added',
+        type: existingValue && existingValue !== 0 ? 'changed' : 'added',
       });
     }
   });
