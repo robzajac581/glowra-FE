@@ -5,39 +5,39 @@ import { useMemo } from 'react';
  * Prevents unnecessary re-parsing of JSON fields and expensive calculations
  */
 export const useClinicData = (clinicInfo) => {
-  // Parse WorkingHours JSON
+  // Parse workingHours JSON
   const workingHours = useMemo(() => {
-    if (!clinicInfo?.WorkingHours) return null;
+    if (!clinicInfo?.workingHours) return null;
     
     try {
       // If already an object, return it
-      if (typeof clinicInfo.WorkingHours === 'object') {
-        return clinicInfo.WorkingHours;
+      if (typeof clinicInfo.workingHours === 'object') {
+        return clinicInfo.workingHours;
       }
       // Parse JSON string
-      return JSON.parse(clinicInfo.WorkingHours);
+      return JSON.parse(clinicInfo.workingHours);
     } catch (error) {
-      console.error('Error parsing WorkingHours:', error);
+      console.error('Error parsing workingHours:', error);
       return null;
     }
-  }, [clinicInfo?.WorkingHours]);
+  }, [clinicInfo?.workingHours]);
 
-  // Parse AboutJSON (amenities, accessibility, etc.)
+  // Parse aboutJSON (amenities, accessibility, etc.)
   const aboutData = useMemo(() => {
-    if (!clinicInfo?.AboutJSON) return null;
+    if (!clinicInfo?.aboutJSON) return null;
     
     try {
       // If already an object, return it
-      if (typeof clinicInfo.AboutJSON === 'object') {
-        return clinicInfo.AboutJSON;
+      if (typeof clinicInfo.aboutJSON === 'object') {
+        return clinicInfo.aboutJSON;
       }
       // Parse JSON string
-      return JSON.parse(clinicInfo.AboutJSON);
+      return JSON.parse(clinicInfo.aboutJSON);
     } catch (error) {
-      console.error('Error parsing AboutJSON:', error);
+      console.error('Error parsing aboutJSON:', error);
       return null;
     }
-  }, [clinicInfo?.AboutJSON]);
+  }, [clinicInfo?.aboutJSON]);
 
   // Calculate if clinic is currently open
   const isOpenNow = useMemo(() => {
@@ -94,16 +94,16 @@ export const useClinicData = (clinicInfo) => {
   const photos = useMemo(() => {
     const photoUrls = [];
     
-    if (clinicInfo?.Photo) photoUrls.push(clinicInfo.Photo);
-    if (clinicInfo?.StreetView) photoUrls.push(clinicInfo.StreetView);
+    if (clinicInfo?.photo) photoUrls.push(clinicInfo.photo);
+    if (clinicInfo?.streetView) photoUrls.push(clinicInfo.streetView);
     
     return photoUrls.length > 0 ? photoUrls : null;
-  }, [clinicInfo?.Photo, clinicInfo?.StreetView]);
+  }, [clinicInfo?.photo, clinicInfo?.streetView]);
 
-  // Get logo (prefer Logo, fallback to Photo)
+  // Get logo (prefer logo, fallback to photo)
   const logo = useMemo(() => {
-    return clinicInfo?.Logo || clinicInfo?.Photo || null;
-  }, [clinicInfo?.Logo, clinicInfo?.Photo]);
+    return clinicInfo?.logo || clinicInfo?.photo || null;
+  }, [clinicInfo?.logo, clinicInfo?.photo]);
 
   return {
     workingHours,

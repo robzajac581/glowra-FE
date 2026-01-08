@@ -130,7 +130,7 @@ const ConsultationRequestForm = ({
         patientStatus: patientStatus, // new or returning
         procedureType: formData.procedureType,
         clinicId: clinicId,
-        clinicName: clinicInfo?.ClinicName || null,
+        clinicName: clinicInfo?.clinicName || null,
         selectedProcedures: selectedData.map((item) => ({
           id: item.id,
           name: item.name,

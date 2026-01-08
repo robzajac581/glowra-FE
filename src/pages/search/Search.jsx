@@ -1,7 +1,7 @@
 // Search.jsx
 import { Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect } from "react";
-import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, filterByProcedure, filterByLocationExact, filterByLocationNearby } from "../../utils/searchUtils";
+import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, filterByProcedure, filterByLocationExact, filterByLocationNearby, isZipCode, detectCategory } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
@@ -63,6 +63,10 @@ const Search = () => {
   // State for backend-fetched location results
   const [backendLocationResults, setBackendLocationResults] = useState([]);
   const [fetchingLocation, setFetchingLocation] = useState(false);
+  
+  // State for backend-fetched clinic name results
+  const [backendClinicNameResults, setBackendClinicNameResults] = useState([]);
+  const [fetchingClinicName, setFetchingClinicName] = useState(false);
   
   // User location state for map
   const [userLocation, setUserLocation] = useState(null);
@@ -153,23 +157,30 @@ const Search = () => {
     fetchAllClinics();
   }, []); // Fetch once on mount for procedure searches and nearby results logic
   
-  // Fetch location results from backend when searchQuery contains location terms
+  // Fetch results from backend when searchQuery contains location terms or clinic name searches
   useEffect(() => {
-    const fetchLocationResults = async () => {
+    const fetchBackendResults = async () => {
       if (!searchQuery.trim() || allClinics.length === 0) {
         setBackendLocationResults([]);
+        setBackendClinicNameResults([]);
         return;
       }
 
-      // Parse query to detect location terms
-      const parsed = parseSearchQuery(searchQuery.trim(), allClinics);
+      const trimmedQuery = searchQuery.trim();
       
-      // Only use backend if it's a location search (has location terms)
+      // Parse query to detect location terms
+      const parsed = parseSearchQuery(trimmedQuery, allClinics);
+      
+      // Check if this looks like a clinic name search (not a location search)
+      // We'll use backend for clinic name searches to leverage server-side filtering
+      const isLikelyClinicNameSearch = !parsed.hasLocation && !isZipCode(trimmedQuery);
+      
+      // Use backend for location searches (existing behavior)
       if (parsed.hasLocation) {
         try {
           setFetchingLocation(true);
           const params = new URLSearchParams();
-          params.append('location', searchQuery.trim());
+          params.append('location', trimmedQuery);
           
           const response = await fetch(`${API_BASE_URL}/api/clinics/search-index?${params.toString()}`);
           
@@ -200,9 +211,53 @@ const Search = () => {
       } else {
         setBackendLocationResults([]);
       }
+      
+      // Check if this is a category search - if so, skip backend clinic name search
+      // Category searches should show all clinics in category, not just name matches
+      const isCategorySearch = detectCategory(trimmedQuery);
+      
+      // Use backend for clinic name searches (new behavior)
+      // Only fetch if query doesn't look like a procedure search (has multiple words that might be procedures)
+      // For single words or clinic-like queries, use backend
+      // Skip if it's a category search (category searches handled by frontend)
+      if (isLikelyClinicNameSearch && trimmedQuery.length >= 3 && !isCategorySearch) {
+        try {
+          setFetchingClinicName(true);
+          const params = new URLSearchParams();
+          params.append('clinicName', trimmedQuery);
+          
+          const response = await fetch(`${API_BASE_URL}/api/clinics/search-index?${params.toString()}`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // Filter out closed clinics
+          const clinicNameClinics = (data.clinics || []).filter(clinic => {
+            if (clinic.businessStatus && clinic.businessStatus !== 'OPERATIONAL') {
+              return false;
+            }
+            if (clinic.clinicName && clinic.clinicName.toLowerCase().includes('(closed)')) {
+              return false;
+            }
+            return true;
+          });
+          
+          setBackendClinicNameResults(clinicNameClinics);
+        } catch (error) {
+          console.error('Error fetching clinic name results from backend:', error);
+          setBackendClinicNameResults([]);
+        } finally {
+          setFetchingClinicName(false);
+        }
+      } else {
+        setBackendClinicNameResults([]);
+      }
     };
 
-    fetchLocationResults();
+    fetchBackendResults();
   }, [searchQuery, allClinics]);
 
   // Perform search operation, apply filters, sort, and paginate
@@ -228,8 +283,23 @@ const Search = () => {
       // Parse query to detect location terms
       const parsed = parseSearchQuery(searchQuery.trim(), allClinics);
       
-      // If backend returned location results, properly separate exact from nearby
-      if (parsed.hasLocation && backendLocationResults.length > 0) {
+      // PRIORITY 1: If backend returned clinic name results, use those first
+      // This handles searches like "Gillian Institute", "Gillian", "Institute"
+      if (backendClinicNameResults.length > 0) {
+        exactResults = backendClinicNameResults;
+        nearbyResults = [];
+        locationSearch = false;
+        hasNearby = false;
+        
+        // Store raw Lunr results for scoring
+        try {
+          rawSearchResults = searchIndex.search(searchQuery.trim());
+        } catch (e) {
+          // Ignore Lunr search errors
+        }
+      }
+      // PRIORITY 2: If backend returned location results, properly separate exact from nearby
+      else if (parsed.hasLocation && backendLocationResults.length > 0) {
         locationSearch = true;
         
         // Filter backend results to separate exact location matches from nearby matches
@@ -274,6 +344,7 @@ const Search = () => {
         }
       } else {
         // Use the performSearch utility for procedure searches or when backend didn't return results
+        // performSearch now prioritizes clinic name matching before location/procedure parsing
         const searchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
         exactResults = searchResult.exactResults || [];
         nearbyResults = searchResult.nearbyResults || [];
@@ -283,7 +354,7 @@ const Search = () => {
         // Store raw Lunr results for scoring (only if not a location search)
         if (!locationSearch) {
           try {
-            rawSearchResults = searchIndex.search(searchQuery);
+            rawSearchResults = searchIndex.search(searchQuery.trim());
           } catch (e) {
             // Ignore Lunr search errors for location searches
           }
@@ -357,7 +428,7 @@ const Search = () => {
     
     // Store exact results count for reference (after filtering/sorting)
     setExactResultsCount(filteredExactCount);
-  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults]);
+  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults, backendClinicNameResults]);
   
   // Handle search submission
   const handleSearch = (e) => {

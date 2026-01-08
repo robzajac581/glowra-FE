@@ -77,7 +77,7 @@ const ProviderPhotoPlaceholder = ({ name }) => {
 const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
 	const [imageError, setImageError] = useState(false);
 	const showPlaceholder = !hasValidPhoto || imageError;
-	const normalizedName = normalizeDoctorName(provider.ProviderName);
+	const normalizedName = normalizeDoctorName(provider.providerName);
 	
 	return (
 		<div className="flex-shrink-0 w-[160px] text-center">
@@ -113,19 +113,19 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 	const [showLeftArrow, setShowLeftArrow] = useState(false);
 	const [showRightArrow, setShowRightArrow] = useState(true);
 
-	// Build full address from clinic data (Address, City, State, ZipCode)
+	// Build full address from clinic data (address, city, state, zipCode)
 	// Must be called before any early returns to comply with React hooks rules
 	const fullAddress = useMemo(() => {
 		if (!clinicInfo) return '';
 		
 		// Start with the street address
-		let addressParts = [clinicInfo.Address];
+		let addressParts = [clinicInfo.address];
 		
 		// Build city/state/zip part
 		const locationParts = [];
-		if (clinicInfo.City) locationParts.push(clinicInfo.City);
-		if (clinicInfo.State) locationParts.push(clinicInfo.State);
-		if (clinicInfo.ZipCode) locationParts.push(clinicInfo.ZipCode);
+		if (clinicInfo.city) locationParts.push(clinicInfo.city);
+		if (clinicInfo.state) locationParts.push(clinicInfo.state);
+		if (clinicInfo.zipCode) locationParts.push(clinicInfo.zipCode);
 		
 		if (locationParts.length > 0) {
 			addressParts.push(locationParts.join(', '));
@@ -142,11 +142,11 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 	const displayLogo = logo || "/img/clinic-logo.png";
 	
 	// Normalize clinic name to title case
-	const displayName = toTitleCase(clinicInfo.ClinicName);
+	const displayName = toTitleCase(clinicInfo.clinicName);
 	
 	// Use Google rating data
-	const rating = clinicInfo.GoogleRating || 0;
-	const reviewCount = clinicInfo.GoogleReviewCount || 0;
+	const rating = clinicInfo.googleRating || 0;
+	const reviewCount = clinicInfo.googleReviewCount || 0;
 
 	// Carousel navigation functions
 	const scroll = (direction) => {
@@ -175,7 +175,7 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 					<img 
 						src={displayLogo} 
 						className="img" 
-						alt={`${clinicInfo.ClinicName} logo`}
+						alt={`${clinicInfo.clinicName} logo`}
 						referrerPolicy="no-referrer"
 						onError={(e) => {
 							e.target.onerror = null;
@@ -190,7 +190,7 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 						{/* Badges Row */}
 						<div className="flex items-center gap-2 mb-2">
 							{/* Google Verified Badge */}
-							{clinicInfo.Verified && (
+							{clinicInfo.verified && (
 								<span 
 									className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-green-50 text-green-700 border border-green-300 shadow-sm"
 									title="Verified by Google"
@@ -204,16 +204,16 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 							)}
 							
 							{/* Category Badge */}
-							{clinicInfo.Category && (
+							{clinicInfo.category && (
 								<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-									{clinicInfo.Category}
+									{clinicInfo.category}
 								</span>
 							)}
 						</div>
 						
 						<div className="text-black text-opacity-70">
 							<div className="mb-1">
-								{fullAddress || clinicInfo.Address}
+								{fullAddress || clinicInfo.address}
 							</div>
 							{isOpenNow !== null && (
 								<div className="flex items-center text-xs text-black">
@@ -285,7 +285,7 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 							>
 							{providers.map((item, index) => {
 								// Resolve photo URL for development/production
-								const photoURL = resolvePhotoURL(item.PhotoURL);
+								const photoURL = resolvePhotoURL(item.photoUrl);
 								const hasValidPhoto = item.hasPhoto && photoURL;
 								
 								return (

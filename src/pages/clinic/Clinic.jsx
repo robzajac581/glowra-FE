@@ -164,7 +164,7 @@ const Clinic = () => {
 							/>
 							<Gallery 
 								photos={photos}
-								clinicName={clinicInfo?.ClinicName}
+								clinicName={clinicInfo?.clinicName}
 							/>
 								<ClinicProcedures
 									procedures={procedures}
@@ -177,26 +177,26 @@ const Clinic = () => {
 									setSelectedData={setSelectedData}
 								/> */}
 								<About 
-									description={clinicInfo?.Description}
-									clinicName={clinicInfo?.ClinicName}
+									description={clinicInfo?.description}
+									clinicName={clinicInfo?.clinicName}
 								/>
 							<WorkingHours 
 								workingHours={workingHours}
 								isOpenNow={isOpenNow}
 							/>
 						<ReviewsForCosmetics 
-							reviews={clinicInfo?.GoogleReviewsJSON}
-							clinicName={clinicInfo?.ClinicName}
-							totalReviewCount={clinicInfo?.GoogleReviewCount}
-							reviewsLink={clinicInfo?.ReviewsLink}
+							reviews={clinicInfo?.googleReviewsJSON}
+							clinicName={clinicInfo?.clinicName}
+							totalReviewCount={clinicInfo?.googleReviewCount}
+							reviewsLink={clinicInfo?.reviewsLink}
 						/>
 							<Location clinicInfo={clinicInfo} />
 								{/* <InstagramPosts /> */}
 								{/* Visit Website Button */}
-								{/* {clinicInfo?.Website && (
+								{/* {clinicInfo?.website && (
 									<div className="mt-6 p-6 bg-gray-50 rounded-lg text-center">
 										<a 
-											href={clinicInfo.Website.startsWith('http') ? clinicInfo.Website : `https://${clinicInfo.Website}`} 
+											href={clinicInfo.website.startsWith('http') ? clinicInfo.website : `https://${clinicInfo.website}`} 
 											target="_blank" 
 											rel="noopener noreferrer"
 											className="btn"

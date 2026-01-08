@@ -298,7 +298,7 @@ const PROCEDURE_ABBREVIATIONS = {
  * @param {String} query - Search query
  * @returns {Boolean} True if query is a zip code
  */
-const isZipCode = (query) => {
+export const isZipCode = (query) => {
   const trimmed = query.trim();
   // Check if it's exactly 5 digits
   return /^\d{5}$/.test(trimmed);
@@ -732,6 +732,284 @@ export const filterByProcedure = (clinics, procedureTerms, remainingTerms) => {
 };
 
 /**
+ * Check if a query matches clinic names (prioritize clinic name searches)
+ * @param {Array} clinics - Array of clinics to search
+ * @param {String} query - Search query
+ * @param {Object} searchIndex - Optional Lunr search index for fuzzy matching
+ * @returns {Array|null} Array of matching clinics, or null if no matches found
+ */
+const searchByClinicName = (clinics, query, searchIndex = null) => {
+  if (!query || !query.trim() || !clinics || clinics.length === 0) {
+    return null;
+  }
+
+  const trimmedQuery = query.trim().toLowerCase();
+  const queryWords = trimmedQuery.split(/\s+/).filter(w => w.length > 0);
+  
+  // Strategy 1: Exact match (case-insensitive)
+  let exactMatches = clinics.filter(clinic => {
+    if (!clinic.clinicName) return false;
+    return clinic.clinicName.toLowerCase() === trimmedQuery;
+  });
+  
+  if (exactMatches.length > 0) {
+    return exactMatches;
+  }
+  
+  // Strategy 2: Partial match - query is contained in clinic name
+  let partialMatches = clinics.filter(clinic => {
+    if (!clinic.clinicName) return false;
+    const clinicNameLower = clinic.clinicName.toLowerCase();
+    return clinicNameLower.includes(trimmedQuery);
+  });
+  
+  if (partialMatches.length > 0) {
+    return partialMatches;
+  }
+  
+  // Strategy 3: Word-based matching - all query words appear in clinic name
+  if (queryWords.length > 1) {
+    let wordMatches = clinics.filter(clinic => {
+      if (!clinic.clinicName) return false;
+      const clinicNameLower = clinic.clinicName.toLowerCase();
+      // Check if all query words appear in the clinic name
+      return queryWords.every(word => clinicNameLower.includes(word));
+    });
+    
+    if (wordMatches.length > 0) {
+      return wordMatches;
+    }
+  }
+  
+  // Strategy 4: Use Lunr search index for fuzzy matching if available
+  if (searchIndex) {
+    try {
+      // Try exact search first
+      let lunrResults = searchIndex.search(trimmedQuery);
+      
+      // If no results, try fuzzy matching
+      if (lunrResults.length === 0) {
+        const fuzzyQuery = queryWords.map(term => `${term}~1`).join(' ');
+        lunrResults = searchIndex.search(fuzzyQuery);
+      }
+      
+      // If still no results, try wildcard matching
+      if (lunrResults.length === 0) {
+        const wildcardQuery = queryWords.map(term => `${term}*`).join(' ');
+        lunrResults = searchIndex.search(wildcardQuery);
+      }
+      
+      // If we have results, filter to only clinic name matches (not location/procedure matches)
+      if (lunrResults.length > 0) {
+        const clinicNameMatches = lunrResults
+          .map(result => clinics[parseInt(result.ref)])
+          .filter(clinic => {
+            if (!clinic || !clinic.clinicName) return false;
+            const clinicNameLower = clinic.clinicName.toLowerCase();
+            // Check if query matches clinic name (not just location/procedure)
+            return clinicNameLower.includes(trimmedQuery) || 
+                   queryWords.some(word => clinicNameLower.includes(word));
+          });
+        
+        if (clinicNameMatches.length > 0) {
+          return clinicNameMatches;
+        }
+      }
+    } catch (error) {
+      // If Lunr search fails, continue to next strategy
+      console.error('Lunr search error in clinic name matching:', error);
+    }
+  }
+  
+  // Strategy 5: Individual word matching (for queries like "Gillian" matching "Gillian Institute")
+  if (queryWords.length === 1 && queryWords[0].length >= 3) {
+    const singleWord = queryWords[0];
+    let singleWordMatches = clinics.filter(clinic => {
+      if (!clinic.clinicName) return false;
+      const clinicNameLower = clinic.clinicName.toLowerCase();
+      // Check if the word appears as a whole word in the clinic name
+      const words = clinicNameLower.split(/\s+/);
+      return words.some(word => word === singleWord || word.startsWith(singleWord));
+    });
+    
+    if (singleWordMatches.length > 0) {
+      return singleWordMatches;
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Category mapping: maps search terms to actual category values
+ * Handles fuzzy matching (spaces, case-insensitive, variations)
+ */
+const CATEGORY_MAPPINGS = {
+  // Plastic Surgery variations
+  'plastic surgery': 'Plastic Surgery',
+  'plasticsurgery': 'Plastic Surgery',
+  'plastic': 'Plastic Surgery',
+  // Note: 'surgery' alone is too ambiguous, only match when combined with "plastic"
+  
+  // Medspa / Aesthetics variations
+  'medspa / aesthetics': 'Medspa / Aesthetics',
+  'med spa / aesthetics': 'Medspa / Aesthetics',
+  'medspa/aesthetics': 'Medspa / Aesthetics',
+  'medspa': 'Medspa / Aesthetics',
+  'med spa': 'Medspa / Aesthetics',
+  'medspas': 'Medspa / Aesthetics',
+  'aesthetics': 'Medspa / Aesthetics',
+  'aesthetic': 'Medspa / Aesthetics',
+  'medical spa': 'Medspa / Aesthetics',
+  'medicalspa': 'Medspa / Aesthetics',
+  
+  // Medical
+  'medical': 'Medical',
+  
+  // Dermatology
+  'dermatology': 'Dermatology',
+  'dermatologist': 'Dermatology',
+  'derm': 'Dermatology',
+  
+  // Other
+  'other': 'Other'
+};
+
+/**
+ * Normalize a query for category matching (remove spaces, lowercase, etc.)
+ * @param {String} query - Search query
+ * @returns {String} Normalized query
+ */
+const normalizeCategoryQuery = (query) => {
+  if (!query) return '';
+  return query.trim().toLowerCase().replace(/\s+/g, ' ');
+};
+
+/**
+ * Detect if a query matches a category
+ * @param {String} query - Search query
+ * @returns {String|null} Category name if matched, null otherwise
+ */
+export const detectCategory = (query) => {
+  if (!query || !query.trim()) return null;
+  
+  const normalized = normalizeCategoryQuery(query);
+  
+  // Direct match
+  if (CATEGORY_MAPPINGS[normalized]) {
+    return CATEGORY_MAPPINGS[normalized];
+  }
+  
+  // Check for partial matches (e.g., "medspa" in "medspa clinic")
+  for (const [key, category] of Object.entries(CATEGORY_MAPPINGS)) {
+    // Check if the normalized query contains the category key
+    if (normalized.includes(key) && key.length >= 3) {
+      return category;
+    }
+    // Check if the category key contains the normalized query (for partial matches)
+    if (key.includes(normalized) && normalized.length >= 3) {
+      return category;
+    }
+  }
+  
+  // Special case: "plastic surgery" - check if both words appear (order doesn't matter)
+  if (normalized.includes('plastic') && normalized.includes('surgery')) {
+    return 'Plastic Surgery';
+  }
+  
+  // Special case: "med spa" or "medical spa" variations
+  // Match if query contains both "med/medical" AND ("spa" OR "aesthetic")
+  if ((normalized.includes('med') || normalized.includes('medical')) && 
+      (normalized.includes('spa') || normalized.includes('aesthetic'))) {
+    return 'Medspa / Aesthetics';
+  }
+  
+  // Special case: "aesthetic" or "aesthetics" alone should match Medspa / Aesthetics
+  // But only if it's not part of a longer word (e.g., "aesthetician" should not match)
+  if (normalized === 'aesthetic' || normalized === 'aesthetics') {
+    return 'Medspa / Aesthetics';
+  }
+  
+  return null;
+};
+
+/**
+ * Search clinics by category, prioritizing clinics with search term in name
+ * @param {Array} clinics - Array of clinics to search
+ * @param {String} category - Category to filter by
+ * @param {String} searchTerm - Original search term (for name prioritization)
+ * @returns {Array} Array of clinics in category, sorted with name matches first
+ */
+const searchByCategory = (clinics, category, searchTerm = '') => {
+  if (!clinics || clinics.length === 0 || !category) {
+    return [];
+  }
+  
+  // Filter clinics by category (handle both "Medspa / Aesthetics" and "Med Spa / Aesthetics")
+  const categoryLower = category.toLowerCase();
+  const normalizedCategory = categoryLower.includes('medspa') || categoryLower.includes('med spa') 
+    ? ['Medspa / Aesthetics', 'Med Spa / Aesthetics']
+    : [category];
+  
+  const categoryClinics = clinics.filter(clinic => {
+    if (!clinic.clinicCategory) return false;
+    const clinicCategoryLower = clinic.clinicCategory.toLowerCase();
+    return normalizedCategory.some(cat => 
+      clinicCategoryLower === cat.toLowerCase()
+    );
+  });
+  
+  if (categoryClinics.length === 0) {
+    return [];
+  }
+  
+  // If no search term provided, return all category clinics
+  if (!searchTerm || !searchTerm.trim()) {
+    return categoryClinics;
+  }
+  
+  // Prioritize clinics with search term in name
+  const searchTermLower = normalizeCategoryQuery(searchTerm);
+  const searchWords = searchTermLower.split(/\s+/).filter(w => w.length > 0);
+  
+  // Separate clinics into two groups:
+  // 1. Clinics with search term in name (prioritized)
+  // 2. Clinics without search term in name
+  const withNameMatch = [];
+  const withoutNameMatch = [];
+  
+  categoryClinics.forEach(clinic => {
+    if (!clinic.clinicName) {
+      withoutNameMatch.push(clinic);
+      return;
+    }
+    
+    const clinicNameLower = clinic.clinicName.toLowerCase();
+    const normalizedClinicName = clinicNameLower.replace(/\s+/g, ' ');
+    
+    // Check if search term appears in clinic name (fuzzy matching)
+    const hasMatch = searchWords.some(word => {
+      // Exact word match
+      if (normalizedClinicName.includes(word)) return true;
+      // Word without spaces match (e.g., "medspa" matches "med spa")
+      const wordNoSpaces = word.replace(/\s+/g, '');
+      const clinicNameNoSpaces = normalizedClinicName.replace(/\s+/g, '');
+      if (clinicNameNoSpaces.includes(wordNoSpaces)) return true;
+      return false;
+    });
+    
+    if (hasMatch) {
+      withNameMatch.push(clinic);
+    } else {
+      withoutNameMatch.push(clinic);
+    }
+  });
+  
+  // Return prioritized results (name matches first, then others)
+  return [...withNameMatch, ...withoutNameMatch];
+};
+
+/**
  * Performs a search with location-aware filtering and AND logic for combined queries
  * Returns exact matches first, then nearby results if exact matches < 9
  * @param {Object} searchIndex - Lunr search index
@@ -752,7 +1030,38 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
 
   const trimmedQuery = query.trim();
 
-  // Parse the query to detect location and procedure terms
+  // PRIORITY 1: Check for clinic name matches FIRST (before location/procedure parsing)
+  // This ensures searches like "Gillian Institute", "Gillian", or "Institute" work correctly
+  const clinicNameMatches = searchByClinicName(clinics, trimmedQuery, searchIndex);
+  if (clinicNameMatches && clinicNameMatches.length > 0) {
+    return {
+      exactResults: clinicNameMatches,
+      nearbyResults: [],
+      isLocationSearch: false,
+      hasNearbyResults: false,
+      isClinicNameSearch: true
+    };
+  }
+
+  // PRIORITY 2: Check for category matches (e.g., "medspa", "med spa", "aesthetics")
+  // This handles category searches and prioritizes clinics with the term in their name
+  const detectedCategory = detectCategory(trimmedQuery);
+  if (detectedCategory) {
+    const categoryResults = searchByCategory(clinics, detectedCategory, trimmedQuery);
+    if (categoryResults.length > 0) {
+      return {
+        exactResults: categoryResults,
+        nearbyResults: [],
+        isLocationSearch: false,
+        hasNearbyResults: false,
+        isCategorySearch: true,
+        category: detectedCategory
+      };
+    }
+  }
+
+  // PRIORITY 3: Parse the query to detect location and procedure terms
+  // Only proceed with location/procedure logic if no clinic name or category matches were found
   const parsed = parseSearchQuery(trimmedQuery, clinics);
   
   // If we detected location terms, use location-first filtering with exact/nearby separation

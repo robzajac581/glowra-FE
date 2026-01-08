@@ -9,10 +9,10 @@ const Location = ({ clinicInfo }) => {
 		if (!clinicInfo) return '';
 		
 		const parts = [
-			clinicInfo.Address,
-			clinicInfo.City,
-			clinicInfo.State,
-			clinicInfo.ZipCode
+			clinicInfo.address,
+			clinicInfo.city,
+			clinicInfo.state,
+			clinicInfo.zipCode
 		].filter(Boolean);
 		
 		return parts.join(', ');
