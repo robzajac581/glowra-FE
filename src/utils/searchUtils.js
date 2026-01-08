@@ -934,11 +934,38 @@ export const detectCategory = (query) => {
 };
 
 /**
+ * Check if a clinic name contains the search term (fuzzy matching)
+ * @param {String} clinicName - Clinic name to check
+ * @param {String} searchTerm - Search term to look for
+ * @returns {Boolean} True if clinic name contains search term
+ */
+const clinicNameContainsTerm = (clinicName, searchTerm) => {
+  if (!clinicName || !searchTerm) return false;
+  
+  const clinicNameLower = clinicName.toLowerCase();
+  const normalizedClinicName = clinicNameLower.replace(/\s+/g, ' ');
+  const searchTermLower = normalizeCategoryQuery(searchTerm);
+  const searchWords = searchTermLower.split(/\s+/).filter(w => w.length > 0);
+  
+  // Check if any search word appears in clinic name (fuzzy matching)
+  return searchWords.some(word => {
+    // Exact word match
+    if (normalizedClinicName.includes(word)) return true;
+    // Word without spaces match (e.g., "medspa" matches "med spa")
+    const wordNoSpaces = word.replace(/\s+/g, '');
+    const clinicNameNoSpaces = normalizedClinicName.replace(/\s+/g, '');
+    if (clinicNameNoSpaces.includes(wordNoSpaces)) return true;
+    return false;
+  });
+};
+
+/**
  * Search clinics by category, prioritizing clinics with search term in name
+ * Returns ALL clinics in category PLUS clinics with search term in name (even if not in category)
  * @param {Array} clinics - Array of clinics to search
  * @param {String} category - Category to filter by
  * @param {String} searchTerm - Original search term (for name prioritization)
- * @returns {Array} Array of clinics in category, sorted with name matches first
+ * @returns {Array} Array of clinics: name matches first (in or out of category), then other category clinics
  */
 const searchByCategory = (clinics, category, searchTerm = '') => {
   if (!clinics || clinics.length === 0 || !category) {
@@ -959,54 +986,51 @@ const searchByCategory = (clinics, category, searchTerm = '') => {
     );
   });
   
-  if (categoryClinics.length === 0) {
-    return [];
-  }
-  
   // If no search term provided, return all category clinics
   if (!searchTerm || !searchTerm.trim()) {
     return categoryClinics;
   }
   
-  // Prioritize clinics with search term in name
-  const searchTermLower = normalizeCategoryQuery(searchTerm);
-  const searchWords = searchTermLower.split(/\s+/).filter(w => w.length > 0);
+  // Get clinics with search term in name (even if not in category)
+  const nameMatchClinics = clinics.filter(clinic => {
+    if (!clinic.clinicName) return false;
+    return clinicNameContainsTerm(clinic.clinicName, searchTerm);
+  });
   
-  // Separate clinics into two groups:
-  // 1. Clinics with search term in name (prioritized)
-  // 2. Clinics without search term in name
-  const withNameMatch = [];
-  const withoutNameMatch = [];
+  // Create a set of clinic IDs to track what we've included
+  const includedClinicIds = new Set();
   
-  categoryClinics.forEach(clinic => {
-    if (!clinic.clinicName) {
-      withoutNameMatch.push(clinic);
-      return;
-    }
-    
-    const clinicNameLower = clinic.clinicName.toLowerCase();
-    const normalizedClinicName = clinicNameLower.replace(/\s+/g, ' ');
-    
-    // Check if search term appears in clinic name (fuzzy matching)
-    const hasMatch = searchWords.some(word => {
-      // Exact word match
-      if (normalizedClinicName.includes(word)) return true;
-      // Word without spaces match (e.g., "medspa" matches "med spa")
-      const wordNoSpaces = word.replace(/\s+/g, '');
-      const clinicNameNoSpaces = normalizedClinicName.replace(/\s+/g, '');
-      if (clinicNameNoSpaces.includes(wordNoSpaces)) return true;
-      return false;
-    });
-    
-    if (hasMatch) {
-      withNameMatch.push(clinic);
-    } else {
-      withoutNameMatch.push(clinic);
+  // Group 1: Name matches that are ALSO in category (highest priority)
+  const nameMatchesInCategory = [];
+  nameMatchClinics.forEach(clinic => {
+    const isInCategory = categoryClinics.some(catClinic => catClinic.clinicId === clinic.clinicId);
+    if (isInCategory) {
+      nameMatchesInCategory.push({ ...clinic, _isNameMatch: true, _isInCategory: true });
+      includedClinicIds.add(clinic.clinicId);
     }
   });
   
-  // Return prioritized results (name matches first, then others)
-  return [...withNameMatch, ...withoutNameMatch];
+  // Group 2: Name matches that are NOT in category (second priority)
+  // Mark these with a flag so they can be preserved even when category filter is applied
+  const nameMatchesNotInCategory = [];
+  nameMatchClinics.forEach(clinic => {
+    if (!includedClinicIds.has(clinic.clinicId)) {
+      nameMatchesNotInCategory.push({ ...clinic, _isNameMatch: true, _isInCategory: false });
+      includedClinicIds.add(clinic.clinicId);
+    }
+  });
+  
+  // Group 3: Category clinics without name match (lowest priority)
+  const categoryClinicsWithoutNameMatch = categoryClinics.filter(clinic => {
+    return !includedClinicIds.has(clinic.clinicId);
+  }).map(clinic => ({ ...clinic, _isNameMatch: false, _isInCategory: true }));
+  
+  // Return prioritized results: name matches in category, then name matches outside category, then other category clinics
+  return [
+    ...nameMatchesInCategory,
+    ...nameMatchesNotInCategory,
+    ...categoryClinicsWithoutNameMatch
+  ];
 };
 
 /**
@@ -1030,21 +1054,9 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
 
   const trimmedQuery = query.trim();
 
-  // PRIORITY 1: Check for clinic name matches FIRST (before location/procedure parsing)
-  // This ensures searches like "Gillian Institute", "Gillian", or "Institute" work correctly
-  const clinicNameMatches = searchByClinicName(clinics, trimmedQuery, searchIndex);
-  if (clinicNameMatches && clinicNameMatches.length > 0) {
-    return {
-      exactResults: clinicNameMatches,
-      nearbyResults: [],
-      isLocationSearch: false,
-      hasNearbyResults: false,
-      isClinicNameSearch: true
-    };
-  }
-
-  // PRIORITY 2: Check for category matches (e.g., "medspa", "med spa", "aesthetics")
-  // This handles category searches and prioritizes clinics with the term in their name
+  // PRIORITY 1: Check for category matches FIRST (e.g., "medspa", "med spa", "aesthetics")
+  // Category searches should return ALL clinics in category PLUS clinics with term in name
+  // This takes priority over pure clinic name searches to ensure category coverage
   const detectedCategory = detectCategory(trimmedQuery);
   if (detectedCategory) {
     const categoryResults = searchByCategory(clinics, detectedCategory, trimmedQuery);
@@ -1058,6 +1070,19 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
         category: detectedCategory
       };
     }
+  }
+
+  // PRIORITY 2: Check for clinic name matches (only if no category was detected)
+  // This ensures searches like "Gillian Institute", "Gillian", or "Institute" work correctly
+  const clinicNameMatches = searchByClinicName(clinics, trimmedQuery, searchIndex);
+  if (clinicNameMatches && clinicNameMatches.length > 0) {
+    return {
+      exactResults: clinicNameMatches,
+      nearbyResults: [],
+      isLocationSearch: false,
+      hasNearbyResults: false,
+      isClinicNameSearch: true
+    };
   }
 
   // PRIORITY 3: Parse the query to detect location and procedure terms
@@ -1305,7 +1330,29 @@ export const applyFilters = (clinics, filters) => {
   return clinics
     .filter(clinic => {
       // Category filter - filter by clinic category, not procedure category
+      // BUT: preserve clinics marked as name matches (_isNameMatch: true) even if they don't match category
+      // Also preserve clinics with search term in name when both category filter and search query are present
       if (filters.category) {
+        // If clinic is a name match (from category search), preserve it even if category doesn't match
+        if (clinic._isNameMatch && clinic._isInCategory === false) {
+          return true;
+        }
+        
+        // If we have both a category filter and a search query, also preserve clinics with search term in name
+        // This handles cases where user manually sets category filter AND searches for a term
+        if (filters.searchQuery && filters.searchQuery.trim()) {
+          const searchTerm = filters.searchQuery.trim().toLowerCase();
+          if (clinic.clinicName && clinicNameContainsTerm(clinic.clinicName, searchTerm)) {
+            // Check if this clinic is NOT in the filtered category
+            const clinicCategoryLower = (clinic.clinicCategory || '').toLowerCase();
+            const filterCategoryLower = filters.category.toLowerCase();
+            if (clinicCategoryLower !== filterCategoryLower) {
+              // This is a name match but not in the category - preserve it
+              return true;
+            }
+          }
+        }
+        
         if (!clinic.clinicCategory) {
           return false;
         }

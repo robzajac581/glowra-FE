@@ -373,10 +373,12 @@ const Search = () => {
     const combinedResults = [...exactWithFlag, ...nearbyWithFlag];
     
     // Apply filters using our utility function
+    // Pass searchQuery so we can preserve name matches even when category filter is set
     const filtered = applyFilters(combinedResults, {
       category,
       minPrice,
-      maxPrice
+      maxPrice,
+      searchQuery: searchQuery.trim() // Pass search query for name match preservation
     });
     
     // Separate exact and nearby results for independent sorting
