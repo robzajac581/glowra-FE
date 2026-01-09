@@ -1,10 +1,9 @@
 /**
  * Utility functions to transform draft data to the format
- * expected by clinic page components (PascalCase)
+ * expected by clinic page components (camelCase)
  * 
- * Backend API now returns consistent camelCase, so we no longer need
- * dual-casing guards. These functions simply convert camelCase to PascalCase
- * for the clinic preview components.
+ * Backend API now returns consistent camelCase, and clinic components
+ * now expect camelCase, so these functions maintain camelCase format.
  */
 
 /**
@@ -14,7 +13,7 @@
  * @param {string} options.ratingSource - 'google' or 'manual'
  * @param {string} options.manualRating - Manual rating value
  * @param {string} options.manualReviewCount - Manual review count
- * @returns {Object} - Transformed clinic info in PascalCase format
+ * @returns {Object} - Transformed clinic info in camelCase format
  */
 export const transformClinicInfo = (draft, options = {}) => {
   if (!draft) return null;
@@ -36,34 +35,34 @@ export const transformClinicInfo = (draft, options = {}) => {
   const logoFromPhotos = logoPhoto?.photoData || logoPhoto?.photoUrl;
 
   return {
-    ClinicID: draft.draftId,
-    ClinicName: draft.clinicName || '',
-    Address: draft.address || '',
-    City: draft.city || '',
-    State: draft.state || '',
-    ZipCode: draft.zipCode || '',
-    Category: draft.category || '',
-    Website: draft.website || '',
-    Phone: draft.phone || '',
-    Email: draft.email || '',
-    Description: draft.description || '',
-    GoogleRating: rating,
-    GoogleReviewCount: reviewCount,
-    GoogleReviewsJSON: draft.googleReviewsJSON,
-    WorkingHours: draft.workingHours,
+    clinicId: draft.draftId,
+    clinicName: draft.clinicName || '',
+    address: draft.address || '',
+    city: draft.city || '',
+    state: draft.state || '',
+    zipCode: draft.zipCode || '',
+    category: draft.category || '',
+    website: draft.website || '',
+    phone: draft.phone || '',
+    email: draft.email || '',
+    description: draft.description || '',
+    googleRating: rating,
+    googleReviewCount: reviewCount,
+    googleReviewsJSON: draft.googleReviewsJSON,
+    workingHours: draft.workingHours,
     // Check for logo in photos array first, then fall back to direct fields
-    Logo: logoFromPhotos || draft.logo || draft.iconUrl,
-    Photo: logoFromPhotos || draft.photo || draft.iconUrl,
-    Verified: false, // Drafts are not verified yet
-    PlaceID: draft.placeId,
-    ReviewsLink: draft.reviewsLink,
+    logo: logoFromPhotos || draft.logo || draft.iconUrl,
+    photo: logoFromPhotos || draft.photo || draft.iconUrl,
+    verified: false, // Drafts are not verified yet
+    placeId: draft.placeId,
+    reviewsLink: draft.reviewsLink,
   };
 };
 
 /**
  * Transform draft providers to the format expected by ClinicBanner
  * @param {Array} providers - Array of draft providers (camelCase)
- * @returns {Array} - Transformed providers with PascalCase fields
+ * @returns {Array} - Transformed providers with camelCase fields
  */
 export const transformProviders = (providers) => {
   if (!providers || !Array.isArray(providers)) return [];
@@ -74,9 +73,9 @@ export const transformProviders = (providers) => {
     const providerId = provider.draftProviderId || provider.providerId || `draft-provider-${index}`;
 
     return {
-      ProviderID: providerId,
-      ProviderName: provider.providerName || '',
-      PhotoURL: photoUrl,
+      providerId: providerId,
+      providerName: provider.providerName || '',
+      photoUrl: photoUrl,
       hasPhoto: !!photoUrl,
     };
   });

@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 /**
  * Helper to flatten grouped procedures from clinic API format to a flat array
  * Input format (grouped): { "Face": { procedures: [...] }, "Body": { procedures: [...] } }
- * Output format (flat): [{ ProcedureName: "...", category: "Face", ... }, ...]
+ * Output format (flat): [{ procedureName: "...", category: "Face", ... }, ...]
  */
 const flattenExistingProcedures = (procedures) => {
   if (!procedures) return [];
@@ -23,7 +23,7 @@ const flattenExistingProcedures = (procedures) => {
           flattened.push({
             ...proc,
             category,
-            ProcedureName: proc.ProcedureName || proc.procedureName || proc.name || '',
+            procedureName: proc.procedureName || proc.ProcedureName || proc.name || '',
           });
         });
       }
@@ -108,7 +108,7 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
 
   // Find new providers
   const existingProviderNames = (existingClinic.providers || []).map(p => 
-    (p.ProviderName || p.providerName || '').toLowerCase()
+    (p.providerName || p.ProviderName || '').toLowerCase()
   );
   const newProviders = (draft.providers || []).filter(p => 
     !existingProviderNames.includes((p.providerName || '').toLowerCase())
@@ -116,7 +116,7 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
 
   // Find new procedures using flattened existing procedures
   const existingProcedureNames = existingProceduresFlat.map(p => 
-    (p.ProcedureName || p.procedureName || '').toLowerCase()
+    (p.procedureName || p.ProcedureName || p.name || '').toLowerCase()
   );
   const newProcedures = (draft.procedures || []).filter(p => 
     !existingProcedureNames.includes((p.procedureName || '').toLowerCase())

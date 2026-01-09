@@ -61,7 +61,7 @@ const DraftClinicPreview = ({
   } = useClinicData(clinicInfo);
 
   // Use logo from clinicInfo if available, otherwise fall back to hook result
-  const displayLogo = clinicInfo?.Logo || logo;
+  const displayLogo = clinicInfo?.logo || logo;
 
   const isAdjustment = draft.submissionFlow === 'add_to_existing';
 
@@ -98,7 +98,7 @@ const DraftClinicPreview = ({
 
                 <Gallery
                   photos={photos}
-                  clinicName={clinicInfo?.ClinicName}
+                  clinicName={clinicInfo?.clinicName}
                 />
 
                 <ClinicProcedures
@@ -108,8 +108,8 @@ const DraftClinicPreview = ({
                 />
 
                 <About
-                  description={clinicInfo?.Description}
-                  clinicName={clinicInfo?.ClinicName}
+                  description={clinicInfo?.description}
+                  clinicName={clinicInfo?.clinicName}
                 />
 
                 <WorkingHours
@@ -118,10 +118,10 @@ const DraftClinicPreview = ({
                 />
 
                 <ReviewsForCosmetics
-                  reviews={clinicInfo?.GoogleReviewsJSON}
-                  clinicName={clinicInfo?.ClinicName}
-                  totalReviewCount={clinicInfo?.GoogleReviewCount}
-                  reviewsLink={clinicInfo?.ReviewsLink}
+                  reviews={clinicInfo?.googleReviewsJSON}
+                  clinicName={clinicInfo?.clinicName}
+                  totalReviewCount={clinicInfo?.googleReviewCount}
+                  reviewsLink={clinicInfo?.reviewsLink}
                 />
 
                 <Location clinicInfo={clinicInfo} />
