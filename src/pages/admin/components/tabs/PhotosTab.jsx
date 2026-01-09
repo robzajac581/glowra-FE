@@ -83,10 +83,13 @@ const PhotosTab = ({ draft, onUpdate, clinicId }) => {
     };
     
     if (hasDraftId) {
-      // Existing draft flow - use POST with placeId in body
+      // Existing draft flow - use POST with placeId in body and save: true to persist
       url = `${API_BASE_URL}/api/admin/drafts/${draft.draftId}/google-photos`;
       fetchOptions.method = 'POST';
-      fetchOptions.body = JSON.stringify({ placeId: draft.placeId });
+      fetchOptions.body = JSON.stringify({ 
+        placeId: draft.placeId,
+        save: true // Backend will persist photos to draft
+      });
     } else if (hasPlaceId) {
       // Lazy draft creation - use placeId directly (Option A - preferred)
       url = `${API_BASE_URL}/api/clinic-management/admin/google-photos?placeId=${encodeURIComponent(draft.placeId)}`;
@@ -107,17 +110,37 @@ const PhotosTab = ({ draft, onUpdate, clinicId }) => {
       const data = await response.json();
 
       if (data.success) {
-        const newGooglePhotos = data.photos.map((p, idx) => ({
-          ...p,
-          photoUrl: p.url || p.urls?.medium || p.photoUrl,
-          source: 'google',
-          draftPhotoId: `google-${Date.now()}-${idx}`,
-          selected: true,
-        }));
+        // Backend now persists photos when save: true, and returns updated draft
+        let finalPhotos;
         
-        // Remove old google photos and add new ones
-        const updatedPhotos = photos.filter(p => p.source !== 'google');
-        onUpdate({ photos: [...updatedPhotos, ...newGooglePhotos] });
+        if (hasDraftId && data.draft && data.draft.photos) {
+          // Backend returned updated draft with persisted photos
+          finalPhotos = data.draft.photos;
+          
+          // Also update placeId if it was changed
+          if (data.placeId && data.placeId !== draft.placeId) {
+            onUpdate({ 
+              photos: finalPhotos,
+              placeId: data.placeId 
+            });
+          } else {
+            onUpdate({ photos: finalPhotos });
+          }
+        } else {
+          // Fallback: format photos from response (for non-draft flows or backward compatibility)
+          const newGooglePhotos = (data.photos || []).map((p, idx) => ({
+            ...p,
+            photoUrl: p.url || p.urls?.medium || p.photoUrl,
+            source: 'google',
+            draftPhotoId: p.draftPhotoId || `google-${Date.now()}-${idx}`,
+            selected: true,
+          }));
+          
+          // Remove old google photos and add new ones
+          const updatedPhotos = photos.filter(p => p.source !== 'google');
+          finalPhotos = [...updatedPhotos, ...newGooglePhotos];
+          onUpdate({ photos: finalPhotos });
+        }
       } else {
         setError(data.error || 'Failed to fetch Google photos');
       }

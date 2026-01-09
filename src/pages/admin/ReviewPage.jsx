@@ -272,10 +272,30 @@ const hasChanges = (original, current) => {
     if (origProcs[i]?.category !== currProcs[i]?.category) return true;
   }
   
-  // Compare photos (by count)
+  // Compare photos (by count, source, and content)
   const origPhotos = original.photos || [];
   const currPhotos = current.photos || [];
+  
+  // Compare total count
   if (origPhotos.length !== currPhotos.length) return true;
+  
+  // Compare Google photos separately (they can change even if count stays same)
+  const origGooglePhotos = origPhotos.filter(p => p.source === 'google');
+  const currGooglePhotos = currPhotos.filter(p => p.source === 'google');
+  if (origGooglePhotos.length !== currGooglePhotos.length) return true;
+  
+  // Compare Google photo URLs to detect content changes
+  const origGoogleUrls = origGooglePhotos.map(p => p.photoUrl || p.url || '').sort();
+  const currGoogleUrls = currGooglePhotos.map(p => p.photoUrl || p.url || '').sort();
+  if (origGoogleUrls.length !== currGoogleUrls.length) return true;
+  for (let i = 0; i < origGoogleUrls.length; i++) {
+    if (origGoogleUrls[i] !== currGoogleUrls[i]) return true;
+  }
+  
+  // Compare user photos separately
+  const origUserPhotos = origPhotos.filter(p => p.source === 'user' || !p.source);
+  const currUserPhotos = currPhotos.filter(p => p.source === 'user' || !p.source);
+  if (origUserPhotos.length !== currUserPhotos.length) return true;
   
   return false;
 };
@@ -536,11 +556,15 @@ const ReviewPage = () => {
           averagePrice: p.averagePrice,
           providerNames: p.providerNames || [],
         })),
-        photos: (draft.photos || []).filter(p => p.source === 'user').map(p => ({
+        photos: (draft.photos || []).map(p => ({
           photoUrl: p.photoUrl,
           photoData: p.photoData,
-          source: p.source,
+          source: p.source || 'user',
           isPrimary: p.isPrimary,
+          photoType: p.photoType,
+          // Include Google photo metadata
+          width: p.width,
+          height: p.height,
         })),
       };
 

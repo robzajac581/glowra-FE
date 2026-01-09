@@ -119,26 +119,46 @@ const DataSourcesTab = ({
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ placeId: draft.placeId }),
+          body: JSON.stringify({ 
+            placeId: draft.placeId,
+            save: true // Backend will persist photos to draft
+          }),
         }
       );
 
       const data = await response.json();
 
       if (data.success) {
-        // Merge Google photos with existing photos
-        const existingPhotos = draft.photos || [];
-        const newGooglePhotos = data.photos.map((p, idx) => ({
-          ...p,
-          source: 'google',
-          draftPhotoId: `google-${idx}`,
-        }));
+        // Backend now persists photos when save: true, and returns updated draft
+        if (data.draft && data.draft.photos) {
+          // Backend returned updated draft with persisted photos
+          const updatedDraft = {
+            ...draft,
+            photos: data.draft.photos,
+          };
+          
+          // Also update placeId if it was changed
+          if (data.placeId && data.placeId !== draft.placeId) {
+            updatedDraft.placeId = data.placeId;
+          }
+          
+          onDraftUpdate(updatedDraft);
+          setSuccess(`Fetched ${data.photos?.length || data.draft.photos.filter(p => p.source === 'google').length} photos from Google`);
+        } else {
+          // Fallback: merge Google photos with existing photos (backward compatibility)
+          const existingPhotos = draft.photos || [];
+          const newGooglePhotos = (data.photos || []).map((p, idx) => ({
+            ...p,
+            source: 'google',
+            draftPhotoId: p.draftPhotoId || `google-${idx}`,
+          }));
 
-        onDraftUpdate({
-          ...draft,
-          photos: [...existingPhotos, ...newGooglePhotos],
-        });
-        setSuccess(`Fetched ${data.photos.length} photos from Google`);
+          onDraftUpdate({
+            ...draft,
+            photos: [...existingPhotos, ...newGooglePhotos],
+          });
+          setSuccess(`Fetched ${data.photos.length} photos from Google`);
+        }
       } else {
         setError(data.error || 'Failed to fetch Google photos');
       }

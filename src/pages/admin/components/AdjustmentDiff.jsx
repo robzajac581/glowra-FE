@@ -122,11 +122,32 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
     !existingProcedureNames.includes((p.procedureName || '').toLowerCase())
   );
 
-  // Find new photos
-  const newPhotos = (draft.photos || []).filter(p => p.source === 'user');
+  // Find new photos (both user and Google)
+  const existingPhotoUrls = (existingClinic.photos || []).map(p => 
+    (p.photoUrl || p.url || '').toLowerCase()
+  );
+  const draftPhotos = draft.photos || [];
+  const newPhotos = draftPhotos.filter(p => {
+    const photoUrl = (p.photoUrl || p.url || '').toLowerCase();
+    return !existingPhotoUrls.includes(photoUrl);
+  });
+  
+  // Check for Google photo changes (different URLs even if same count)
+  const existingGooglePhotos = (existingClinic.photos || []).filter(p => 
+    p.source === 'google' || (!p.source && p.url && p.url.includes('google'))
+  );
+  const draftGooglePhotos = draftPhotos.filter(p => p.source === 'google');
+  const existingGoogleUrls = existingGooglePhotos.map(p => 
+    (p.photoUrl || p.url || '').toLowerCase()
+  ).sort();
+  const draftGoogleUrls = draftGooglePhotos.map(p => 
+    (p.photoUrl || p.url || '').toLowerCase()
+  ).sort();
+  const googlePhotosChanged = existingGoogleUrls.length !== draftGoogleUrls.length ||
+    existingGoogleUrls.some((url, idx) => url !== draftGoogleUrls[idx]);
 
   const hasChanges = fieldChanges.length > 0 || newProviders.length > 0 || 
-                     newProcedures.length > 0 || newPhotos.length > 0;
+                     newProcedures.length > 0 || newPhotos.length > 0 || googlePhotosChanged;
 
   if (!hasChanges) {
     return (
@@ -249,29 +270,68 @@ const AdjustmentDiff = ({ draft, existingClinic }) => {
           </div>
         )}
 
-        {/* New Photos */}
-        {newPhotos.length > 0 && (
+        {/* Photo Changes */}
+        {(newPhotos.length > 0 || googlePhotosChanged) && (
           <div>
             <p className="text-sm font-medium text-text mb-2">
-              New Photos to Add ({newPhotos.length}):
+              Photo Changes:
             </p>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {newPhotos.map((photo, idx) => (
-                <div 
-                  key={idx}
-                  className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-green-300"
-                >
-                  <img
-                    src={photo.photoUrl || photo.photoData}
-                    alt={`New ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-green-500 text-white rounded text-xs font-medium">
-                    NEW
-                  </span>
+            {newPhotos.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-text mb-1">New Photos to Add ({newPhotos.length}):</p>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {newPhotos.map((photo, idx) => (
+                    <div 
+                      key={idx}
+                      className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-green-300"
+                    >
+                      <img
+                        src={photo.photoUrl || photo.photoData || photo.url}
+                        alt={`New ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-green-500 text-white rounded text-xs font-medium">
+                        NEW
+                      </span>
+                      <span className="absolute bottom-1 left-1 px-1 py-0.5 bg-black/60 text-white rounded text-xs">
+                        {photo.source === 'google' ? 'Google' : 'User'}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+            {googlePhotosChanged && (
+              <div className="mb-2">
+                <p className="text-xs text-text mb-1">
+                  Google Photos Updated ({draftGooglePhotos.length} photos):
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {draftGooglePhotos.slice(0, 10).map((photo, idx) => (
+                    <div 
+                      key={idx}
+                      className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-blue-300"
+                    >
+                      <img
+                        src={photo.photoUrl || photo.url}
+                        alt={`Google ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute bottom-1 left-1 px-1 py-0.5 bg-blue-500 text-white rounded text-xs font-medium">
+                        Google
+                      </span>
+                    </div>
+                  ))}
+                  {draftGooglePhotos.length > 10 && (
+                    <div className="flex-shrink-0 w-20 h-20 rounded-lg border-2 border-blue-300 flex items-center justify-center bg-blue-50">
+                      <span className="text-xs text-blue-700 font-medium">
+                        +{draftGooglePhotos.length - 10} more
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
