@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import ClinicBanner from '../../clinic/components/ClinicBanner';
 import Gallery from '../../clinic/components/Gallery';
 import ClinicProcedures from '../../clinic/components/ClinicProcedures';
-import ClinicRightSidebar from '../../clinic/components/ClinicRightSidebar';
 import About from '../../clinic/components/About';
 import WorkingHours from '../../clinic/components/WorkingHours';
 import ReviewsForCosmetics from '../../clinic/components/ReviewsForCosmetics';

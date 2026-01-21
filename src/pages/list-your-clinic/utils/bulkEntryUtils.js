@@ -29,14 +29,14 @@ export const normalizeName = (name) => {
   const credentials = ['NP', 'RN', 'BSN', 'LE', 'MD', 'DO', 'PA', 'APRN', 'FNP', 'DNP', 'MSN', 'CNP'];
   
   // Split by separators while preserving them - use lookahead/lookbehind to keep separators
-  const parts = normalized.split(/(\s*[|,\-]\s*|[()])/);
+  const parts = normalized.split(/(\s*[|,-]\s*|[()])/);
   
   // Process each part
   const processedParts = parts.map(part => {
     const trimmedPart = part.trim();
     
     // If it's a separator (contains |, -, ,, (, or )), normalize spacing
-    if (/^[|,\-()]$/.test(trimmedPart)) {
+    if (/^[|,()-]$/.test(trimmedPart)) {
       return trimmedPart;
     }
     

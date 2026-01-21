@@ -20,22 +20,6 @@ const WorkingHoursEditor = ({ workingHours = {}, onChange }) => {
     });
   };
 
-  const formatForDisplay = (day) => {
-    const dayData = workingHours[day];
-    if (!dayData || dayData.closed) return 'Closed';
-    if (!dayData.open || !dayData.close) return '';
-    
-    // Convert 24h format to display format
-    const formatTime = (timeStr) => {
-      const [hour, minute] = timeStr.split(':').map(Number);
-      const h = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      const ampm = hour < 12 ? 'AM' : 'PM';
-      return `${h}:${minute.toString().padStart(2, '0')}${ampm}`;
-    };
-    
-    return `${formatTime(dayData.open)}-${formatTime(dayData.close)}`;
-  };
-
   return (
     <div className="space-y-3">
       {DAYS_OF_WEEK.map((day) => {

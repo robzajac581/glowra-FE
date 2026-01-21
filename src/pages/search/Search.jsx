@@ -58,14 +58,17 @@ const Search = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [isLocationSearch, setIsLocationSearch] = useState(false);
   const [hasNearbyResults, setHasNearbyResults] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [exactResultsCount, setExactResultsCount] = useState(0);
   
   // State for backend-fetched location results
   const [backendLocationResults, setBackendLocationResults] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [fetchingLocation, setFetchingLocation] = useState(false);
   
   // State for backend-fetched clinic name results
   const [backendClinicNameResults, setBackendClinicNameResults] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [fetchingClinicName, setFetchingClinicName] = useState(false);
   
   // User location state for map

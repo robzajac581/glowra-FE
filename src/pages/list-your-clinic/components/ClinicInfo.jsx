@@ -253,7 +253,7 @@ const ClinicInfo = ({ initialData, initialAdvanced, onContinue, onBack, isEditMo
             {...register('phone', {
               pattern: {
                 // Accept various formats: (XXX) XXX-XXXX, XXX-XXX-XXXX, +1 XXX-XXX-XXXX, +1 (XXX) XXX-XXXX, etc.
-                value: /^[\+]?[\d\s\-\(\)\.]{7,20}$/,
+                value: /^[+]?[\d\s\-().]{7,20}$/,
                 message: 'Please enter a valid phone number'
               }
             })}

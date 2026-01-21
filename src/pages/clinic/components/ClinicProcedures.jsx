@@ -52,7 +52,6 @@ const ClinicProcedures = ({ procedures, selectedData, setSelectedData }) => {
 			// Find the procedure in the procedures object by name + category
 			// (IDs differ between search-index and clinic procedures endpoints)
 			let foundProcedure = null;
-			let foundCategory = null;
 			
 			Object.entries(procedures).forEach(([category, data]) => {
 				const procedure = data.procedures.find(proc => {
@@ -62,7 +61,6 @@ const ClinicProcedures = ({ procedures, selectedData, setSelectedData }) => {
 				});
 				if (procedure) {
 					foundProcedure = procedure;
-					foundCategory = category;
 				}
 			});
 			

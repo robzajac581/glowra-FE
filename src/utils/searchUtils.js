@@ -401,7 +401,6 @@ export const parseSearchQuery = (query, clinics = []) => {
   // If we have remaining terms and no procedure terms yet, check if they might be procedures
   // by checking against common procedure names
   if (remainingTerms.length > 0 && procedureTerms.length === 0) {
-    const remainingQuery = remainingTerms.join(' ');
     // Check if any remaining term matches a procedure abbreviation
     for (const term of remainingTerms) {
       if (PROCEDURE_ABBREVIATIONS[term]) {
