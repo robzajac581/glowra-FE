@@ -328,6 +328,7 @@ const ReviewPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [toastVisible, setToastVisible] = useState(false);
+  const [restoringToPending, setRestoringToPending] = useState(false);
   
   // Data sources state
   const [photoSource, setPhotoSource] = useState('google');
@@ -502,6 +503,16 @@ const ReviewPage = () => {
 
     fetchData();
   }, [draftId, clinicId, deletedClinicId, isClinicEditMode, isDeletedClinicMode]);
+
+  // Ensure approved/rejected drafts stay in preview mode
+  useEffect(() => {
+    if (!isClinicEditMode && !isDeletedClinicMode && draft) {
+      const draftStatus = draft.status || draft.Status || 'pending_review';
+      if ((draftStatus === 'approved' || draftStatus === 'rejected') && mode === 'edit') {
+        setMode('preview');
+      }
+    }
+  }, [draft, mode, isClinicEditMode, isDeletedClinicMode]);
 
   // Handle draft update from edit mode
   const handleDraftUpdate = useCallback((updatedDraft) => {
@@ -724,6 +735,52 @@ const ReviewPage = () => {
     }
   };
 
+  // Handle restore rejected draft to pending review
+  const handleRestoreToPending = async () => {
+    if (!draftId || !draft) return;
+
+    setRestoringToPending(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/drafts/${draftId}`,
+        {
+          method: 'PUT',
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'pending_review',
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToastMessage(`Draft "${draft.clinicName}" restored to pending review`);
+        setToastVisible(true);
+        // Navigate back to dashboard after a short delay
+        setTimeout(() => {
+          navigate('/admin', {
+            state: {
+              success: `Draft "${draft.clinicName}" has been restored to pending review.`
+            }
+          });
+        }, 1500);
+      } else {
+        throw new Error(data.error || 'Failed to restore draft');
+      }
+    } catch (err) {
+      console.error('Restore to pending failed:', err);
+      setError(`Failed to restore draft: ${err.message}`);
+    } finally {
+      setRestoringToPending(false);
+    }
+  };
+
   // Handle delete clinic
   const handleDeleteClinic = async () => {
     if (!clinicId || !draft) return;
@@ -813,6 +870,11 @@ const ReviewPage = () => {
   }
 
   const isAdjustment = draft.submissionFlow === 'add_to_existing';
+  const draftStatus = draft.status || draft.Status || 'pending_review';
+  const isApproved = draftStatus === 'approved';
+  const isRejected = draftStatus === 'rejected';
+  const isPendingReview = draftStatus === 'pending_review';
+  
   const pageTitle = isDeletedClinicMode
     ? `Restore: ${draft.clinicName}`
     : isClinicEditMode 
@@ -842,7 +904,17 @@ const ReviewPage = () => {
               Unsaved changes
             </span>
           )}
-          {!isClinicEditMode && isAdjustment && (
+          {!isClinicEditMode && !isDeletedClinicMode && isApproved && (
+            <span className="status-badge status-badge-approved">
+              Approved
+            </span>
+          )}
+          {!isClinicEditMode && !isDeletedClinicMode && isRejected && (
+            <span className="status-badge status-badge-rejected">
+              Rejected
+            </span>
+          )}
+          {!isClinicEditMode && !isDeletedClinicMode && isPendingReview && isAdjustment && (
             <span className="status-badge status-badge-adjustment">
               Adjustment
             </span>
@@ -882,11 +954,22 @@ const ReviewPage = () => {
           Preview
         </button>
         <button
-          onClick={() => setMode('edit')}
+          onClick={() => {
+            // Prevent switching to edit mode for approved/rejected drafts
+            if (!isClinicEditMode && !isDeletedClinicMode && (isApproved || isRejected)) {
+              return;
+            }
+            setMode('edit');
+          }}
+          disabled={!isClinicEditMode && !isDeletedClinicMode && (isApproved || isRejected)}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             mode === 'edit'
               ? 'bg-primary text-white'
               : 'bg-white border border-border text-text hover:border-primary'
+          } ${
+            !isClinicEditMode && !isDeletedClinicMode && (isApproved || isRejected)
+              ? 'opacity-50 cursor-not-allowed'
+              : ''
           }`}
         >
           Edit Data
@@ -931,6 +1014,7 @@ const ReviewPage = () => {
             </div>
           )}
 
+
           {/* Adjustment Diff (only for draft mode with adjustments) */}
           {!isClinicEditMode && isAdjustment && existingClinic && (
             <AdjustmentDiff 
@@ -967,7 +1051,22 @@ const ReviewPage = () => {
                   {saving ? 'Restoring...' : '✓ Restore Clinic'}
                 </button>
               </>
+            ) : isApproved ? (
+              // Approved drafts - show static message
+              <p className="text-sm text-text">
+                To edit this clinic, find it in the existing clinics sections
+              </p>
+            ) : isRejected ? (
+              // Rejected drafts - show restore button
+              <button
+                onClick={handleRestoreToPending}
+                disabled={restoringToPending}
+                className="px-6 py-3 bg-primary text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {restoringToPending ? 'Restoring...' : 'Restore to Pending Review'}
+              </button>
             ) : (
+              // Pending review drafts - show normal action buttons
               <>
                 <button
                   onClick={() => setMode('edit')}
@@ -976,7 +1075,7 @@ const ReviewPage = () => {
                   ✏️ Edit Data
                 </button>
                 
-                {!isClinicEditMode && (
+                {!isClinicEditMode && isPendingReview && (
                   <>
                     <button
                       onClick={() => setShowRejectDialog(true)}
@@ -997,28 +1096,38 @@ const ReviewPage = () => {
           </div>
         </>
       ) : (
-        /* Edit Mode */
-        <EditTabs
-          draft={draft}
-          onDraftUpdate={handleDraftUpdate}
-          onSave={isClinicEditMode ? handleSaveChanges : isDeletedClinicMode ? () => setMode('preview') : () => setMode('preview')}
-          onCancel={handleCancelEdit}
-          // For clinic edit mode, disable save if no changes
-          saveDisabled={isClinicEditMode && !hasUnsavedChanges}
-          saveLabel={isClinicEditMode ? (hasUnsavedChanges ? 'Save Changes' : 'No Changes') : isDeletedClinicMode ? 'Save & Return to Preview' : 'Save & Return to Preview'}
-          saving={saving}
-          // Pass clinicId for Google Photos fetching in clinic edit mode
-          clinicId={isClinicEditMode ? parseInt(clinicId, 10) : null}
-          // Pass data sources state to EditTabs
-          photoSource={photoSource}
-          setPhotoSource={setPhotoSource}
-          ratingSource={ratingSource}
-          setRatingSource={setRatingSource}
-          manualRating={manualRating}
-          setManualRating={setManualRating}
-          manualReviewCount={manualReviewCount}
-          setManualReviewCount={setManualReviewCount}
-        />
+        /* Edit Mode - Only allow for pending reviews, clinic edits, or deleted clinic restores */
+        (!isClinicEditMode && !isDeletedClinicMode && (isApproved || isRejected)) ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+            <p className="text-text">
+              {isApproved 
+                ? 'This submission has been approved. To edit this clinic, find it in the existing clinics sections.'
+                : 'This submission was rejected. Use "Restore to Pending Review" to make it editable again.'}
+            </p>
+          </div>
+        ) : (
+          <EditTabs
+            draft={draft}
+            onDraftUpdate={handleDraftUpdate}
+            onSave={isClinicEditMode ? handleSaveChanges : isDeletedClinicMode ? () => setMode('preview') : () => setMode('preview')}
+            onCancel={handleCancelEdit}
+            // For clinic edit mode, disable save if no changes
+            saveDisabled={isClinicEditMode && !hasUnsavedChanges}
+            saveLabel={isClinicEditMode ? (hasUnsavedChanges ? 'Save Changes' : 'No Changes') : isDeletedClinicMode ? 'Save & Return to Preview' : 'Save & Return to Preview'}
+            saving={saving}
+            // Pass clinicId for Google Photos fetching in clinic edit mode
+            clinicId={isClinicEditMode ? parseInt(clinicId, 10) : null}
+            // Pass data sources state to EditTabs
+            photoSource={photoSource}
+            setPhotoSource={setPhotoSource}
+            ratingSource={ratingSource}
+            setRatingSource={setRatingSource}
+            manualRating={manualRating}
+            setManualRating={setManualRating}
+            manualReviewCount={manualReviewCount}
+            setManualReviewCount={setManualReviewCount}
+          />
+        )
       )}
 
       {/* Approval Dialog (draft mode only) */}

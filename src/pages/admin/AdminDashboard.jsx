@@ -74,6 +74,10 @@ const DraftCard = ({ draft }) => {
     return timeAgo(date);
   };
 
+  // Get draft status for badge display
+  const draftStatus = draft.status || draft.Status || 'pending_review';
+  const draftId = draft.draftId || draft.id || draft.draft_id || draft.DraftID;
+
   return (
     <div className="draft-card animate-slide-in">
       <div className="flex items-start justify-between gap-4">
@@ -90,14 +94,14 @@ const DraftCard = ({ draft }) => {
             {getLocation()}
           </p>
           <div className="flex items-center gap-3 flex-wrap">
-            <StatusBadge type={draft.submissionFlow} />
+            <StatusBadge status={draftStatus} type={draft.submissionFlow} />
             <span className="text-xs text-text">
               Submitted: {getSubmittedDate()}
             </span>
           </div>
         </div>
         <Link
-          to={`/admin/review/${draft.draftId || draft.id || draft.draft_id || draft.DraftID}`}
+          to={`/admin/review/${draftId}`}
           className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-opacity-90 transition-all flex-shrink-0"
         >
           Review →
@@ -286,7 +290,10 @@ const AdminDashboard = () => {
         <>
           <div className="space-y-4">
             {drafts.map((draft) => (
-              <DraftCard key={draft.draftId} draft={draft} />
+              <DraftCard 
+                key={draft.draftId || draft.id || draft.draft_id || draft.DraftID} 
+                draft={draft}
+              />
             ))}
           </div>
 
