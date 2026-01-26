@@ -102,9 +102,9 @@ export const getDisplayProcedures = (clinic, searchQuery) => {
   const matchedProcedures = [];
   const categoryMatches = new Set();
 
-  // Find directly matching procedures
+  // Find directly matching procedures using fuzzy matching
   uniqueProcedures.forEach(proc => {
-    if (proc.procedureName.toLowerCase().includes(query)) {
+    if (procedureNameMatches(proc.procedureName, query)) {
       matchedProcedures.push(proc);
       categoryMatches.add(proc.category);
     }
@@ -691,7 +691,69 @@ export const filterByLocationNearby = (clinics, locationTerms, exactMatches = []
 };
 
 /**
- * Filter clinics by procedure terms
+ * Normalize a string for fuzzy matching by removing spaces and converting to lowercase
+ * This handles cases like "micro blading" matching "microblading"
+ * @param {String} str - String to normalize
+ * @returns {String} Normalized string
+ */
+const normalizeForFuzzyMatch = (str) => {
+  if (!str) return '';
+  return str.toLowerCase().replace(/\s+/g, '').trim();
+};
+
+/**
+ * Check if a procedure name matches a search term using fuzzy matching
+ * Handles word splits (e.g., "micro blading" matches "microblading")
+ * @param {String} procedureName - Procedure name to check
+ * @param {String} searchTerm - Search term to match against
+ * @returns {Boolean} True if procedure name matches search term
+ */
+const procedureNameMatches = (procedureName, searchTerm) => {
+  if (!procedureName || !searchTerm) return false;
+  
+  const procLower = procedureName.toLowerCase();
+  const termLower = searchTerm.toLowerCase();
+  
+  // Strategy 1: Exact match (case-insensitive)
+  if (procLower === termLower) return true;
+  
+  // Strategy 2: Contains match (handles partial matches)
+  if (procLower.includes(termLower)) return true;
+  
+  // Strategy 3: Normalized match (handles word splits)
+  // e.g., "micro blading" matches "microblading" and vice versa
+  const procNormalized = normalizeForFuzzyMatch(procedureName);
+  const termNormalized = normalizeForFuzzyMatch(searchTerm);
+  
+  if (procNormalized === termNormalized) return true;
+  if (procNormalized.includes(termNormalized)) return true;
+  if (termNormalized.includes(procNormalized)) return true;
+  
+  // Strategy 4: Word-based matching (all words in search term appear in procedure name)
+  const termWords = termLower.split(/\s+/).filter(w => w.length > 0);
+  if (termWords.length > 1) {
+    const allWordsMatch = termWords.every(word => {
+      // Check if word appears in procedure name (with or without spaces)
+      return procLower.includes(word) || procNormalized.includes(normalizeForFuzzyMatch(word));
+    });
+    if (allWordsMatch) return true;
+  }
+  
+  // Strategy 5: Character sequence matching (handles minor variations)
+  // Check if the normalized search term appears as a sequence in the normalized procedure name
+  if (procNormalized.length >= termNormalized.length) {
+    // Try sliding window approach for character sequence matching
+    for (let i = 0; i <= procNormalized.length - termNormalized.length; i++) {
+      const window = procNormalized.substring(i, i + termNormalized.length);
+      if (window === termNormalized) return true;
+    }
+  }
+  
+  return false;
+};
+
+/**
+ * Filter clinics by procedure terms with improved fuzzy matching
  * @param {Array} clinics - Array of clinics to filter
  * @param {Array} procedureTerms - Array of procedure term objects from parseSearchQuery
  * @param {Array} remainingTerms - Remaining search terms that might be procedure names
@@ -717,17 +779,18 @@ export const filterByProcedure = (clinics, procedureTerms, remainingTerms) => {
     searchTerms.push(...remainingTerms.map(t => t.toLowerCase()));
   }
 
-  return clinics.filter(clinic => {
+  const filtered = clinics.filter(clinic => {
     if (!clinic.procedures || clinic.procedures.length === 0) {
       return false;
     }
 
-    // Check if any procedure matches any search term
+    // Check if any procedure matches any search term using fuzzy matching
     return clinic.procedures.some(proc => {
-      const procNameLower = (proc.procedureName || '').toLowerCase();
-      return searchTerms.some(term => procNameLower.includes(term));
+      return searchTerms.some(term => procedureNameMatches(proc.procedureName, term));
     });
   });
+
+  return filtered;
 };
 
 /**
@@ -1180,7 +1243,21 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
     // Strategy 1: Try exact search first
     let searchResults = searchIndex.search(query);
     
-    // Strategy 2: If no results, try with fuzzy matching
+    // Strategy 2: If no results, try normalized search (handles word splits like "micro blading" vs "microblading")
+    if (searchResults.length === 0 && query.includes(' ')) {
+      // Try searching with spaces removed (normalized version)
+      const normalizedQuery = normalizeForFuzzyMatch(query);
+      if (normalizedQuery.length >= 3) {
+        searchResults = searchIndex.search(normalizedQuery);
+      }
+      
+      // Also try searching for the normalized query with wildcard
+      if (searchResults.length === 0 && normalizedQuery.length >= 3) {
+        searchResults = searchIndex.search(`${normalizedQuery}*`);
+      }
+    }
+    
+    // Strategy 3: If no results, try with fuzzy matching
     if (searchResults.length === 0) {
       // Add fuzzy matching operator to each term
       const fuzzyQuery = query
@@ -1192,7 +1269,7 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
       searchResults = searchIndex.search(fuzzyQuery);
     }
     
-    // Strategy 3: If still no results, try with wildcard matching
+    // Strategy 4: If still no results, try with wildcard matching
     if (searchResults.length === 0) {
       // Add wildcard operator to each term
       const wildcardQuery = query
@@ -1204,7 +1281,7 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
       searchResults = searchIndex.search(wildcardQuery);
     }
 
-    // Strategy 4: If still no results, try removing extra characters (like "breasts" -> "breast")
+    // Strategy 5: If still no results, try removing extra characters (like "breasts" -> "breast")
     if (searchResults.length === 0) {
       // Try progressively shortening each term by 1-3 characters from the end
       const terms = query.trim().split(/\s+/);
@@ -1235,7 +1312,7 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
       }
     }
     
-    // Strategy 5: If still no results, try individual terms with fuzzy matching
+    // Strategy 6: If still no results, try individual terms with fuzzy matching
     if (searchResults.length === 0 && query.includes(' ')) {
       const terms = query.trim().split(/\s+/);
       
@@ -1267,21 +1344,45 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
       };
     }
     
-    // Final fallback: simple contains search on clinic data
+    // Final fallback: fuzzy matching search on clinic data
     const fallbackResults = clinics.filter(clinic => {
       const searchLower = query.toLowerCase();
-      const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
-      const categories = clinic.procedures.map(p => p.category.toLowerCase()).join(' ');
+      const searchNormalized = normalizeForFuzzyMatch(query);
       
-      return (
-        (clinic.clinicName && clinic.clinicName.toLowerCase().includes(searchLower)) ||
-        (clinic.city && clinic.city.toLowerCase().includes(searchLower)) ||
-        (clinic.state && clinic.state.toLowerCase().includes(searchLower)) ||
-        (clinic.address && clinic.address.toLowerCase().includes(searchLower)) ||
-        (clinic.clinicCategory && clinic.clinicCategory.toLowerCase().includes(searchLower)) ||
-        procedureNames.includes(searchLower) ||
-        categories.includes(searchLower)
-      );
+      // Check clinic name with fuzzy matching
+      if (clinic.clinicName) {
+        const clinicNameLower = clinic.clinicName.toLowerCase();
+        if (clinicNameLower.includes(searchLower) || 
+            normalizeForFuzzyMatch(clinic.clinicName).includes(searchNormalized)) {
+          return true;
+        }
+      }
+      
+      // Check location fields
+      if (clinic.city && clinic.city.toLowerCase().includes(searchLower)) return true;
+      if (clinic.state && clinic.state.toLowerCase().includes(searchLower)) return true;
+      if (clinic.address && clinic.address.toLowerCase().includes(searchLower)) return true;
+      if (clinic.clinicCategory && clinic.clinicCategory.toLowerCase().includes(searchLower)) return true;
+      
+      // Check procedures with fuzzy matching
+      if (clinic.procedures && clinic.procedures.length > 0) {
+        const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
+        const procedureNamesNormalized = clinic.procedures.map(p => normalizeForFuzzyMatch(p.procedureName)).join(' ');
+        const categories = clinic.procedures.map(p => p.category.toLowerCase()).join(' ');
+        
+        if (procedureNames.includes(searchLower) || 
+            procedureNamesNormalized.includes(searchNormalized) ||
+            categories.includes(searchLower)) {
+          return true;
+        }
+        
+        // Also check individual procedures with fuzzy matching
+        if (clinic.procedures.some(proc => procedureNameMatches(proc.procedureName, query))) {
+          return true;
+        }
+      }
+      
+      return false;
     });
     
     return { 
@@ -1293,17 +1394,41 @@ export const performSearch = (searchIndex, clinics, query, minResults = 9) => {
   } catch (error) {
     console.error('Search error:', error);
     
-    // Fall back to simple text matching if Lunr search fails
+    // Fall back to fuzzy matching if Lunr search fails
     const errorFallbackResults = clinics.filter(clinic => {
       const searchLower = query.toLowerCase();
-      const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
+      const searchNormalized = normalizeForFuzzyMatch(query);
       
-      return (
-        (clinic.clinicName && clinic.clinicName.toLowerCase().includes(searchLower)) ||
-        (clinic.city && clinic.city.toLowerCase().includes(searchLower)) ||
-        (clinic.state && clinic.state.toLowerCase().includes(searchLower)) ||
-        procedureNames.includes(searchLower)
-      );
+      // Check clinic name with fuzzy matching
+      if (clinic.clinicName) {
+        const clinicNameLower = clinic.clinicName.toLowerCase();
+        if (clinicNameLower.includes(searchLower) || 
+            normalizeForFuzzyMatch(clinic.clinicName).includes(searchNormalized)) {
+          return true;
+        }
+      }
+      
+      // Check location fields
+      if (clinic.city && clinic.city.toLowerCase().includes(searchLower)) return true;
+      if (clinic.state && clinic.state.toLowerCase().includes(searchLower)) return true;
+      
+      // Check procedures with fuzzy matching
+      if (clinic.procedures && clinic.procedures.length > 0) {
+        const procedureNames = clinic.procedures.map(p => p.procedureName.toLowerCase()).join(' ');
+        const procedureNamesNormalized = clinic.procedures.map(p => normalizeForFuzzyMatch(p.procedureName)).join(' ');
+        
+        if (procedureNames.includes(searchLower) || 
+            procedureNamesNormalized.includes(searchNormalized)) {
+          return true;
+        }
+        
+        // Also check individual procedures with fuzzy matching
+        if (clinic.procedures.some(proc => procedureNameMatches(proc.procedureName, query))) {
+          return true;
+        }
+      }
+      
+      return false;
     });
     
     return { 

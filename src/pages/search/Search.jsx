@@ -71,6 +71,9 @@ const Search = () => {
   // eslint-disable-next-line no-unused-vars
   const [fetchingClinicName, setFetchingClinicName] = useState(false);
   
+  // State for backend response metadata (to detect procedure searches sent as location)
+  const [backendMetadata, setBackendMetadata] = useState(null);
+  
   // User location state for map
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
@@ -179,19 +182,28 @@ const Search = () => {
       const isLikelyClinicNameSearch = !parsed.hasLocation && !isZipCode(trimmedQuery);
       
       // Use backend for location searches (existing behavior)
+      // Note: Backend may convert procedure searches sent as location parameter
       if (parsed.hasLocation) {
         try {
           setFetchingLocation(true);
           const params = new URLSearchParams();
           params.append('location', trimmedQuery);
+          const url = `${API_BASE_URL}/api/clinics/search-index?${params.toString()}`;
           
-          const response = await fetch(`${API_BASE_URL}/api/clinics/search-index?${params.toString()}`);
+          const response = await fetch(url);
           
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           
           const data = await response.json();
+          
+          // Store metadata to check if backend converted this to a procedure search
+          if (data.meta && data.meta.filters) {
+            setBackendMetadata(data.meta.filters);
+          } else {
+            setBackendMetadata(null);
+          }
           
           // Filter out closed clinics
           const locationClinics = (data.clinics || []).filter(clinic => {
@@ -208,11 +220,13 @@ const Search = () => {
         } catch (error) {
           console.error('Error fetching location results from backend:', error);
           setBackendLocationResults([]);
+          setBackendMetadata(null);
         } finally {
           setFetchingLocation(false);
         }
       } else {
         setBackendLocationResults([]);
+        setBackendMetadata(null);
       }
       
       // Check if this is a category search - if so, skip backend clinic name search
@@ -286,6 +300,11 @@ const Search = () => {
       // Parse query to detect location terms
       const parsed = parseSearchQuery(searchQuery.trim(), allClinics);
       
+      // Check if backend converted a location search to a procedure search
+      const isProcedureSearchFromBackend = backendMetadata && 
+                                           backendMetadata.location === null && 
+                                           backendMetadata.procedure !== null;
+      
       // PRIORITY 1: If backend returned clinic name results, use those first
       // This handles searches like "Gillian Institute", "Gillian", "Institute"
       if (backendClinicNameResults.length > 0) {
@@ -301,49 +320,67 @@ const Search = () => {
           // Ignore Lunr search errors
         }
       }
-      // PRIORITY 2: If backend returned location results, properly separate exact from nearby
+      // PRIORITY 2: If backend returned location results, check if it's actually a procedure search
       else if (parsed.hasLocation && backendLocationResults.length > 0) {
-        locationSearch = true;
-        
-        // Filter backend results to separate exact location matches from nearby matches
-        // This ensures that when searching "Miami", we get Miami results first, then nearby cities
-        let exactLocationMatches = filterByLocationExact(backendLocationResults, parsed.locationTerms);
-        let nearbyLocationMatches = filterByLocationNearby(backendLocationResults, parsed.locationTerms, exactLocationMatches);
-        
-        // If we have procedure terms, filter both exact and nearby by procedure
-        if (parsed.hasProcedure) {
-          exactLocationMatches = filterByProcedure(exactLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
-          nearbyLocationMatches = filterByProcedure(nearbyLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
-        }
-        
-        // Start with exact location matches
-        exactResults = exactLocationMatches;
-        
-        // Get nearby results if we have fewer than 9 exact matches
-        // Use nearby results from backend first, then fall back to frontend search if needed
-        if (exactResults.length < NUMBER_OF_CARDS_PER_PAGE) {
-          const needed = NUMBER_OF_CARDS_PER_PAGE - exactResults.length;
-          nearbyResults = nearbyLocationMatches.slice(0, needed);
+        // If backend metadata indicates this is a procedure search (not location), treat it as such
+        if (isProcedureSearchFromBackend) {
+          // Backend converted location parameter to procedure search
+          // Display all results without location filtering
+          exactResults = backendLocationResults;
+          nearbyResults = [];
+          locationSearch = false; // Not a location search despite being sent as location parameter
+          hasNearby = false;
           
-          // If we still need more results, get them from frontend search
-          if (nearbyResults.length < needed) {
-            const frontendSearchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
-            const frontendNearby = frontendSearchResult.nearbyResults || [];
-            
-            // Filter out duplicates and add remaining needed results
-            const exactIds = new Set(exactResults.map(c => c.clinicId));
-            const nearbyIds = new Set(nearbyResults.map(c => c.clinicId));
-            const additionalNearby = frontendNearby.filter(c => 
-              !exactIds.has(c.clinicId) && !nearbyIds.has(c.clinicId)
-            ).slice(0, needed - nearbyResults.length);
-            
-            nearbyResults = [...nearbyResults, ...additionalNearby];
+          // Store raw Lunr results for scoring
+          try {
+            rawSearchResults = searchIndex.search(searchQuery.trim());
+          } catch (e) {
+            // Ignore Lunr search errors
+          }
+        } else {
+          // Actual location search - apply location filtering
+          locationSearch = true;
+          
+          // Filter backend results to separate exact location matches from nearby matches
+          // This ensures that when searching "Miami", we get Miami results first, then nearby cities
+          let exactLocationMatches = filterByLocationExact(backendLocationResults, parsed.locationTerms);
+          let nearbyLocationMatches = filterByLocationNearby(backendLocationResults, parsed.locationTerms, exactLocationMatches);
+          
+          // If we have procedure terms, filter both exact and nearby by procedure
+          if (parsed.hasProcedure) {
+            exactLocationMatches = filterByProcedure(exactLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
+            nearbyLocationMatches = filterByProcedure(nearbyLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
           }
           
-          hasNearby = nearbyResults.length > 0;
-        } else {
-          nearbyResults = [];
-          hasNearby = false;
+          // Start with exact location matches
+          exactResults = exactLocationMatches;
+          
+          // Get nearby results if we have fewer than 9 exact matches
+          // Use nearby results from backend first, then fall back to frontend search if needed
+          if (exactResults.length < NUMBER_OF_CARDS_PER_PAGE) {
+            const needed = NUMBER_OF_CARDS_PER_PAGE - exactResults.length;
+            nearbyResults = nearbyLocationMatches.slice(0, needed);
+            
+            // If we still need more results, get them from frontend search
+            if (nearbyResults.length < needed) {
+              const frontendSearchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
+              const frontendNearby = frontendSearchResult.nearbyResults || [];
+              
+              // Filter out duplicates and add remaining needed results
+              const exactIds = new Set(exactResults.map(c => c.clinicId));
+              const nearbyIds = new Set(nearbyResults.map(c => c.clinicId));
+              const additionalNearby = frontendNearby.filter(c => 
+                !exactIds.has(c.clinicId) && !nearbyIds.has(c.clinicId)
+              ).slice(0, needed - nearbyResults.length);
+              
+              nearbyResults = [...nearbyResults, ...additionalNearby];
+            }
+            
+            hasNearby = nearbyResults.length > 0;
+          } else {
+            nearbyResults = [];
+            hasNearby = false;
+          }
         }
       } else {
         // Use the performSearch utility for procedure searches or when backend didn't return results
@@ -390,19 +427,21 @@ const Search = () => {
     const filteredNearby = filtered.filter(clinic => clinic._isNearby);
     
     // Sort exact and nearby results separately
+    // For procedure searches, don't use user location for sorting
+    const sortUserLocation = locationSearch ? userLocation : null;
     const sortedExact = sortResults(
       filteredExact,
       sortBy,
       searchQuery,
       rawSearchResults,
-      userLocation
+      sortUserLocation
     );
     const sortedNearby = sortResults(
       filteredNearby,
       sortBy,
       searchQuery,
       rawSearchResults,
-      userLocation
+      sortUserLocation
     );
     
     // Combine sorted results (exact first, then nearby)
@@ -433,7 +472,7 @@ const Search = () => {
     
     // Store exact results count for reference (after filtering/sorting)
     setExactResultsCount(filteredExactCount);
-  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults, backendClinicNameResults]);
+  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults, backendClinicNameResults, backendMetadata]);
   
   // Handle search submission
   const handleSearch = (e) => {
