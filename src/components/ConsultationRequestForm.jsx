@@ -12,7 +12,6 @@ const ConsultationRequestForm = ({
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    procedureType: "",
     phone: "",
     message: ""
   });
@@ -34,38 +33,6 @@ const ConsultationRequestForm = ({
     }).format(price);
   };
 
-  // Get all procedure types offered by clinic
-  const procedureTypes = procedures ? Object.keys(procedures) : [];
-
-  // Auto-populate procedure type based on selected procedures
-  useEffect(() => {
-    if (selectedData.length === 0) {
-      setFormData(prev => ({ ...prev, procedureType: "" }));
-      return;
-    }
-
-    // Get unique categories from selected procedures
-    const selectedCategories = new Set();
-    selectedData.forEach(item => {
-      // Find which category this procedure belongs to
-      if (procedures) {
-        Object.entries(procedures).forEach(([category, data]) => {
-          if (data.procedures.some(proc => proc.id === item.id)) {
-            selectedCategories.add(category);
-          }
-        });
-      }
-    });
-
-    // Set procedure type based on selection
-    if (selectedCategories.size === 1) {
-      // Single category selected
-      setFormData(prev => ({ ...prev, procedureType: Array.from(selectedCategories)[0] }));
-    } else if (selectedCategories.size > 1) {
-      // Multiple categories selected
-      setFormData(prev => ({ ...prev, procedureType: "Multiple" }));
-    }
-  }, [selectedData, procedures]);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -83,10 +50,6 @@ const ConsultationRequestForm = ({
       newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
-    }
-
-    if (!formData.procedureType) {
-      newErrors.procedureType = "Procedure type is required";
     }
 
     setErrors(newErrors);
@@ -128,7 +91,6 @@ const ConsultationRequestForm = ({
         phone: formData.phone.trim() || null,
         message: formData.message.trim() || null,
         patientStatus: patientStatus, // new or returning
-        procedureType: formData.procedureType,
         clinicId: clinicId,
         clinicName: clinicInfo?.clinicName || null,
         selectedProcedures: selectedData.map((item) => ({
@@ -162,7 +124,6 @@ const ConsultationRequestForm = ({
           setFormData({
             name: "",
             email: "",
-            procedureType: "",
             phone: "",
             message: ""
           });
@@ -291,40 +252,6 @@ const ConsultationRequestForm = ({
           />
           {errors.name && (
             <p className="text-xs text-red-500 mt-1">{errors.name}</p>
-          )}
-        </div>
-
-        {/* Procedure Type */}
-        <div>
-          <label className="block text-sm font-medium mb-1.5">Procedure Type</label>
-          <select
-            name="procedureType"
-            value={formData.procedureType}
-            onChange={handleInputChange}
-            className={cn(
-              "w-full h-11 px-3.5 text-sm bg-gray-50 border border-gray-300 rounded-lg outline-none focus:border-primary transition-colors appearance-none cursor-pointer",
-              errors.procedureType && "border-red-500",
-              !formData.procedureType && "text-gray-500"
-            )}
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 0.75rem center',
-              backgroundSize: '1.25rem'
-            }}
-          >
-            <option value="">
-              {selectedData.length === 0 ? "Select feature" : "Select procedure type"}
-            </option>
-            {procedureTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-            {selectedData.length > 0 && formData.procedureType === "Multiple" && (
-              <option value="Multiple">Multiple</option>
-            )}
-          </select>
-          {errors.procedureType && (
-            <p className="text-xs text-red-500 mt-1">{errors.procedureType}</p>
           )}
         </div>
 

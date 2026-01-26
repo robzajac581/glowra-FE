@@ -17,7 +17,6 @@ const ConsultationRequestModal = ({
     firstName: "",
     lastName: "",
     email: "",
-    procedureType: "",
     phone: "",
     message: ""
   });
@@ -32,7 +31,6 @@ const ConsultationRequestModal = ({
         firstName: "",
         lastName: "",
         email: "",
-        procedureType: "",
         phone: "",
         message: ""
       });
@@ -75,38 +73,6 @@ const ConsultationRequestModal = ({
     }
   }, [isSuccess, onClose]);
 
-  // Get all procedure types offered by clinic
-  const procedureTypes = procedures ? Object.keys(procedures) : [];
-
-  // Auto-populate procedure type based on selected procedures
-  useEffect(() => {
-    if (selectedData.length === 0) {
-      setFormData(prev => ({ ...prev, procedureType: "" }));
-      return;
-    }
-
-    // Get unique categories from selected procedures
-    const selectedCategories = new Set();
-    selectedData.forEach(item => {
-      // Find which category this procedure belongs to
-      if (procedures) {
-        Object.entries(procedures).forEach(([category, data]) => {
-          if (data.procedures.some(proc => proc.id === item.id)) {
-            selectedCategories.add(category);
-          }
-        });
-      }
-    });
-
-    // Set procedure type based on selection
-    if (selectedCategories.size === 1) {
-      // Single category selected
-      setFormData(prev => ({ ...prev, procedureType: Array.from(selectedCategories)[0] }));
-    } else if (selectedCategories.size > 1) {
-      // Multiple categories selected
-      setFormData(prev => ({ ...prev, procedureType: "Multiple" }));
-    }
-  }, [selectedData, procedures]);
 
   // Calculate total estimate
   const totalEstimate = selectedData.reduce((sum, item) => sum + item.price, 0);
@@ -141,10 +107,6 @@ const ConsultationRequestModal = ({
       newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
-    }
-
-    if (!formData.procedureType) {
-      newErrors.procedureType = "Procedure type is required";
     }
 
     setErrors(newErrors);
@@ -186,7 +148,6 @@ const ConsultationRequestModal = ({
         phone: formData.phone.trim() || null,
         message: formData.message.trim() || null,
         patientStatus: patientStatus, // new or returning
-        procedureType: formData.procedureType,
         // Clinic context (auto-included)
         clinicId: clinicId,
         clinicName: clinicInfo?.ClinicName || null,
@@ -397,33 +358,6 @@ const ConsultationRequestModal = ({
                       <p className="consultation-modal-error">{errors.lastName}</p>
                     )}
                   </div>
-                </div>
-
-                {/* Procedure Type */}
-                <div>
-                  <select
-                    name="procedureType"
-                    value={formData.procedureType}
-                    onChange={handleInputChange}
-                    className={cn(
-                      "consultation-modal-input consultation-modal-select",
-                      errors.procedureType && "error",
-                      !formData.procedureType && "placeholder"
-                    )}
-                  >
-                    <option value="">
-                      {selectedData.length === 0 ? "Select feature" : "Select procedure type"}
-                    </option>
-                    {procedureTypes.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                    {selectedData.length > 0 && formData.procedureType === "Multiple" && (
-                      <option value="Multiple">Multiple</option>
-                    )}
-                  </select>
-                  {errors.procedureType && (
-                    <p className="consultation-modal-error">{errors.procedureType}</p>
-                  )}
                 </div>
 
                 {/* Email */}
