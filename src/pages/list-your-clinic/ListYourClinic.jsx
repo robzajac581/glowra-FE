@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout';
 import { useWizardState } from './hooks/useWizardState';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import WizardProgress from './components/WizardProgress';
 import ChooseAction from './components/ChooseAction';
 import SearchClinic from './components/SearchClinic';
@@ -14,6 +15,13 @@ import API_BASE_URL from '../../config/api';
 import './ListYourClinic.css';
 
 const ListYourClinic = () => {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const previousPathnameRef = useRef(location.pathname);
+  const previousSearchRef = useRef(location.search);
+  const isResettingRef = useRef(false);
+  const isInitialMountRef = useRef(true);
+  
   const {
     wizardState,
     goToStep,
@@ -35,6 +43,69 @@ const ListYourClinic = () => {
 
   const [submissionResult, setSubmissionResult] = useState(null);
   const [loadingClinicData, setLoadingClinicData] = useState(false);
+
+  // Listen for custom reset event from Header/Footer when "List Your Clinic" link is clicked
+  useEffect(() => {
+    const handleResetWizard = () => {
+      const clinicId = searchParams.get('clinicId');
+      const submitterKey = searchParams.get('submitterKey');
+      const hasUrlParams = clinicId || submitterKey;
+      
+      // Only reset if no URL params (not continuing a specific flow)
+      if (!hasUrlParams && !isResettingRef.current) {
+        isResettingRef.current = true;
+        clearWizard();
+        setSubmissionResult(null);
+        setTimeout(() => {
+          isResettingRef.current = false;
+        }, 100);
+      }
+    };
+
+    window.addEventListener('resetWizard', handleResetWizard);
+    return () => {
+      window.removeEventListener('resetWizard', handleResetWizard);
+    };
+  }, [searchParams, clearWizard]);
+
+  // Reset to step 0 when navigating to /list-your-clinic from a different page
+  useEffect(() => {
+    // Skip on initial mount - initialization is handled in useWizardState
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      previousPathnameRef.current = location.pathname;
+      previousSearchRef.current = location.search;
+      return;
+    }
+
+    const clinicId = searchParams.get('clinicId');
+    const submitterKey = searchParams.get('submitterKey');
+    const hasUrlParams = clinicId || submitterKey;
+    const isListYourClinicPage = location.pathname === '/list-your-clinic';
+    
+    // Check if we navigated TO /list-your-clinic from a different page
+    const navigatedToPage = previousPathnameRef.current !== '/list-your-clinic' && 
+                            isListYourClinicPage;
+    
+    // Only reset if we navigated from a different page and no URL params
+    if (navigatedToPage && !hasUrlParams && !isResettingRef.current) {
+      isResettingRef.current = true;
+      clearWizard();
+      setSubmissionResult(null);
+      setTimeout(() => {
+        isResettingRef.current = false;
+      }, 100);
+    }
+    
+    // Update refs to track current state
+    // Only update when location actually changes, not on every render
+    if (location.pathname !== previousPathnameRef.current || 
+        location.search !== previousSearchRef.current) {
+      previousPathnameRef.current = location.pathname;
+      previousSearchRef.current = location.search;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search, searchParams]);
 
   // Scroll to top when step changes
   useEffect(() => {

@@ -14,23 +14,16 @@ const STORAGE_KEY = 'glowra_list_clinic_wizard';
 export const useWizardState = () => {
   const [searchParams] = useSearchParams();
   const [wizardState, setWizardState] = useState(() => {
-    // Try to restore from localStorage
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed;
-      }
-    } catch (error) {
-      console.error('Failed to restore wizard state:', error);
-    }
+    // Check for URL params first
+    const clinicId = searchParams.get('clinicId');
+    const submitterKey = searchParams.get('submitterKey');
+    
+    // If there are URL params, we're continuing a specific flow
+    // Otherwise, always start fresh at step 0 (choice screen)
+    const hasUrlParams = clinicId || submitterKey;
     
     // Initialize with defaults
     const initial = { ...INITIAL_WIZARD_STATE };
-    
-    // Check for URL params
-    const clinicId = searchParams.get('clinicId');
-    const submitterKey = searchParams.get('submitterKey');
     
     if (clinicId) {
       initial.existingClinicId = parseInt(clinicId, 10);
@@ -42,6 +35,29 @@ export const useWizardState = () => {
       initial.submitterKey = submitterKey;
     }
     
+    // Only restore from localStorage if we have URL params (continuing a flow)
+    // Otherwise, always start fresh when clicking "List Your Clinic" button
+    if (hasUrlParams) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Merge saved state with URL param overrides
+          return {
+            ...parsed,
+            ...initial,
+            // Preserve URL param values
+            existingClinicId: clinicId ? parseInt(clinicId, 10) : parsed.existingClinicId,
+            submitterKey: submitterKey || parsed.submitterKey,
+            currentStep: clinicId ? 2 : parsed.currentStep,
+            flow: clinicId ? 'add_to_existing' : parsed.flow
+          };
+        }
+      } catch (error) {
+        console.error('Failed to restore wizard state:', error);
+      }
+    }
+    
     return initial;
   });
 
@@ -50,6 +66,25 @@ export const useWizardState = () => {
     mode: 'onBlur',
     defaultValues: wizardState
   });
+
+  // Clear localStorage on initial mount when there are no URL params
+  // This ensures clicking "List Your Clinic" always starts fresh at step 0
+  useEffect(() => {
+    const clinicId = searchParams.get('clinicId');
+    const submitterKey = searchParams.get('submitterKey');
+    const hasUrlParams = clinicId || submitterKey;
+    
+    if (!hasUrlParams && wizardState.currentStep === 0 && wizardState.flow === null) {
+      // Only clear on initial mount when at step 0 with no flow selected
+      // This indicates a fresh start
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (error) {
+        console.error('Failed to clear wizard state:', error);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   // Save to localStorage whenever state changes
   useEffect(() => {

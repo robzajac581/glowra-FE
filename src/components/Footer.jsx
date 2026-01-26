@@ -22,11 +22,26 @@ const Footer = () => {
 								))}
 							</ul>
 							<ul className="flex flex-col gap-[11px]">
-								{menu2.map((item, index) => (
-									<li key={index}>
-										<Link to={item.url}>{item.name}</Link>
-									</li>
-								))}
+								{menu2.map((item, index) => {
+									const handleListClinicClick = (e) => {
+										if (item.url === '/list-your-clinic') {
+											// Dispatch custom event to signal wizard reset
+											// This ensures the wizard always starts fresh when link is clicked
+											window.dispatchEvent(new CustomEvent('resetWizard'));
+										}
+									};
+									
+									return (
+										<li key={index}>
+											<Link 
+												to={item.url}
+												onClick={handleListClinicClick}
+											>
+												{item.name}
+											</Link>
+										</li>
+									);
+								})}
 							</ul>
 						</div>
 					</div>
