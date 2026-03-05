@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { processImage } from '../utils/imageUtils';
-import { parseBulkInput } from '../utils/bulkEntryUtils';
+import { parseBulkInput } from '../../../utils/bulkEntryUtils';
 
 /**
  * Helper function to get initials from provider name (matching clinic page styling)

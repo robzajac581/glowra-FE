@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PROCEDURE_CATEGORIES, PRICE_UNITS } from '../constants';
 import { cn } from '../../../utils/cn';
-import { parseBulkInput } from '../utils/bulkEntryUtils';
+import { parseBulkInput } from '../../../utils/bulkEntryUtils';
 
 const Procedures = ({ initialProcedures, providers, onContinue, onSkip, onBack, isEditMode = false }) => {
   const [procedures, setProcedures] = useState(

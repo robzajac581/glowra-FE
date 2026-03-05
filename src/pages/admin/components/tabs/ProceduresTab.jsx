@@ -1,9 +1,56 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { PROCEDURE_CATEGORIES, PRICE_UNITS } from '../../../list-your-clinic/constants';
+import { cn } from '../../../../utils/cn';
+import { parseBulkInput } from '../../../../utils/bulkEntryUtils';
 
 const ProceduresTab = ({ draft, onUpdate }) => {
   const procedures = draft.procedures || [];
   const providers = draft.providers || [];
+  const [entryMode, setEntryMode] = useState('individual');
+  const [bulkInput, setBulkInput] = useState('');
+
+  const parsedProcedures = useMemo(() => {
+    if (!bulkInput.trim()) return [];
+    return parseBulkInput(bulkInput);
+  }, [bulkInput]);
+
+  const handleBulkAdd = () => {
+    if (parsedProcedures.length === 0) return;
+    const newProcedures = parsedProcedures.map((name, idx) => ({
+      draftProcedureId: `new-procedure-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+      procedureName: name,
+      category: '',
+      priceMin: null,
+      priceMax: null,
+      priceUnit: '',
+      averagePrice: null,
+      providerNames: [],
+    }));
+    const existingNames = new Set(procedures.map((p) => (p.procedureName || '').toLowerCase()));
+    const uniqueNewProcedures = newProcedures.filter(
+      (p) => !existingNames.has(p.procedureName.toLowerCase())
+    );
+    onUpdate({ procedures: [...procedures, ...uniqueNewProcedures] });
+    setBulkInput('');
+    setEntryMode('individual');
+  };
+
+  const handleBulkReplace = () => {
+    if (parsedProcedures.length === 0) return;
+    const newProcedures = parsedProcedures.map((name, idx) => ({
+      draftProcedureId: `new-procedure-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+      procedureName: name,
+      category: '',
+      priceMin: null,
+      priceMax: null,
+      priceUnit: '',
+      averagePrice: null,
+      providerNames: [],
+    }));
+    onUpdate({ procedures: newProcedures });
+    setBulkInput('');
+    setEntryMode('individual');
+  };
 
   const handleProcedureChange = (index, field, value) => {
     const updatedProcedures = [...procedures];
@@ -67,6 +114,109 @@ const ProceduresTab = ({ draft, onUpdate }) => {
         </button>
       </div>
 
+      {/* Entry Mode Toggle */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 border border-border rounded-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-text">Entry Mode:</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEntryMode('individual')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                entryMode === 'individual'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-text border border-border hover:bg-gray-50'
+              )}
+            >
+              Individual Entry
+            </button>
+            <button
+              type="button"
+              onClick={() => setEntryMode('bulk')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                entryMode === 'bulk'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-text border border-border hover:bg-gray-50'
+              )}
+            >
+              Bulk Entry
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bulk Entry Mode */}
+      {entryMode === 'bulk' && (
+        <div className="p-4 border border-border rounded-lg bg-blue-50">
+          <label className="block text-sm font-medium text-dark mb-2">
+            Paste Procedure Names (semicolon-separated)
+          </label>
+          <textarea
+            value={bulkInput}
+            onChange={(e) => setBulkInput(e.target.value)}
+            placeholder="Botox; Dermal Fillers; Chemical Peel; Laser Hair Removal; Microneedling"
+            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-primary mb-4 font-mono text-sm"
+            rows={6}
+          />
+          {parsedProcedures.length > 0 && (
+            <div className="mb-4 p-3 bg-white border border-border rounded-lg">
+              <p className="text-sm font-medium text-dark mb-2">
+                Preview: {parsedProcedures.length} procedure{parsedProcedures.length !== 1 ? 's' : ''} will be added
+              </p>
+              <p className="text-xs text-gray-600 mb-2">
+                Note: You&apos;ll need to fill in category and pricing for each procedure after adding them.
+              </p>
+              <div className="max-h-32 overflow-y-auto">
+                <ul className="list-disc list-inside text-sm text-text space-y-1">
+                  {parsedProcedures.map((name, idx) => (
+                    <li key={idx}>{name}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleBulkAdd}
+              disabled={parsedProcedures.length === 0}
+              className={cn(
+                'px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 transition-all font-medium text-sm',
+                parsedProcedures.length === 0 && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              Add to List ({parsedProcedures.length})
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkReplace}
+              disabled={parsedProcedures.length === 0}
+              className={cn(
+                'px-4 py-2 bg-white border border-border text-text rounded-lg hover:bg-gray-50 transition-all font-medium text-sm',
+                parsedProcedures.length === 0 && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              Replace All ({parsedProcedures.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setBulkInput('');
+                setEntryMode('individual');
+              }}
+              className="px-4 py-2 bg-white border border-border text-text rounded-lg hover:bg-gray-50 transition-all font-medium text-sm ml-auto"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Entry Mode */}
+      {entryMode === 'individual' && (
+        <>
       {procedures.length === 0 ? (
         <div className="text-center py-8 bg-slate-50 rounded-lg">
           <div className="text-3xl mb-2">💉</div>
@@ -227,6 +377,8 @@ const ProceduresTab = ({ draft, onUpdate }) => {
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

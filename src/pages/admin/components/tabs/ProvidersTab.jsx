@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { processImage } from '../../../list-your-clinic/utils/imageUtils';
 import { cn } from '../../../../utils/cn';
+import { parseBulkInput } from '../../../../utils/bulkEntryUtils';
 
 /**
  * Helper function to get initials from provider name
@@ -36,6 +37,43 @@ const ProvidersTab = ({ draft, onUpdate }) => {
   const providers = draft.providers || [];
   const [uploadingIndex, setUploadingIndex] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const [entryMode, setEntryMode] = useState('individual');
+  const [bulkInput, setBulkInput] = useState('');
+
+  const parsedProviders = useMemo(() => {
+    if (!bulkInput.trim()) return [];
+    return parseBulkInput(bulkInput);
+  }, [bulkInput]);
+
+  const handleBulkAdd = () => {
+    if (parsedProviders.length === 0) return;
+    const newProviders = parsedProviders.map((name, idx) => ({
+      draftProviderId: `new-provider-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+      providerName: name,
+      photoData: null,
+      photoUrl: null,
+    }));
+    const existingNames = new Set(providers.map((p) => (p.providerName || '').toLowerCase()));
+    const uniqueNewProviders = newProviders.filter(
+      (p) => !existingNames.has(p.providerName.toLowerCase())
+    );
+    onUpdate({ providers: [...providers, ...uniqueNewProviders] });
+    setBulkInput('');
+    setEntryMode('individual');
+  };
+
+  const handleBulkReplace = () => {
+    if (parsedProviders.length === 0) return;
+    const newProviders = parsedProviders.map((name, idx) => ({
+      draftProviderId: `new-provider-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 9)}`,
+      providerName: name,
+      photoData: null,
+      photoUrl: null,
+    }));
+    onUpdate({ providers: newProviders });
+    setBulkInput('');
+    setEntryMode('individual');
+  };
 
   const handleProviderChange = (index, field, value) => {
     const updatedProviders = [...providers];
@@ -130,6 +168,106 @@ const ProvidersTab = ({ draft, onUpdate }) => {
         </div>
       )}
 
+      {/* Entry Mode Toggle */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 border border-border rounded-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-text">Entry Mode:</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEntryMode('individual')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                entryMode === 'individual'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-text border border-border hover:bg-gray-50'
+              )}
+            >
+              Individual Entry
+            </button>
+            <button
+              type="button"
+              onClick={() => setEntryMode('bulk')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                entryMode === 'bulk'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-text border border-border hover:bg-gray-50'
+              )}
+            >
+              Bulk Entry
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bulk Entry Mode */}
+      {entryMode === 'bulk' && (
+        <div className="p-4 border border-border rounded-lg bg-blue-50">
+          <label className="block text-sm font-medium text-dark mb-2">
+            Paste Provider Names (semicolon-separated)
+          </label>
+          <textarea
+            value={bulkInput}
+            onChange={(e) => setBulkInput(e.target.value)}
+            placeholder="Anna Ulyannov (NP); Iulia Imbrogno (NP); Anne Yeaton, RN | BSN | LE; Heather Lancaster - Medical Assistant"
+            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-primary mb-4 font-mono text-sm"
+            rows={6}
+          />
+          {parsedProviders.length > 0 && (
+            <div className="mb-4 p-3 bg-white border border-border rounded-lg">
+              <p className="text-sm font-medium text-dark mb-2">
+                Preview: {parsedProviders.length} provider{parsedProviders.length !== 1 ? 's' : ''} will be added
+              </p>
+              <div className="max-h-32 overflow-y-auto">
+                <ul className="list-disc list-inside text-sm text-text space-y-1">
+                  {parsedProviders.map((name, idx) => (
+                    <li key={idx}>{name}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleBulkAdd}
+              disabled={parsedProviders.length === 0}
+              className={cn(
+                'px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 transition-all font-medium text-sm',
+                parsedProviders.length === 0 && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              Add to List ({parsedProviders.length})
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkReplace}
+              disabled={parsedProviders.length === 0}
+              className={cn(
+                'px-4 py-2 bg-white border border-border text-text rounded-lg hover:bg-gray-50 transition-all font-medium text-sm',
+                parsedProviders.length === 0 && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              Replace All ({parsedProviders.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setBulkInput('');
+                setEntryMode('individual');
+              }}
+              className="px-4 py-2 bg-white border border-border text-text rounded-lg hover:bg-gray-50 transition-all font-medium text-sm ml-auto"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Entry Mode */}
+      {entryMode === 'individual' && (
+        <>
       {providers.length === 0 ? (
         <div className="text-center py-8 bg-slate-50 rounded-lg">
           <div className="text-3xl mb-2">👨‍⚕️</div>
@@ -271,6 +409,8 @@ const ProvidersTab = ({ draft, onUpdate }) => {
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );
