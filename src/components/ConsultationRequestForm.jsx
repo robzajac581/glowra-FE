@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
 import { cn } from "../utils/cn";
 
