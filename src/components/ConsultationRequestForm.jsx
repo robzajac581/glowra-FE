@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
+import { captureEvent } from "../config/analytics";
 import { cn } from "../utils/cn";
 
 const ConsultationRequestForm = ({ 
@@ -116,6 +117,11 @@ const ConsultationRequestForm = ({
       }
 
       if (result.success) {
+        captureEvent('consultation_requested', {
+          clinic_id: clinicId,
+          clinic_name: clinicInfo?.clinicName,
+          procedure_count: selectedData?.length
+        });
         console.log('Consultation request submitted successfully. Request ID:', result.requestId);
         setIsSuccess(true);
         // Reset form after 4 seconds

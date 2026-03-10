@@ -10,6 +10,7 @@ import SortFilter from "../../components/SortFilter";
 import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
 import API_BASE_URL from "../../config/api";
+import { captureEvent } from "../../config/analytics";
 
 const NUMBER_OF_CARDS_PER_PAGE = 9;
 
@@ -477,6 +478,13 @@ const Search = () => {
   // Handle search submission
   const handleSearch = (e) => {
     e.preventDefault();
+    if (inputValue?.trim()) {
+      captureEvent('search_performed', {
+        search_query: inputValue.trim(),
+        category: category || undefined,
+        has_price_filter: !!(minPrice || maxPrice)
+      });
+    }
     // Update searchQuery which will trigger the search via useEffect
     updateSearchState('searchQuery', inputValue);
     updateSearchState('page', 1); // Reset to page 1 on new search

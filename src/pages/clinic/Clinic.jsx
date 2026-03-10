@@ -12,6 +12,7 @@ import WorkingHours from "./components/WorkingHours";
 import { useClinicData } from "../../hooks/useClinicData";
 import useScreen from "../../hooks/useScreen";
 import API_BASE_URL from "../../config/api";
+import { captureEvent } from "../../config/analytics";
 
 const Clinic = () => {
 	const { id: clinicId } = useParams();
@@ -97,6 +98,11 @@ const Clinic = () => {
 				setConsultMessage(providersData.message || null);
 				setProcedures(proceduresData);
 				setPhotos(photosData.photos || []);
+
+				captureEvent('clinic_viewed', {
+					clinic_id: clinicId,
+					clinic_name: clinicData?.clinicName
+				});
 			} catch (err) {
 				console.error('Error fetching clinic data:', err);
 				setError('Failed to load clinic data. Please try again later.');

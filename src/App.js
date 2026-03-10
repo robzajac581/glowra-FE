@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { updateRouteTracking } from "./config/analytics";
 import "swiper/css/bundle";
 import Clinic from "./pages/clinic/Clinic";
 import Home from "./pages/home/Home";
@@ -18,6 +19,7 @@ function App() {
 	const Wrapper = ({ children }) => {
 		const location = useLocation();
 		useEffect(() => {
+			updateRouteTracking(location.pathname);
 			window.scrollTo(0, 0);
 			document.body.classList.remove("opacity-0");
 		}, [location.pathname, location.search]);

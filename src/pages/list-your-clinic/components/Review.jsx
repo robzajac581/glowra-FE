@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import API_BASE_URL from '../../../config/api';
+import { captureEvent } from '../../../config/analytics';
 
 /**
  * Helper function to get initials from provider name (matching clinic page styling)
@@ -158,6 +159,11 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
       const result = await response.json();
 
       if (result.success) {
+        captureEvent('list_clinic_submitted', {
+          flow: flow,
+          clinic_name: clinic?.clinicName,
+          has_existing_clinic: !!existingClinicId
+        });
         onSuccess(result);
       } else {
         setError(result.error || 'Submission failed. Please try again.');
