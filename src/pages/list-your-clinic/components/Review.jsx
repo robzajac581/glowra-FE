@@ -136,7 +136,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
         })),
         procedures: procedures.map(p => ({
           procedureName: p.procedureName,
-          category: p.category,
+          category: p.category || 'Other', // Default for bulk-added procedures without category
           priceMin: p.priceMin || null,
           priceMax: p.priceMax || null,
           unit: p.unit || null,
@@ -400,7 +400,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
                   <div className="flex items-start">
                     <span className="mr-2">•</span>
                     <span>
-                      <strong>{procedure.procedureName}</strong> ({procedure.category}) - {formatPrice(procedure)}
+                      <strong>{procedure.procedureName}</strong> ({procedure.category || 'Other'}) - {formatPrice(procedure)}
                     </span>
                   </div>
                   {procedure.providerNames && procedure.providerNames.length > 0 && (

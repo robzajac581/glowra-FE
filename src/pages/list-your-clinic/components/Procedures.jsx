@@ -88,8 +88,9 @@ const Procedures = ({ initialProcedures, providers, onContinue, onSkip, onBack, 
 
   const handleContinue = () => {
     // Filter out empty procedures and format data
+    // Note: Allow procedures with just procedureName (bulk-added items have empty category initially)
     const filledProcedures = procedures
-      .filter(p => p.procedureName.trim() && p.category)
+      .filter(p => p.procedureName.trim())
       .map(p => ({
         ...p,
         priceMin: p.priceMin ? parseFloat(p.priceMin) : null,
