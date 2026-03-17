@@ -8,10 +8,10 @@ import { procedure } from "../../../components/Icons";
  */
 const SearchResultCard = ({ clinic, searchQuery }) => {
 	
-	// Format price to USD currency string with tilde prefix
+	// Format price to USD currency string
 	const formatPrice = (price) => {
 		if (!price || price === 0) return 'Price on request';
-		return '~' + new Intl.NumberFormat('en-US', {
+		return new Intl.NumberFormat('en-US', {
 			style: 'currency',
 			currency: 'USD',
 			minimumFractionDigits: 0,
@@ -201,8 +201,8 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 				</div>
 
 				{/* Procedures List */}
-				<div className="flex-1 mb-3">
-					<div className="text-xs font-bold mb-2 text-gray-700">
+				<div className="flex-1">
+					<div className="text-xs font-bold mb-1 text-gray-700">
 						Featured Procedures:
 					</div>
 					<div className="space-y-1.5">
@@ -234,6 +234,7 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 							</div>
 						)}
 					</div>
+					<div className="text-xs text-gray-500 mt-2">Prices are clinic-provided estimates.</div>
 				</div>
 
 				{/* View Clinic Button */}
