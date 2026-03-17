@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import API_BASE_URL from '../../../config/api';
 import { captureEvent } from '../../../config/analytics';
+import { formatClinicAddress } from '../../../utils/addressUtils';
 
 /**
  * Helper function to get initials from provider name (matching clinic page styling)
@@ -231,11 +232,7 @@ const Review = ({ wizardState, onEdit, onBack, onSuccess }) => {
           </div>
           <div className="grid grid-cols-[120px_1fr] gap-2">
             <span className="text-text font-medium">Address:</span>
-            <span>
-              {clinic.address}
-              <br />
-              {clinic.city}, {clinic.state} {clinic.zipCode}
-            </span>
+            <span>{formatClinicAddress(clinic)}</span>
           </div>
           <div className="grid grid-cols-[120px_1fr] gap-2">
             <span className="text-text font-medium">Category:</span>

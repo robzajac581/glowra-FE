@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API_BASE_URL from '../../../config/api';
 import { cn } from '../../../utils/cn';
+import { formatClinicAddress } from '../../../utils/addressUtils';
 
 const SearchClinic = ({ onSelectClinic, onAddNew, onBack, loading = false }) => {
   const [query, setQuery] = useState('');
@@ -111,7 +112,7 @@ const SearchClinic = ({ onSelectClinic, onAddNew, onBack, loading = false }) => 
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg mb-1">{clinic.clinicName}</h3>
                   <p className="text-text text-sm mb-1">
-                    {clinic.address}, {clinic.city}, {clinic.state}
+                    {formatClinicAddress(clinic)}
                   </p>
                   {clinic.category && (
                     <p className="text-text2 text-sm">

@@ -2,6 +2,7 @@
 import React, { useRef, useState, useMemo } from "react";
 import { procedure } from "../../../components/Icons";
 import { cn } from "../../../utils/cn";
+import { formatClinicAddress } from "../../../utils/addressUtils";
 import { normalizeDoctorName } from "../../../utils/doctorNameUtils";
 
 /**
@@ -113,26 +114,10 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 	const [showLeftArrow, setShowLeftArrow] = useState(false);
 	const [showRightArrow, setShowRightArrow] = useState(true);
 
-	// Build full address from clinic data (address, city, state, zipCode)
-	// Must be called before any early returns to comply with React hooks rules
-	const fullAddress = useMemo(() => {
-		if (!clinicInfo) return '';
-		
-		// Start with the street address
-		let addressParts = [clinicInfo.address];
-		
-		// Build city/state/zip part
-		const locationParts = [];
-		if (clinicInfo.city) locationParts.push(clinicInfo.city);
-		if (clinicInfo.state) locationParts.push(clinicInfo.state);
-		if (clinicInfo.zipCode) locationParts.push(clinicInfo.zipCode);
-		
-		if (locationParts.length > 0) {
-			addressParts.push(locationParts.join(', '));
-		}
-		
-		return addressParts.filter(Boolean).join(', ');
-	}, [clinicInfo]);
+	const fullAddress = useMemo(
+		() => (clinicInfo ? formatClinicAddress(clinicInfo) : ''),
+		[clinicInfo]
+	);
 
 	if (!clinicInfo) {
 		return <div>Loading clinic information...</div>;

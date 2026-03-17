@@ -1,22 +1,14 @@
 /* eslint-disable jsx-a11y/iframe-has-title */
 import React, { useMemo } from "react";
 import { clinicIcons } from "../../../components/Icons";
+import { formatClinicAddress } from "../../../utils/addressUtils";
 import AccordionCard from "./AccordionCard";
 
 const Location = ({ clinicInfo }) => {
-	// Build full address from clinic data
-	const fullAddress = useMemo(() => {
-		if (!clinicInfo) return '';
-		
-		const parts = [
-			clinicInfo.address,
-			clinicInfo.city,
-			clinicInfo.state,
-			clinicInfo.zipCode
-		].filter(Boolean);
-		
-		return parts.join(', ');
-	}, [clinicInfo]);
+	const fullAddress = useMemo(
+		() => (clinicInfo ? formatClinicAddress(clinicInfo) : ''),
+		[clinicInfo]
+	);
 
 	// If we don't have an address, don't render the component
 	if (!fullAddress) {
