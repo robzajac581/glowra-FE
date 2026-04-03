@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import API_BASE_URL from '../../config/api';
+import Pagination from '../../components/Pagination';
 import { getAuthHeaders } from './hooks/useAuth';
 import './admin.css';
 
@@ -123,8 +124,22 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('pending_review');
   const [typeFilter, setTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const skipSearchPageReset = useRef(true);
+
+  // Debounce search so rapid typing does not race pagination requests
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      if (!skipSearchPageReset.current) {
+        setPage(1);
+      }
+      skipSearchPageReset.current = false;
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch stats
   useEffect(() => {
@@ -147,24 +162,35 @@ const AdminDashboard = () => {
     fetchStats();
   }, []);
 
-  // Fetch drafts
+  // Fetch drafts — abort in-flight requests when page/filters change so an older
+  // response cannot overwrite a newer page (fixes “stuck on page 1” when paging).
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
     const fetchDrafts = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const params = new URLSearchParams({
-          status: activeTab === 'all' ? '' : activeTab,
-          type: typeFilter === 'all' ? '' : typeFilter,
-          search: searchQuery,
-          page: page.toString(),
-          limit: '20',
-        });
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('limit', '20');
+        if (activeTab !== 'all') {
+          params.set('status', activeTab);
+        }
+        if (typeFilter !== 'all') {
+          params.set('type', typeFilter);
+        }
+        if (debouncedSearch.length >= 2) {
+          params.set('search', debouncedSearch);
+        }
 
         const response = await fetch(
           `${API_BASE_URL}/api/admin/drafts?${params}`,
           {
+            signal,
+            cache: 'no-store',
             headers: {
               ...getAuthHeaders(),
               'Content-Type': 'application/json',
@@ -174,6 +200,8 @@ const AdminDashboard = () => {
 
         const data = await response.json();
 
+        if (signal.aborted) return;
+
         if (data.success) {
           setDrafts(data.drafts || []);
           setTotalPages(data.pagination?.totalPages || 1);
@@ -181,15 +209,20 @@ const AdminDashboard = () => {
           setError(data.error || 'Failed to fetch drafts');
         }
       } catch (err) {
+        if (err.name === 'AbortError') return;
         console.error('Failed to fetch drafts:', err);
         setError('Failed to load drafts. Please try again.');
       } finally {
-        setLoading(false);
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchDrafts();
-  }, [activeTab, typeFilter, searchQuery, page]);
+
+    return () => controller.abort();
+  }, [activeTab, typeFilter, debouncedSearch, page]);
 
   const tabs = [
     { id: 'pending_review', label: 'Pending Review', count: stats.pendingCount },
@@ -245,10 +278,7 @@ const AdminDashboard = () => {
             type="text"
             placeholder="Search by clinic name or city..."
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           <svg
@@ -265,6 +295,11 @@ const AdminDashboard = () => {
             />
           </svg>
         </div>
+        {searchQuery.length > 0 && searchQuery.length < 2 && (
+          <p className="w-full text-xs text-text mt-1">
+            Enter at least 2 characters to search
+          </p>
+        )}
       </div>
 
       {/* Content */}
@@ -281,7 +316,7 @@ const AdminDashboard = () => {
           <div className="text-4xl mb-4">📋</div>
           <h3 className="text-lg font-semibold text-dark mb-2">No submissions found</h3>
           <p className="text-text">
-            {searchQuery
+            {debouncedSearch.length >= 2
               ? 'Try adjusting your search terms'
               : 'There are no submissions matching your filters'}
           </p>
@@ -299,25 +334,14 @@ const AdminDashboard = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 border border-border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
-              >
-                ← Previous
-              </button>
-              <span className="text-sm text-text">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 border border-border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
-              >
-                Next →
-              </button>
-            </div>
+            <Pagination
+              variant="admin"
+              className="mt-8"
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              maxPagesToShow={7}
+            />
           )}
         </>
       )}

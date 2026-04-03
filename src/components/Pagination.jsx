@@ -1,98 +1,143 @@
 import React from 'react';
+import { cn } from '../utils/cn';
 
-const Pagination = ({ 
-  currentPage, 
-  totalPages, 
-  onPageChange,
-  className = ''
-}) => {
-  // Generate page numbers to display
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-    
-    if (totalPages <= maxPagesToShow) {
-      // Show all pages if total is less than max
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      if (currentPage > 3) {
-        pages.push('...');
-      }
-      
-      // Show current page and neighbors
-      for (let i = Math.max(2, currentPage - 1); 
-           i <= Math.min(totalPages - 1, currentPage + 1); 
-           i++) {
-        pages.push(i);
-      }
-      
-      if (currentPage < totalPages - 2) {
-        pages.push('...');
-      }
-      
-      // Always show last page
-      if (totalPages > 1) {
-        pages.push(totalPages);
-      }
+/**
+ * Page number strip with ellipsis for large page counts.
+ * @param {number} currentPage - 1-based
+ * @param {number} totalPages
+ * @param {number} maxPagesToShow - max numeric page buttons (excluding prev/next)
+ */
+const getPageNumbers = (currentPage, totalPages, maxPagesToShow) => {
+  const pages = [];
+
+  if (totalPages <= maxPagesToShow) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
     }
-    
     return pages;
-  };
+  }
 
-  const pages = getPageNumbers();
+  pages.push(1);
+
+  if (currentPage > 3) {
+    pages.push('ellipsis-start');
+  }
+
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  if (currentPage < totalPages - 2) {
+    pages.push('ellipsis-end');
+  }
+
+  if (totalPages > 1) {
+    pages.push(totalPages);
+  }
+
+  return pages;
+};
+
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+  className = '',
+  variant = 'default',
+  /** Max page number buttons when totalPages is large */
+  maxPagesToShow = 7,
+}) => {
+  const pages = getPageNumbers(currentPage, totalPages, maxPagesToShow);
+
+  const navBtn =
+    variant === 'admin'
+      ? 'px-3 py-2 border border-border rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors'
+      : 'px-3 py-1 rounded border hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed';
+
+  const pageBtn = (isActive) =>
+    cn(
+      variant === 'admin'
+        ? 'min-w-[2.5rem] px-3 py-2 border rounded-lg text-sm font-medium transition-colors'
+        : 'min-w-[2.25rem] px-3 py-1 rounded border',
+      isActive
+        ? variant === 'admin'
+          ? 'bg-primary text-white border-primary'
+          : 'bg-primary text-white'
+        : variant === 'admin'
+          ? 'border-border hover:bg-slate-50'
+          : 'hover:bg-gray-50',
+      variant === 'admin' && !isActive ? 'text-dark' : ''
+    );
+
+  const ellipsisClass =
+    variant === 'admin'
+      ? 'px-2 py-2 text-sm text-text select-none'
+      : 'px-2 py-1 cursor-default text-gray-500';
 
   if (totalPages <= 1) return null;
 
   return (
-    <div className={`flex items-center justify-center gap-2 my-8 ${className}`}>
+    <div
+      className={cn(
+        'flex flex-wrap items-center justify-center gap-2',
+        className
+      )}
+      role="navigation"
+      aria-label="Pagination"
+    >
       <button
+        type="button"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className={`px-3 py-1 rounded border ${
-          currentPage === 1 
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-            : 'hover:bg-gray-50'
-        }`}
+        className={navBtn}
         aria-label="Previous page"
       >
-        Previous
+        ← Previous
       </button>
-      
-      {pages.map((page, index) => (
-        <button
-          key={index}
-          onClick={() => typeof page === 'number' && onPageChange(page)}
-          disabled={page === '...'}
-          className={`px-3 py-1 rounded border ${
-            page === currentPage
-              ? 'bg-primary text-white'
-              : page === '...'
-              ? 'cursor-default'
-              : 'hover:bg-gray-50'
-          }`}
-          aria-label={typeof page === 'number' ? `Go to page ${page}` : 'More pages'}
-        >
-          {page}
-        </button>
-      ))}
-      
+
+      {pages.map((item) => {
+        if (item === 'ellipsis-start' || item === 'ellipsis-end') {
+          return (
+            <span
+              key={item}
+              className={ellipsisClass}
+              aria-hidden
+            >
+              …
+            </span>
+          );
+        }
+
+        const isActive = item === currentPage;
+        return (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onPageChange(item)}
+            className={pageBtn(isActive)}
+            aria-label={`Page ${item}`}
+            aria-current={isActive ? 'page' : undefined}
+          >
+            {item}
+          </button>
+        );
+      })}
+
       <button
+        type="button"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className={`px-3 py-1 rounded border ${
-          currentPage === totalPages
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'hover:bg-gray-50'
-        }`}
+        className={navBtn}
         aria-label="Next page"
       >
-        Next
+        Next →
       </button>
+
+      <span className="text-sm text-text whitespace-nowrap ml-1">
+        Page {currentPage} of {totalPages}
+      </span>
     </div>
   );
 };
