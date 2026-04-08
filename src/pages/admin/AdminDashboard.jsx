@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import API_BASE_URL from '../../config/api';
 import Pagination from '../../components/Pagination';
+import Toast from '../../components/Toast';
+import BulkEnrichGoogleModal from './components/BulkEnrichGoogleModal';
 import { getAuthHeaders } from './hooks/useAuth';
 import './admin.css';
 
@@ -127,6 +129,10 @@ const AdminDashboard = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [bulkEnrichModalOpen, setBulkEnrichModalOpen] = useState(false);
+  const [listRefreshNonce, setListRefreshNonce] = useState(0);
+  const [runToastMessage, setRunToastMessage] = useState(null);
+  const [runToastVisible, setRunToastVisible] = useState(false);
   const skipSearchPageReset = useRef(true);
 
   // Debounce search so rapid typing does not race pagination requests
@@ -160,7 +166,7 @@ const AdminDashboard = () => {
       }
     };
     fetchStats();
-  }, []);
+  }, [listRefreshNonce]);
 
   // Fetch drafts — abort in-flight requests when page/filters change so an older
   // response cannot overwrite a newer page (fixes “stuck on page 1” when paging).
@@ -222,7 +228,7 @@ const AdminDashboard = () => {
     fetchDrafts();
 
     return () => controller.abort();
-  }, [activeTab, typeFilter, debouncedSearch, page]);
+  }, [activeTab, typeFilter, debouncedSearch, page, listRefreshNonce]);
 
   const tabs = [
     { id: 'pending_review', label: 'Pending Review', count: stats.pendingCount },
@@ -257,6 +263,18 @@ const AdminDashboard = () => {
           </button>
         ))}
       </div>
+
+      {activeTab === 'pending_review' && (
+        <div className="flex flex-wrap items-center justify-end gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() => setBulkEnrichModalOpen(true)}
+            className="px-4 py-2 border border-border rounded-lg bg-white text-sm font-medium text-dark hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            Bulk enrich from Google
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
@@ -344,6 +362,35 @@ const AdminDashboard = () => {
             />
           )}
         </>
+      )}
+
+      <BulkEnrichGoogleModal
+        open={bulkEnrichModalOpen}
+        onClose={() => setBulkEnrichModalOpen(false)}
+        onCompleted={() => setListRefreshNonce((n) => n + 1)}
+        onLoadingChange={(running) => {
+          if (running) {
+            setRunToastMessage(
+              'This may take a while… Google Places may use quota.'
+            );
+            setRunToastVisible(true);
+          } else {
+            setRunToastVisible(false);
+            setRunToastMessage(null);
+          }
+        }}
+      />
+
+      {runToastMessage && (
+        <Toast
+          message={runToastMessage}
+          isVisible={runToastVisible}
+          duration={60000}
+          onClose={() => {
+            setRunToastVisible(false);
+            setRunToastMessage(null);
+          }}
+        />
       )}
     </div>
   );
