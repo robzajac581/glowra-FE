@@ -504,6 +504,12 @@ const Search = () => {
 
   // Check if any filters are active
   const hasActiveFilters = category || minPrice || maxPrice || searchQuery;
+
+  /** Backend is still refining results (client shows interim results first; see banner below title). */
+  const isLoadingMoreFromBackend =
+    Boolean(searchQuery.trim()) &&
+    !loading &&
+    (fetchingClinicName || fetchingLocation);
   
   // Helper function to shorten category names for display in filter box
   const getShortCategoryName = (categoryName) => {
@@ -536,7 +542,18 @@ const Search = () => {
               <h1 className="title">
                 {searchQuery ? `Search results for "${searchQuery}":` : "Search Locations or Procedures:"}
               </h1>
-              <div className="subtitle">{totalResults} {totalResults === 1 ? 'Clinic' : 'Clinics'} Found</div>
+              <div className="subtitle">
+                {totalResults} {totalResults === 1 ? 'Clinic' : 'Clinics'} Found
+                {isLoadingMoreFromBackend && (
+                  <span className="inline-flex items-center gap-2 ml-2 text-gray-600 font-normal text-sm">
+                    <span
+                      className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent"
+                      aria-hidden
+                    />
+                    Loading more results…
+                  </span>
+                )}
+              </div>
             </div>
             {/* Sort Filter - Positioned near title */}
             <div className="flex items-center md:items-start md:pt-2 -mt-1 md:mt-0">
