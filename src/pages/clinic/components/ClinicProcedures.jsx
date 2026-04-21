@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { clinicIcons } from "../../../components/Icons";
+import { formatClinicEstimatePrice } from "../../../utils/procedurePrice";
 
 const ClinicProcedures = ({ procedures, selectedData, setSelectedData }) => {
 	const location = useLocation();
@@ -218,16 +219,6 @@ const ClinicProcedureTable = ({
 		);
 	};
 
-	// Formatting functions with tilde prefix
-	const formatPrice = (price) => {
-		return '~' + new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(price);
-	};
-
 	return (
 		<>
 			<div className="procedure-table-card">
@@ -279,7 +270,7 @@ const ClinicProcedureTable = ({
 											</td>
 											<td className="price-cell py-2">
 												<span className="text-sm font-medium text-black">
-													{formatPrice(item.price)}+
+													{formatClinicEstimatePrice(item.price, item)}+
 												</span>
 											</td>
 											<td className="action-cell py-2 pl-2">
