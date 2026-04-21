@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
 import { captureEvent } from "../config/analytics";
 import { cn } from "../utils/cn";
+import { formatClinicEstimatePrice } from "../utils/procedurePrice";
 
 const ConsultationRequestForm = ({ 
   clinicId, 
@@ -229,7 +230,7 @@ const ConsultationRequestForm = ({
             {selectedData.map((item) => (
               <div key={item.id} className="flex justify-between items-center text-sm">
                 <span className="text-gray-800">{item.name}</span>
-                <span className="font-medium text-black">{formatPrice(item.price)}</span>
+                <span className="font-medium text-black">{formatClinicEstimatePrice(item.price, item)}</span>
               </div>
             ))}
           </div>

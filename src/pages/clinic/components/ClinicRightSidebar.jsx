@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import ConsultationRequestModal from "../../../components/ConsultationRequestModal";
 import ConsultationRequestForm from "../../../components/ConsultationRequestForm";
 import useScreen from "../../../hooks/useScreen";
+import { formatClinicEstimatePrice } from "../../../utils/procedurePrice";
 
 const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId, procedures }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,7 +59,7 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId, procedures }) 
                     {item.name}
                   </span>
                   <span className="text-gray-900 font-semibold whitespace-nowrap flex-shrink-0">
-                    {formatPrice(item.price)}
+                    {formatClinicEstimatePrice(item.price, item)}
                   </span>
                 </div>
               ))}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
 import { cn } from "../utils/cn";
+import { formatClinicEstimatePrice } from "../utils/procedurePrice";
 import "./ConsultationRequestModal.css";
 
 const ConsultationRequestModal = ({ 
@@ -312,7 +313,7 @@ const ConsultationRequestModal = ({
                     {selectedData.map((item) => (
                       <div key={item.id} className="consultation-modal-item-row">
                         <span>{item.name}</span>
-                        <span className="consultation-modal-item-price">{formatPrice(item.price)}</span>
+                        <span className="consultation-modal-item-price">{formatClinicEstimatePrice(item.price, item)}</span>
                       </div>
                     ))}
                   </div>
