@@ -1,7 +1,7 @@
 // Search.jsx
 import { Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
 import React, { useState, useEffect } from "react";
-import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, filterByProcedure, filterByLocationExact, filterByLocationNearby, isZipCode, detectCategory } from "../../utils/searchUtils";
+import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, parseProcedureQuery, filterByProcedure, filterByLocationExact, filterByLocationNearby, isZipCode, detectCategory } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
 import Layout from "../../components/Layout";
@@ -11,11 +11,13 @@ import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
 import API_BASE_URL from "../../config/api";
 import { captureEvent } from "../../config/analytics";
+import { useSearchParams } from "react-router-dom";
 
 const NUMBER_OF_CARDS_PER_PAGE = 9;
 
 const Search = () => {
   const screen = useScreen();
+  const [urlSearchParams] = useSearchParams();
   const [categoryOpen, setCategoryOpen] = useState(false);
   
   // Use our custom hook for search state management
@@ -25,6 +27,7 @@ const Search = () => {
     resetSearch 
   } = useSearchState({
     searchQuery: "",
+    locationQuery: "",
     category: "",
     minPrice: "",
     maxPrice: "",
@@ -34,6 +37,7 @@ const Search = () => {
   
   const { 
     searchQuery, 
+    locationQuery,
     category, 
     minPrice, 
     maxPrice, 
@@ -41,13 +45,23 @@ const Search = () => {
     page 
   } = searchState;
   
-  // Local state for input value (separate from searchQuery to prevent search-as-you-type)
-  const [inputValue, setInputValue] = useState(searchQuery);
+  // Local state for input values (separate from URL state to prevent search-as-you-type)
+  const [procedureInputValue, setProcedureInputValue] = useState(searchQuery);
+  const [locationInputValue, setLocationInputValue] = useState(locationQuery || "");
   
-  // Sync inputValue with searchQuery when it changes from external sources (like URL params)
+  // Sync local fields with URL-backed search state
   useEffect(() => {
-    setInputValue(searchQuery);
+    setProcedureInputValue(searchQuery);
   }, [searchQuery]);
+
+  useEffect(() => {
+    setLocationInputValue(locationQuery || "");
+  }, [locationQuery]);
+
+  const hasLocationQueryParam = urlSearchParams.has("locationQuery");
+  const procedureQuery = searchQuery.trim();
+  const locationQueryValue = (locationQuery || "").trim();
+  const isSplitMode = hasLocationQueryParam || Boolean(locationQueryValue);
   
   // State for full data and displayed clinics
   const [allClinics, setAllClinics] = useState([]);
@@ -167,28 +181,27 @@ const Search = () => {
   // Fetch results from backend when searchQuery contains location terms or clinic name searches
   useEffect(() => {
     const fetchBackendResults = async () => {
-      if (!searchQuery.trim() || allClinics.length === 0) {
+      if ((!procedureQuery && !locationQueryValue) || allClinics.length === 0) {
         setBackendLocationResults([]);
         setBackendClinicNameResults([]);
         return;
       }
 
-      const trimmedQuery = searchQuery.trim();
-      
-      // Parse query to detect location terms
-      const parsed = parseSearchQuery(trimmedQuery, allClinics);
+      const locationCandidateQuery = isSplitMode ? locationQueryValue : procedureQuery;
+      const procedureCandidateQuery = procedureQuery;
+      const parsedLocationQuery = parseSearchQuery(locationCandidateQuery, allClinics);
       
       // Check if this looks like a clinic name search (not a location search)
       // We'll use backend for clinic name searches to leverage server-side filtering
-      const isLikelyClinicNameSearch = !parsed.hasLocation && !isZipCode(trimmedQuery);
+      const isLikelyClinicNameSearch = Boolean(procedureCandidateQuery) && !isZipCode(procedureCandidateQuery);
       
       // Use backend for location searches (existing behavior)
       // Note: Backend may convert procedure searches sent as location parameter
-      if (parsed.hasLocation) {
+      if (locationCandidateQuery && parsedLocationQuery.hasLocation) {
         try {
           setFetchingLocation(true);
           const params = new URLSearchParams();
-          params.append('location', trimmedQuery);
+          params.append('location', locationCandidateQuery);
           const url = `${API_BASE_URL}/api/clinics/search-index?${params.toString()}`;
           
           const response = await fetch(url);
@@ -232,17 +245,17 @@ const Search = () => {
       
       // Check if this is a category search - if so, skip backend clinic name search
       // Category searches should show all clinics in category, not just name matches
-      const isCategorySearch = detectCategory(trimmedQuery);
+      const isCategorySearch = detectCategory(procedureCandidateQuery);
       
       // Use backend for clinic name searches (new behavior)
       // Only fetch if query doesn't look like a procedure search (has multiple words that might be procedures)
       // For single words or clinic-like queries, use backend
       // Skip if it's a category search (category searches handled by frontend)
-      if (isLikelyClinicNameSearch && trimmedQuery.length >= 3 && !isCategorySearch) {
+      if (isLikelyClinicNameSearch && procedureCandidateQuery.length >= 3 && !isCategorySearch) {
         try {
           setFetchingClinicName(true);
           const params = new URLSearchParams();
-          params.append('clinicName', trimmedQuery);
+          params.append('clinicName', procedureCandidateQuery);
           
           const response = await fetch(`${API_BASE_URL}/api/clinics/search-index?${params.toString()}`);
           
@@ -276,7 +289,7 @@ const Search = () => {
     };
 
     fetchBackendResults();
-  }, [searchQuery, allClinics]);
+  }, [procedureQuery, locationQueryValue, isSplitMode, allClinics]);
 
   // Perform search operation, apply filters, sort, and paginate
   useEffect(() => {
@@ -290,16 +303,19 @@ const Search = () => {
     let locationSearch = false;
     let hasNearby = false;
 
-    if (!searchQuery.trim()) {
-      // If no search query, use all clinics as exact results
+    if (!procedureQuery && !locationQueryValue) {
+      // If there is no query, use all clinics as exact results
       exactResults = allClinics;
       nearbyResults = [];
       setIsLocationSearch(false);
       setHasNearbyResults(false);
       setExactResultsCount(allClinics.length);
     } else {
-      // Parse query to detect location terms
-      const parsed = parseSearchQuery(searchQuery.trim(), allClinics);
+      const locationParsed = parseSearchQuery(isSplitMode ? locationQueryValue : procedureQuery, allClinics);
+      const procedureParsed = parseProcedureQuery(procedureQuery);
+      const hasLocationInput = Boolean(locationQueryValue);
+      const isLocationBranch = isSplitMode ? (hasLocationInput && locationParsed.hasLocation) : locationParsed.hasLocation;
+      const frontendQueryForFallback = isSplitMode ? locationQueryValue : procedureQuery;
       
       // Check if backend converted a location search to a procedure search
       const isProcedureSearchFromBackend = backendMetadata && 
@@ -308,7 +324,7 @@ const Search = () => {
       
       // PRIORITY 1: If backend returned clinic name results, use those first
       // This handles searches like "Gillian Institute", "Gillian", "Institute"
-      if (backendClinicNameResults.length > 0) {
+      if (backendClinicNameResults.length > 0 && !isLocationBranch) {
         exactResults = backendClinicNameResults;
         nearbyResults = [];
         locationSearch = false;
@@ -316,15 +332,15 @@ const Search = () => {
         
         // Store raw Lunr results for scoring
         try {
-          rawSearchResults = searchIndex.search(searchQuery.trim());
+          rawSearchResults = searchIndex.search(procedureQuery);
         } catch (e) {
           // Ignore Lunr search errors
         }
       }
       // PRIORITY 2: If backend returned location results, check if it's actually a procedure search
-      else if (parsed.hasLocation && backendLocationResults.length > 0) {
+      else if (isLocationBranch && backendLocationResults.length > 0) {
         // If backend metadata indicates this is a procedure search (not location), treat it as such
-        if (isProcedureSearchFromBackend) {
+        if (isProcedureSearchFromBackend && !isSplitMode) {
           // Backend converted location parameter to procedure search
           // Display all results without location filtering
           exactResults = backendLocationResults;
@@ -334,7 +350,7 @@ const Search = () => {
           
           // Store raw Lunr results for scoring
           try {
-            rawSearchResults = searchIndex.search(searchQuery.trim());
+            rawSearchResults = searchIndex.search(procedureQuery);
           } catch (e) {
             // Ignore Lunr search errors
           }
@@ -344,13 +360,15 @@ const Search = () => {
           
           // Filter backend results to separate exact location matches from nearby matches
           // This ensures that when searching "Miami", we get Miami results first, then nearby cities
-          let exactLocationMatches = filterByLocationExact(backendLocationResults, parsed.locationTerms);
-          let nearbyLocationMatches = filterByLocationNearby(backendLocationResults, parsed.locationTerms, exactLocationMatches);
+          let exactLocationMatches = filterByLocationExact(backendLocationResults, locationParsed.locationTerms);
+          let nearbyLocationMatches = filterByLocationNearby(backendLocationResults, locationParsed.locationTerms, exactLocationMatches);
           
           // If we have procedure terms, filter both exact and nearby by procedure
-          if (parsed.hasProcedure) {
-            exactLocationMatches = filterByProcedure(exactLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
-            nearbyLocationMatches = filterByProcedure(nearbyLocationMatches, parsed.procedureTerms, parsed.remainingTerms);
+          if (isSplitMode ? procedureParsed.hasProcedure : locationParsed.hasProcedure) {
+            const procedureTerms = isSplitMode ? procedureParsed.procedureTerms : locationParsed.procedureTerms;
+            const remainingTerms = isSplitMode ? procedureParsed.remainingTerms : locationParsed.remainingTerms;
+            exactLocationMatches = filterByProcedure(exactLocationMatches, procedureTerms, remainingTerms);
+            nearbyLocationMatches = filterByProcedure(nearbyLocationMatches, procedureTerms, remainingTerms);
           }
           
           // Start with exact location matches
@@ -364,7 +382,7 @@ const Search = () => {
             
             // If we still need more results, get them from frontend search
             if (nearbyResults.length < needed) {
-              const frontendSearchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
+              const frontendSearchResult = performSearch(searchIndex, allClinics, frontendQueryForFallback, NUMBER_OF_CARDS_PER_PAGE);
               const frontendNearby = frontendSearchResult.nearbyResults || [];
               
               // Filter out duplicates and add remaining needed results
@@ -386,16 +404,17 @@ const Search = () => {
       } else {
         // Use the performSearch utility for procedure searches or when backend didn't return results
         // performSearch now prioritizes clinic name matching before location/procedure parsing
-        const searchResult = performSearch(searchIndex, allClinics, searchQuery, NUMBER_OF_CARDS_PER_PAGE);
+        const fallbackQuery = procedureQuery;
+        const searchResult = performSearch(searchIndex, allClinics, fallbackQuery, NUMBER_OF_CARDS_PER_PAGE);
         exactResults = searchResult.exactResults || [];
         nearbyResults = searchResult.nearbyResults || [];
         locationSearch = searchResult.isLocationSearch || false;
         hasNearby = searchResult.hasNearbyResults || false;
         
         // Store raw Lunr results for scoring (only if not a location search)
-        if (!locationSearch) {
+        if (!locationSearch && fallbackQuery) {
           try {
-            rawSearchResults = searchIndex.search(searchQuery.trim());
+            rawSearchResults = searchIndex.search(fallbackQuery);
           } catch (e) {
             // Ignore Lunr search errors for location searches
           }
@@ -419,7 +438,7 @@ const Search = () => {
       category,
       minPrice,
       maxPrice,
-      searchQuery: searchQuery.trim() // Pass search query for name match preservation
+      searchQuery: procedureQuery // Pass procedure query for name match preservation
     });
     
     // Separate exact and nearby results for independent sorting
@@ -433,14 +452,14 @@ const Search = () => {
     const sortedExact = sortResults(
       filteredExact,
       sortBy,
-      searchQuery,
+      procedureQuery,
       rawSearchResults,
       sortUserLocation
     );
     const sortedNearby = sortResults(
       filteredNearby,
       sortBy,
-      searchQuery,
+      procedureQuery,
       rawSearchResults,
       sortUserLocation
     );
@@ -459,7 +478,7 @@ const Search = () => {
     // Add display procedures to each clinic based on search context
     const clinicsWithDisplayProcedures = sorted.map(clinic => ({
       ...clinic,
-      displayProcedures: getDisplayProcedures(clinic, searchQuery)
+      displayProcedures: getDisplayProcedures(clinic, procedureQuery)
     }));
     
     // Update exact results count to reflect filtered results
@@ -473,20 +492,21 @@ const Search = () => {
     
     // Store exact results count for reference (after filtering/sorting)
     setExactResultsCount(filteredExactCount);
-  }, [searchIndex, allClinics, searchQuery, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults, backendClinicNameResults, backendMetadata]);
+  }, [searchIndex, allClinics, searchQuery, locationQueryValue, procedureQuery, isSplitMode, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults, backendClinicNameResults, backendMetadata]);
   
   // Handle search submission
   const handleSearch = (e) => {
     e.preventDefault();
-    if (inputValue?.trim()) {
+    if (procedureInputValue?.trim() || locationInputValue?.trim()) {
       captureEvent('search_performed', {
-        search_query: inputValue.trim(),
+        search_query: procedureInputValue.trim(),
+        location_query: locationInputValue.trim() || undefined,
         category: category || undefined,
         has_price_filter: !!(minPrice || maxPrice)
       });
     }
-    // Update searchQuery which will trigger the search via useEffect
-    updateSearchState('searchQuery', inputValue);
+    updateSearchState('searchQuery', procedureInputValue);
+    updateSearchState('locationQuery', locationInputValue);
     updateSearchState('page', 1); // Reset to page 1 on new search
   };
   
@@ -499,15 +519,16 @@ const Search = () => {
   // Handle reset filters
   const handleResetFilters = () => {
     resetSearch();
-    setInputValue(''); // Also clear the input field
+    setProcedureInputValue('');
+    setLocationInputValue('');
   };
 
   // Check if any filters are active
-  const hasActiveFilters = category || minPrice || maxPrice || searchQuery;
+  const hasActiveFilters = category || minPrice || maxPrice || searchQuery || locationQuery;
 
   /** Backend is still refining results (client shows interim results first; see banner below title). */
   const isLoadingMoreFromBackend =
-    Boolean(searchQuery.trim()) &&
+    Boolean(procedureQuery || locationQueryValue) &&
     !loading &&
     (fetchingClinicName || fetchingLocation);
   
@@ -540,7 +561,9 @@ const Search = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-4">
             <div className="flex-1">
               <h1 className="title">
-                {searchQuery ? `Search results for "${searchQuery}":` : "Search Locations or Procedures:"}
+                {procedureQuery || locationQueryValue
+                  ? `Search results for "${[procedureQuery, locationQueryValue].filter(Boolean).join(" in ")}":`
+                  : "Search Locations or Procedures:"}
               </h1>
               <div className="subtitle">
                 {totalResults} {totalResults === 1 ? 'Clinic' : 'Clinics'} Found
@@ -567,18 +590,28 @@ const Search = () => {
           <div className="flex flex-col md:flex-row gap-4 items-start relative z-10">
             {/* Search Bar - Full width on mobile, 60% on desktop */}
             <form onSubmit={handleSearch} className="w-full md:w-[60%]">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder={
-                    screen < 768
-                      ? "Search location or procedure"
-                      : "Search by city, state, zip, procedure, or doctor"
-                  }
-                  className="search-input"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                />
+              <div className="search-dual-input">
+                <div className="search-dual-section search-dual-section-primary">
+                  <label className="search-dual-label">Search</label>
+                  <input
+                    type="text"
+                    placeholder="Condition, procedure or doctor name"
+                    className="search-dual-field"
+                    value={procedureInputValue}
+                    onChange={(e) => setProcedureInputValue(e.target.value)}
+                  />
+                </div>
+                <div className="search-dual-divider" />
+                <div className="search-dual-section search-dual-section-location">
+                  <label className="search-dual-label">Add location</label>
+                  <input
+                    type="text"
+                    placeholder="City, state or zip"
+                    className="search-dual-field"
+                    value={locationInputValue}
+                    onChange={(e) => setLocationInputValue(e.target.value)}
+                  />
+                </div>
                 <button type="submit" className="search-btn">
                   <span>Search</span>
                   {icons.searchIcon3}
@@ -808,7 +841,7 @@ const Search = () => {
                           <div className="procedure-card-wrapper">
                             <SearchResultCard 
                               clinic={clinic}
-                              searchQuery={searchQuery}
+                              searchQuery={procedureQuery}
                             />
                           </div>
                         </React.Fragment>

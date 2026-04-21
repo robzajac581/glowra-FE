@@ -141,7 +141,7 @@
 		@apply text-[19px] leading-[30px] text-white lg:max-w-[580px] mx-auto;
 	}
 	.banner-form {
-		@apply p-3 lg:p-0 bg-white border border-[#eaeaea] rounded flex flex-col lg:flex-row lg:items-center justify-between sm:text-[20px] lg:text-[14px] xl:text-[18px] text-nowrap gap-[23px] lg:gap-0;
+		@apply p-3 lg:p-0 bg-white border border-[#eaeaea] rounded flex flex-col lg:flex-row lg:items-center justify-between sm:text-[20px] lg:text-[14px] xl:text-[18px] text-nowrap gap-3 lg:gap-0;
 	}
 	.submit-btn-1 {
 		@apply bg-black rounded text-[22px] lg:text-[14px] xl:text-[22px] h-[57px] lg:h-[63px] flex items-center justify-center gap-2 text-white px-7 lg:m-[-1px] active:bg-opacity-80;
@@ -154,6 +154,30 @@
 	}
 	.banner-search-input {
 		@apply h-[63px] w-full border-none bg-transparent text-base font-medium text-black placeholder:text-black placeholder:text-opacity-50 outline-none;
+	}
+	.search-dual-input {
+		@apply w-full border border-border rounded-[10px] bg-white flex flex-col md:flex-row;
+	}
+	.search-dual-section {
+		@apply px-4 py-2 flex-1;
+	}
+	.search-dual-section-primary {
+		@apply md:flex-[1.35];
+	}
+	.search-dual-section-location {
+		@apply md:flex-1;
+	}
+	.search-dual-label {
+		@apply block text-xs text-black text-opacity-50 mb-1;
+	}
+	.search-dual-field {
+		@apply h-[32px] w-full border-none bg-transparent text-base font-medium text-black placeholder:text-black placeholder:text-opacity-50 outline-none;
+	}
+	.search-dual-divider {
+		@apply h-px bg-[#CECECE] mx-4 md:mx-0 md:h-[42px] md:w-px md:self-center;
+	}
+	.banner-dual-input {
+		@apply border-none md:min-h-[63px];
 	}
 	.cta-grid {
 		@apply grid md:grid-cols-2 grid-cols-1;
@@ -596,11 +620,20 @@
 	.single-procedure-card .search-input {
 		@apply h-[63px] w-full px-4 pl-12 md:pl-4 md:pr-[120px] bg-white border border-border rounded-[10px] shadow-input md:text-[20px] md:text-dark md:font-light md:rounded-r-[10px] rounded-r-none outline-none;
 	}
+	.single-procedure-card .search-dual-input {
+		@apply relative shadow-input md:pr-[120px] md:min-h-[63px];
+	}
+	.single-procedure-card .search-dual-section {
+		@apply py-1 md:py-2;
+	}
+	.single-procedure-card .search-dual-field {
+		@apply md:text-[20px] md:text-dark md:font-light;
+	}
 	.single-procedure-card .search-btn {
-		@apply absolute left-0 md:left-[unset] md:right-4 h-full flex items-center top-0 gap-[10px] w-12 md:w-auto justify-center;
+		@apply w-full h-[50px] flex items-center justify-center gap-[10px] border-t border-border md:border-t-0 md:absolute md:right-4 md:top-0 md:h-full md:w-auto;
 	}
 	.single-procedure-card .search-btn span {
-		@apply hidden md:block text-secondary text-xl  font-extrabold;
+		@apply block text-secondary text-base md:text-xl font-extrabold;
 	}
 	.single-procedure-card .search-grid {
 		@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mt-[15px] gap-[15px];

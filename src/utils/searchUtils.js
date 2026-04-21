@@ -427,6 +427,41 @@ export const parseSearchQuery = (query, clinics = []) => {
 };
 
 /**
+ * Parse a procedure/doctor/clinic query without location detection.
+ * Used for split-field search so geography terms are only read from location input.
+ * @param {String} query - Procedure/doctor/clinic query string
+ * @returns {Object} Parsed query with procedure terms and remaining terms
+ */
+export const parseProcedureQuery = (query) => {
+  if (!query || !query.trim()) {
+    return { procedureTerms: [], remainingTerms: [], hasProcedure: false };
+  }
+
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(t => t.length > 0);
+  const procedureTerms = [];
+  const remainingTerms = [];
+
+  terms.forEach(term => {
+    if (PROCEDURE_ABBREVIATIONS[term]) {
+      procedureTerms.push({
+        type: 'abbreviation',
+        value: term,
+        fullName: PROCEDURE_ABBREVIATIONS[term]
+      });
+      return;
+    }
+
+    remainingTerms.push(term);
+  });
+
+  return {
+    procedureTerms,
+    remainingTerms,
+    hasProcedure: procedureTerms.length > 0 || remainingTerms.length > 0
+  };
+};
+
+/**
  * Get nearby zip codes (zip codes starting with same first 3 digits)
  * @param {String} zipCode - 5-digit zip code
  * @returns {String} First 3 digits of zip code
