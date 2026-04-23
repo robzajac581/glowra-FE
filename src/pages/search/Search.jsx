@@ -1,6 +1,6 @@
 // Search.jsx
 import { Popover, PopoverHandler, PopoverContent } from "@material-tailwind/react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createSearchIndex, performSearch, applyFilters, sortResults, paginateResults, getDisplayProcedures, parseSearchQuery, parseProcedureQuery, filterByProcedure, filterByLocationExact, filterByLocationNearby, isZipCode, detectCategory } from "../../utils/searchUtils";
 import useSearchState from "../../hooks/useSearchState";
 import { icons } from "../../components/Icons";
@@ -9,7 +9,8 @@ import CombinedPriceFilter from '../../components/CombinedPriceFilter';
 import SortFilter from "../../components/SortFilter";
 import SearchResultCard from "./components/SearchResultCard";
 import useScreen from "../../hooks/useScreen";
-import API_BASE_URL from "../../config/api";
+import API_BASE_URL, { DEFAULT_CLINIC_SEARCH_RADIUS_MILES } from "../../config/api";
+import LocationAutocompleteInput from "../../components/LocationAutocompleteInput";
 import { captureEvent } from "../../config/analytics";
 import { useSearchParams } from "react-router-dom";
 
@@ -38,16 +39,26 @@ const Search = () => {
   const { 
     searchQuery, 
     locationQuery,
+    locationLat,
+    locationLng,
+    locationRadius,
     category, 
     minPrice, 
     maxPrice, 
     sortBy,
     page 
   } = searchState;
+
+  const latNum = locationLat ? parseFloat(locationLat) : NaN;
+  const lngNum = locationLng ? parseFloat(locationLng) : NaN;
+  const hasGeoInState =
+    !Number.isNaN(latNum) && !Number.isNaN(lngNum);
   
   // Local state for input values (separate from URL state to prevent search-as-you-type)
   const [procedureInputValue, setProcedureInputValue] = useState(searchQuery);
   const [locationInputValue, setLocationInputValue] = useState(locationQuery || "");
+  /** When user picks a Places result, coords + label until submit (or until input diverges). */
+  const [locationGeoPending, setLocationGeoPending] = useState(null);
   
   // Sync local fields with URL-backed search state
   useEffect(() => {
@@ -61,7 +72,10 @@ const Search = () => {
   const hasLocationQueryParam = urlSearchParams.has("locationQuery");
   const procedureQuery = searchQuery.trim();
   const locationQueryValue = (locationQuery || "").trim();
-  const isSplitMode = hasLocationQueryParam || Boolean(locationQueryValue);
+  const isSplitMode =
+    hasLocationQueryParam ||
+    Boolean(locationQueryValue) ||
+    hasGeoInState;
   
   // State for full data and displayed clinics
   const [allClinics, setAllClinics] = useState([]);
@@ -181,7 +195,10 @@ const Search = () => {
   // Fetch results from backend when searchQuery contains location terms or clinic name searches
   useEffect(() => {
     const fetchBackendResults = async () => {
-      if ((!procedureQuery && !locationQueryValue) || allClinics.length === 0) {
+      if (
+        (!procedureQuery && !locationQueryValue && !hasGeoInState) ||
+        allClinics.length === 0
+      ) {
         setBackendLocationResults([]);
         setBackendClinicNameResults([]);
         return;
@@ -195,13 +212,33 @@ const Search = () => {
       // We'll use backend for clinic name searches to leverage server-side filtering
       const isLikelyClinicNameSearch = Boolean(procedureCandidateQuery) && !isZipCode(procedureCandidateQuery);
       
-      // Use backend for location searches (existing behavior)
-      // Note: Backend may convert procedure searches sent as location parameter
-      if (locationCandidateQuery && parsedLocationQuery.hasLocation) {
+      const shouldFetchLocation =
+        hasGeoInState ||
+        Boolean(locationCandidateQuery && parsedLocationQuery.hasLocation);
+
+      if (shouldFetchLocation) {
         try {
           setFetchingLocation(true);
           const params = new URLSearchParams();
-          params.append('location', locationCandidateQuery);
+          if (hasGeoInState) {
+            params.append('lat', String(latNum));
+            params.append('lng', String(lngNum));
+            const r = locationRadius
+              ? parseFloat(locationRadius)
+              : DEFAULT_CLINIC_SEARCH_RADIUS_MILES;
+            params.append(
+              'radius',
+              String(Number.isNaN(r) ? DEFAULT_CLINIC_SEARCH_RADIUS_MILES : r)
+            );
+            if (locationCandidateQuery) {
+              params.append('location', locationCandidateQuery);
+            }
+          } else if (locationCandidateQuery) {
+            params.append('location', locationCandidateQuery);
+          }
+          if (isSplitMode && procedureCandidateQuery) {
+            params.append('procedure', procedureCandidateQuery);
+          }
           const url = `${API_BASE_URL}/api/clinics/search-index?${params.toString()}`;
           
           const response = await fetch(url);
@@ -289,7 +326,16 @@ const Search = () => {
     };
 
     fetchBackendResults();
-  }, [procedureQuery, locationQueryValue, isSplitMode, allClinics]);
+  }, [
+    procedureQuery,
+    locationQueryValue,
+    isSplitMode,
+    allClinics,
+    hasGeoInState,
+    latNum,
+    lngNum,
+    locationRadius,
+  ]);
 
   // Perform search operation, apply filters, sort, and paginate
   useEffect(() => {
@@ -303,7 +349,7 @@ const Search = () => {
     let locationSearch = false;
     let hasNearby = false;
 
-    if (!procedureQuery && !locationQueryValue) {
+    if (!procedureQuery && !locationQueryValue && !hasGeoInState) {
       // If there is no query, use all clinics as exact results
       exactResults = allClinics;
       nearbyResults = [];
@@ -313,14 +359,18 @@ const Search = () => {
     } else {
       const locationParsed = parseSearchQuery(isSplitMode ? locationQueryValue : procedureQuery, allClinics);
       const procedureParsed = parseProcedureQuery(procedureQuery);
-      const hasLocationInput = Boolean(locationQueryValue);
-      const isLocationBranch = isSplitMode ? (hasLocationInput && locationParsed.hasLocation) : locationParsed.hasLocation;
+      const hasLocationInput = Boolean(locationQueryValue) || hasGeoInState;
+      const isLocationBranch = isSplitMode
+        ? (hasLocationInput && (locationParsed.hasLocation || hasGeoInState))
+        : (locationParsed.hasLocation || hasGeoInState);
       const frontendQueryForFallback = isSplitMode ? locationQueryValue : procedureQuery;
       
-      // Check if backend converted a location search to a procedure search
+      // Check if backend converted a location search to a procedure search (not geo)
       const isProcedureSearchFromBackend = backendMetadata && 
                                            backendMetadata.location === null && 
-                                           backendMetadata.procedure !== null;
+                                           backendMetadata.procedure !== null &&
+                                           backendMetadata.latitude == null &&
+                                           backendMetadata.longitude == null;
       
       // PRIORITY 1: If backend returned clinic name results, use those first
       // This handles searches like "Gillian Institute", "Gillian", "Institute"
@@ -337,7 +387,22 @@ const Search = () => {
           // Ignore Lunr search errors
         }
       }
-      // PRIORITY 2: If backend returned location results, check if it's actually a procedure search
+      // PRIORITY 2: Geo search — backend filters by lat/lng/radius; refine by procedure on client if needed
+      else if (isLocationBranch && hasGeoInState) {
+        locationSearch = true;
+        let results = backendLocationResults;
+        if (isSplitMode && procedureParsed.hasProcedure) {
+          results = filterByProcedure(
+            results,
+            procedureParsed.procedureTerms,
+            procedureParsed.remainingTerms
+          );
+        }
+        exactResults = results;
+        nearbyResults = [];
+        hasNearby = false;
+      }
+      // PRIORITY 3: Text location results from backend
       else if (isLocationBranch && backendLocationResults.length > 0) {
         // If backend metadata indicates this is a procedure search (not location), treat it as such
         if (isProcedureSearchFromBackend && !isSplitMode) {
@@ -446,9 +511,10 @@ const Search = () => {
     const filteredExact = filtered.filter(clinic => !clinic._isNearby);
     const filteredNearby = filtered.filter(clinic => clinic._isNearby);
     
-    // Sort exact and nearby results separately
-    // For procedure searches, don't use user location for sorting
-    const sortUserLocation = locationSearch ? userLocation : null;
+    // Sort exact and nearby results separately — use search center for geo queries
+    const sortUserLocation = locationSearch
+      ? (hasGeoInState ? { lat: latNum, lng: lngNum } : userLocation)
+      : null;
     const sortedExact = sortResults(
       filteredExact,
       sortBy,
@@ -492,22 +558,62 @@ const Search = () => {
     
     // Store exact results count for reference (after filtering/sorting)
     setExactResultsCount(filteredExactCount);
-  }, [searchIndex, allClinics, searchQuery, locationQueryValue, procedureQuery, isSplitMode, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults, backendClinicNameResults, backendMetadata]);
+  }, [searchIndex, allClinics, searchQuery, locationQueryValue, procedureQuery, isSplitMode, category, minPrice, maxPrice, sortBy, page, userLocation, backendLocationResults, backendClinicNameResults, backendMetadata, hasGeoInState, latNum, lngNum]);
   
+  const handleLocationResolved = useCallback(({ lat, lng, formattedAddress }) => {
+    setLocationGeoPending({ lat, lng, label: formattedAddress });
+    setLocationInputValue(formattedAddress);
+  }, []);
+
+  const handleLocationInputChange = (e) => {
+    const v = e.target.value;
+    setLocationInputValue(v);
+    if (locationGeoPending && v.trim() !== locationGeoPending.label) {
+      setLocationGeoPending(null);
+    }
+  };
+
   // Handle search submission
   const handleSearch = (e) => {
     e.preventDefault();
-    if (procedureInputValue?.trim() || locationInputValue?.trim()) {
+    const locText = (locationInputValue || '').trim();
+    const pendingMatches =
+      locationGeoPending && locText === locationGeoPending.label;
+    const urlCoordsStillValid =
+      locText === (locationQuery || '').trim() &&
+      searchState.locationLat &&
+      searchState.locationLng;
+
+    let nextLat = '';
+    let nextLng = '';
+    let nextRadius = '';
+    if (pendingMatches) {
+      nextLat = String(locationGeoPending.lat);
+      nextLng = String(locationGeoPending.lng);
+      nextRadius = String(DEFAULT_CLINIC_SEARCH_RADIUS_MILES);
+    } else if (urlCoordsStillValid) {
+      nextLat = searchState.locationLat;
+      nextLng = searchState.locationLng;
+      nextRadius =
+        searchState.locationRadius ||
+        String(DEFAULT_CLINIC_SEARCH_RADIUS_MILES);
+    }
+
+    if (procedureInputValue?.trim() || locText) {
       captureEvent('search_performed', {
         search_query: procedureInputValue.trim(),
-        location_query: locationInputValue.trim() || undefined,
+        location_query: locText || undefined,
         category: category || undefined,
-        has_price_filter: !!(minPrice || maxPrice)
+        has_price_filter: !!(minPrice || maxPrice),
+        has_geo: Boolean(nextLat && nextLng),
       });
     }
-    updateSearchState('searchQuery', procedureInputValue);
-    updateSearchState('locationQuery', locationInputValue);
-    updateSearchState('page', 1); // Reset to page 1 on new search
+    updateSearchState('searchQuery', procedureInputValue.trim());
+    updateSearchState('locationQuery', locText);
+    updateSearchState('locationLat', nextLat);
+    updateSearchState('locationLng', nextLng);
+    updateSearchState('locationRadius', nextRadius);
+    updateSearchState('page', 1);
   };
   
   // Handle page change
@@ -521,10 +627,18 @@ const Search = () => {
     resetSearch();
     setProcedureInputValue('');
     setLocationInputValue('');
+    setLocationGeoPending(null);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = category || minPrice || maxPrice || searchQuery || locationQuery;
+  const hasActiveFilters =
+    category ||
+    minPrice ||
+    maxPrice ||
+    searchQuery ||
+    locationQuery ||
+    locationLat ||
+    locationLng;
 
   /** Backend is still refining results (client shows interim results first; see banner below title). */
   const isLoadingMoreFromBackend =
@@ -553,6 +667,10 @@ const Search = () => {
   const displayCategory = screen < 768 
     ? getShortCategoryName(category) 
     : (category || "All");
+
+  const mapCenter = hasGeoInState
+    ? { lat: latNum, lng: lngNum }
+    : userLocation;
   
   return (
     <Layout>
@@ -603,13 +721,16 @@ const Search = () => {
                 </div>
                 <div className="search-dual-divider" />
                 <div className="search-dual-section search-dual-section-location">
-                  <label className="search-dual-label">Add location</label>
-                  <input
-                    type="text"
+                  <label className="search-dual-label" htmlFor="search-location-input">
+                    Add location
+                  </label>
+                  <LocationAutocompleteInput
+                    id="search-location-input"
                     placeholder="City, state or zip"
                     className="search-dual-field"
                     value={locationInputValue}
-                    onChange={(e) => setLocationInputValue(e.target.value)}
+                    onChange={handleLocationInputChange}
+                    onPlaceResolved={handleLocationResolved}
                   />
                 </div>
                 <button type="submit" className="search-btn">
@@ -764,10 +885,10 @@ const Search = () => {
                       <p className="text-sm text-gray-600">Getting your location...</p>
                     </div>
                   </div>
-                ) : userLocation ? (
+                ) : mapCenter ? (
                   <iframe
                     title="Search Map"
-                    src={`https://maps.google.com/maps?q=${userLocation.lat},${userLocation.lng}&t=&z=11&ie=UTF8&iwloc=&output=embed`}
+                    src={`https://maps.google.com/maps?q=${mapCenter.lat},${mapCenter.lng}&t=&z=11&ie=UTF8&iwloc=&output=embed`}
                     height="250"
                     style={{ border: "none", width: "100%" }}
                     loading="lazy"

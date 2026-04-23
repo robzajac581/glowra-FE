@@ -2,8 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { procedure } from "./Icons";
 import { normalizeDoctorName } from "../utils/doctorNameUtils";
+import { formatClinicLocationDisplay } from "../utils/addressUtils";
 
 const ProcedureCard = ({ item, search }) => {
+	const locationDisplay = formatClinicLocationDisplay({ city: item.City, state: item.State });
+
 	// Format price to USD currency string with tilde prefix
 	const formatPrice = (price) => {
 		return '~' + new Intl.NumberFormat('en-US', {
@@ -62,10 +65,13 @@ const ProcedureCard = ({ item, search }) => {
 						<div className="location">
 							<strong>{procedure.mapmarker2}</strong>
 							<span>
-								{item.City || "Location unavailable"},{" "}
-								<strong className="text-primary font-black">
-									{item.State}
-								</strong>
+								{locationDisplay.city || "Location unavailable"}
+								{locationDisplay.city && locationDisplay.state ? ", " : ""}
+								{locationDisplay.state && (
+									<strong className="text-primary font-black">
+										{locationDisplay.state}
+									</strong>
+								)}
 							</span>
 						</div>
 						<div className="location">

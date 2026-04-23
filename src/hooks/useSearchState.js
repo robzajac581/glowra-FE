@@ -23,6 +23,9 @@ const useSearchState = (defaultValues = {}) => {
     return {
       searchQuery: searchParams.get('searchQuery') || (hasAnyUrlParams ? '' : defaultValues.searchQuery || ''),
       locationQuery: searchParams.get('locationQuery') || (hasAnyUrlParams ? '' : defaultValues.locationQuery || ''),
+      locationLat: searchParams.get('locationLat') || '',
+      locationLng: searchParams.get('locationLng') || '',
+      locationRadius: searchParams.get('locationRadius') || '',
       category: searchParams.get('category') || (hasAnyUrlParams ? '' : defaultValues.category || ''),
       minPrice: searchParams.get('minPrice') || (hasAnyUrlParams ? '' : defaultValues.minPrice || ''),
       maxPrice: searchParams.get('maxPrice') || (hasAnyUrlParams ? '' : defaultValues.maxPrice || ''),
@@ -50,6 +53,9 @@ const useSearchState = (defaultValues = {}) => {
     const urlState = {
       searchQuery: searchParams.get('searchQuery') || '',
       locationQuery: searchParams.get('locationQuery') || '',
+      locationLat: searchParams.get('locationLat') || '',
+      locationLng: searchParams.get('locationLng') || '',
+      locationRadius: searchParams.get('locationRadius') || '',
       category: searchParams.get('category') || '',
       minPrice: searchParams.get('minPrice') || '',
       maxPrice: searchParams.get('maxPrice') || '',
@@ -108,6 +114,9 @@ const useSearchState = (defaultValues = {}) => {
     setSearchState({
       searchQuery: '',
       locationQuery: '',
+      locationLat: '',
+      locationLng: '',
+      locationRadius: '',
       category: defaultValues.category || '',
       minPrice: defaultValues.minPrice || '',
       maxPrice: defaultValues.maxPrice || '',

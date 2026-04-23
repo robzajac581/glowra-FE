@@ -1,14 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import img2 from "../../../assets/img/banner/DarkenedImage3.png";
 import { icons } from "../../../components/Icons";
 import useScreen from "../../../hooks/useScreen";
+import LocationAutocompleteInput from "../../../components/LocationAutocompleteInput";
+import { DEFAULT_CLINIC_SEARCH_RADIUS_MILES } from "../../../config/api";
 
 const Banner = () => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [locationQuery, setLocationQuery] = useState("");
+	const [locationGeoPending, setLocationGeoPending] = useState(null);
 	const screen = useScreen();
 	const navigate = useNavigate();
+
+	const handleLocationResolved = useCallback(({ lat, lng, formattedAddress }) => {
+		setLocationGeoPending({ lat, lng, label: formattedAddress });
+		setLocationQuery(formattedAddress);
+	}, []);
+
+	const handleLocationInputChange = (e) => {
+		const v = e.target.value;
+		setLocationQuery(v);
+		if (locationGeoPending && v.trim() !== locationGeoPending.label) {
+			setLocationGeoPending(null);
+		}
+	};
 	
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -26,6 +42,13 @@ const Banner = () => {
 		}
 		if (locationValue) {
 			params.set("locationQuery", locationValue);
+		}
+		const pendingMatches =
+			locationGeoPending && locationValue === locationGeoPending.label;
+		if (pendingMatches) {
+			params.set("locationLat", String(locationGeoPending.lat));
+			params.set("locationLng", String(locationGeoPending.lng));
+			params.set("locationRadius", String(DEFAULT_CLINIC_SEARCH_RADIUS_MILES));
 		}
 
 		navigate(`/search?${params.toString()}`);
@@ -69,13 +92,16 @@ const Banner = () => {
 							</div>
 							<div className="search-dual-divider" />
 							<div className="search-dual-section search-dual-section-location">
-								<label className="search-dual-label">Add location</label>
-								<input
-									type="text"
+								<label className="search-dual-label" htmlFor="banner-location-input">
+									Add location
+								</label>
+								<LocationAutocompleteInput
+									id="banner-location-input"
 									placeholder="City, state or zip"
 									className="search-dual-field"
 									value={locationQuery}
-									onChange={(e) => setLocationQuery(e.target.value)}
+									onChange={handleLocationInputChange}
+									onPlaceResolved={handleLocationResolved}
 								/>
 							</div>
 						</div>

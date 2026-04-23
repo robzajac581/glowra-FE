@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { procedure } from "../../../components/Icons";
+import { formatClinicLocationDisplay } from "../../../utils/addressUtils";
 
 /**
  * Clinic Card component for search results
@@ -38,6 +39,7 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 
 	// Use displayProcedures (pre-computed in Search.jsx) or fallback to first 5 procedures
 	const displayProcedures = clinic.displayProcedures || (clinic.procedures ? clinic.procedures.slice(0, 5) : []);
+	const locationDisplay = formatClinicLocationDisplay({ city: clinic.city, state: clinic.state });
 
 	// Base clinic URL
 	const clinicUrl = `/clinic/${clinic.clinicId}`;
@@ -190,11 +192,11 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 				<div className="location text-xs flex items-center mb-3">
 					<strong className="mr-1">{procedure.mapmarker2}</strong>
 					<span>
-						{clinic.city || "Location unavailable"}
-						{clinic.state && `, `}
-						{clinic.state && (
+						{locationDisplay.city || "Location unavailable"}
+						{locationDisplay.city && locationDisplay.state && `, `}
+						{locationDisplay.state && (
 							<strong className="text-primary font-black">
-								{clinic.state}
+								{locationDisplay.state}
 							</strong>
 						)}
 					</span>
