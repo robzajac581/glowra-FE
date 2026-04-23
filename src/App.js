@@ -7,6 +7,8 @@ import Home from "./pages/home/Home";
 import Search from "./pages/search/Search";
 import AboutUs from "./pages/aboutus/AboutUs";
 import ListYourClinic from "./pages/list-your-clinic/ListYourClinic";
+import BlogIndex from "./pages/blog/BlogIndex";
+import BlogArticle from "./pages/blog/BlogArticle";
 import { AuthProvider } from "./pages/admin/hooks/useAuth";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -14,6 +16,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import ExistingClinicsPage from "./pages/admin/ExistingClinicsPage";
 import DeletedClinicsPage from "./pages/admin/DeletedClinicsPage";
 import ReviewPage from "./pages/admin/ReviewPage";
+import BlogPostsPage from "./pages/admin/BlogPostsPage";
+import BlogEditorPage from "./pages/admin/BlogEditorPage";
 
 function App() {
 	const Wrapper = ({ children }) => {
@@ -33,6 +37,8 @@ function App() {
 						{/* Public Routes */}
 						<Route path="/" element={<Home />} />
 						<Route path="/search" element={<Search />} />
+						<Route path="/blog" element={<BlogIndex />} />
+						<Route path="/blog/:slug" element={<BlogArticle />} />
 						<Route path="/about-us" element={<AboutUs />} />
 						<Route path="/clinic/:id" element={<Clinic />} />
 						<Route path="/list-your-clinic" element={<ListYourClinic />} />
@@ -43,6 +49,9 @@ function App() {
 							<Route index element={<AdminDashboard />} />
 							<Route path="clinics" element={<ExistingClinicsPage />} />
 							<Route path="deleted-clinics" element={<DeletedClinicsPage />} />
+							<Route path="blog" element={<BlogPostsPage />} />
+							<Route path="blog/new" element={<BlogEditorPage />} />
+							<Route path="blog/:id/edit" element={<BlogEditorPage />} />
 							<Route path="review/:draftId" element={<ReviewPage />} />
 							<Route path="edit-clinic/:clinicId" element={<ReviewPage />} />
 							<Route path="restore-clinic/:deletedClinicId" element={<ReviewPage />} />

@@ -638,6 +638,37 @@
 	.single-procedure-card .search-grid {
 		@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mt-[15px] gap-[15px];
 	}
+	.blog-article-content {
+		@apply text-[17px] leading-8 text-dark;
+	}
+	.blog-article-content p {
+		@apply mb-6;
+	}
+	.blog-article-content h2 {
+		@apply text-[30px] leading-tight mt-10 mb-4;
+	}
+	.blog-article-content h3 {
+		@apply text-[24px] leading-tight mt-8 mb-3;
+	}
+	.blog-article-content ul,
+	.blog-article-content ol {
+		@apply mb-6 pl-6;
+	}
+	.blog-article-content ul {
+		@apply list-disc;
+	}
+	.blog-article-content ol {
+		@apply list-decimal;
+	}
+	.blog-article-content li {
+		@apply mb-2;
+	}
+	.blog-article-content a {
+		@apply text-primary underline;
+	}
+	.blog-article-content strong {
+		@apply font-extrabold;
+	}
 	.bottom-product-grid {
 		@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[30px];
 	}

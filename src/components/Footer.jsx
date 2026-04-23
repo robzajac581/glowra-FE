@@ -75,6 +75,10 @@ const menu = [
 		name: "Search",
 		url: "/search",
 	},
+	{
+		name: "Blog",
+		url: "/blog",
+	},
 ];
 const menu2 = [
 	{

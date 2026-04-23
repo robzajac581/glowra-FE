@@ -595,7 +595,7 @@ const Search = () => {
                   <label className="search-dual-label">Search</label>
                   <input
                     type="text"
-                    placeholder="Condition, procedure or doctor name"
+                    placeholder="Procedure or doctor name"
                     className="search-dual-field"
                     value={procedureInputValue}
                     onChange={(e) => setProcedureInputValue(e.target.value)}

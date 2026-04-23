@@ -27,6 +27,7 @@ const AdminLayout = () => {
   // Determine which section is active
   const isExistingClinicsSection = location.pathname.startsWith('/admin/clinics') && !location.pathname.startsWith('/admin/deleted-clinics');
   const isDeletedClinicsSection = location.pathname.startsWith('/admin/deleted-clinics');
+  const isBlogSection = location.pathname.startsWith('/admin/blog');
   const isReviewPage = location.pathname.startsWith('/admin/review') || location.pathname.startsWith('/admin/edit-clinic') || location.pathname.startsWith('/admin/restore-clinic');
 
   return (
@@ -96,6 +97,15 @@ const AdminLayout = () => {
                 >
                   <span className="mr-2">🗑️</span>
                   Recently Deleted
+                </NavLink>
+                <NavLink
+                  to="/admin/blog"
+                  className={({ isActive }) =>
+                    `admin-section-nav-item ${isActive || isBlogSection ? 'active' : ''}`
+                  }
+                >
+                  <span className="mr-2">📝</span>
+                  Blog
                 </NavLink>
               </nav>
             </div>

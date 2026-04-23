@@ -109,6 +109,10 @@ const menu = [
 		url: "/about-us",
 	},
 	{
+		name: "Blog",
+		url: "/blog",
+	},
+	{
 		name: "List your clinic on Glowra",
 		url: "/list-your-clinic",
 	},
