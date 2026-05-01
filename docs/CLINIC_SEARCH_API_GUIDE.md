@@ -439,6 +439,7 @@ GET /api/clinics/search-index
           "procedureId": 1,
           "procedureName": "Breast Augmentation",
           "price": 6500,
+          "priceUnit": "/session",
           ...
         }
       ]
@@ -459,6 +460,7 @@ GET /api/clinics/search-index
 | `ProcedureID` | `procedures[].procedureId` | Now nested |
 | `ProcedureName` | `procedures[].procedureName` | Now nested |
 | `AverageCost` | `procedures[].price` | Renamed field |
+| N/A | `procedures[].priceUnit` | Optional; e.g. `/session`, `/unit` (shown next to price on FE) |
 | `Category` | `procedures[].category` | Now nested |
 | N/A | `rating` | New field (Google rating) |
 | N/A | `reviewCount` | New field (Google reviews) |

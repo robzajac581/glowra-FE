@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { clinicIcons } from "../../../components/Icons";
+import ProcedurePriceStack from "../../../components/ProcedurePriceStack";
+import { formatProcedureDisplayName, getProcedureDisplayName } from "../../../utils/procedureDisplayName";
 
 const ClinicProcedures = ({ procedures, selectedData, setSelectedData }) => {
 	const location = useLocation();
@@ -139,6 +141,7 @@ const ClinicProcedures = ({ procedures, selectedData, setSelectedData }) => {
 					/>
 				))}
 			</div>
+			<div className="text-xs text-gray-500 mt-2">Prices are clinic-provided estimates.</div>
 		</div>
 	);
 };
@@ -218,16 +221,6 @@ const ClinicProcedureTable = ({
 		);
 	};
 
-	// Formatting functions with tilde prefix
-	const formatPrice = (price) => {
-		return '~' + new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(price);
-	};
-
 	return (
 		<>
 			<div className="procedure-table-card">
@@ -235,7 +228,7 @@ const ClinicProcedureTable = ({
 					className="name cursor-pointer select-none flex items-center justify-between"
 					onClick={onToggle}
 				>
-					<span>{name}</span>
+					<span>{formatProcedureDisplayName(name)}</span>
 					<svg 
 						className={`w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
 						fill="none" 
@@ -248,13 +241,21 @@ const ClinicProcedureTable = ({
 				
 				{isExpanded && (
 					<>
-						<div className="procedure-table-card-name">
-							<span>Procedure</span>
-							<span>Clinic Price Estimate</span>
-							<span></span>
-						</div>
 						<div className="overflow-x-auto">
 							<table className="w-full procedure-pricing-table">
+								<thead>
+									<tr className="procedure-pricing-table-heading-row border-b border-gray-100">
+										<th scope="col" className="procedure-name-cell py-2 text-left font-medium align-bottom">
+											Procedure
+										</th>
+										<th scope="col" className="price-cell py-2 font-medium align-bottom">
+											Clinic Price Estimate
+										</th>
+										<th scope="col" className="action-cell py-2 align-bottom">
+											<span className="sr-only">Actions</span>
+										</th>
+									</tr>
+								</thead>
 								<tbody>
 									{data.map((item) => {
 										// Handle both id and procedureId field names for compatibility
@@ -271,18 +272,20 @@ const ClinicProcedureTable = ({
 										>
 											<td className="procedure-name-cell py-2">
 												<div 
-													className="procedure-name-text font-normal text-sm" 
-													title={item.name}
+													className="procedure-name-text font-normal text-sm normal-case" 
+													title={getProcedureDisplayName(item)}
 												>
-													{item.name}
+													{getProcedureDisplayName(item)}
 												</div>
 											</td>
 											<td className="price-cell py-2">
-												<span className="text-sm font-medium text-black">
-													{formatPrice(item.price)}+
-												</span>
+												<ProcedurePriceStack
+													item={item}
+													trailingPlus
+													mainClassName="text-sm font-medium text-black"
+												/>
 											</td>
-											<td className="action-cell py-2 pl-2">
+											<td className="action-cell py-2">
 												<div className="flex justify-end">
 													{addedData.find(added => {
 														const addedName = added.name || added.procedureName;

@@ -431,9 +431,7 @@
 	.procedure-table-card .name {
 		@apply font-extrabold flex w-full justify-between text-primary text-xl mb-2;
 	}
-	.procedure-table-card-name {
-		@apply text-xs py-2 px-0 font-medium text-black text-opacity-50 flex uppercase justify-between mb-1;
-	}
+	/* Column header shares table layout with body — see .procedure-pricing-table-heading-row */
 	.clinic-sidebar-card {
 		@apply bg-white border border-border rounded-2xl p-6 shadow-sm;
 	}
@@ -455,6 +453,11 @@
 	.procedure-pricing-table {
 		table-layout: fixed;
 		width: 100%;
+		border-collapse: collapse;
+	}
+	
+	.procedure-pricing-table-heading-row th {
+		@apply text-xs font-medium text-black text-opacity-50 tracking-wide normal-case;
 	}
 	
 	.procedure-pricing-table .procedure-name-cell {
@@ -469,7 +472,7 @@
 	
 	.procedure-pricing-table .action-cell {
 		width: 25%;
-		@apply text-right;
+		@apply text-right pl-2;
 	}
 	
 	.procedure-name-text {

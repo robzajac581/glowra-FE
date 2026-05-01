@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
 import { captureEvent } from "../config/analytics";
 import { cn } from "../utils/cn";
+import ProcedurePriceStack from "./ProcedurePriceStack";
+import { formatClinicPriceEstimate } from "../utils/clinicPriceDisplay";
+import { getProcedureDisplayName } from "../utils/procedureDisplayName";
 
 const ConsultationRequestForm = ({ 
   clinicId, 
@@ -23,17 +26,6 @@ const ConsultationRequestForm = ({
 
   // Calculate total estimate
   const totalEstimate = selectedData.reduce((sum, item) => sum + item.price, 0);
-
-  // Format price with tilde prefix
-  const formatPrice = (price) => {
-    return '~' + new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -227,15 +219,15 @@ const ConsultationRequestForm = ({
           <h5 className="font-semibold text-primary mb-3" style={{ fontSize: '0.9375rem', letterSpacing: '-0.01em' }}>Estimate Overview</h5>
           <div className="space-y-2 mb-3">
             {selectedData.map((item) => (
-              <div key={item.id} className="flex justify-between items-center text-sm">
-                <span className="text-gray-800">{item.name}</span>
-                <span className="font-medium text-black">{formatPrice(item.price)}</span>
+              <div key={item.id || item.procedureId} className="flex justify-between items-start gap-3 text-sm">
+                <span className="text-gray-800 normal-case">{getProcedureDisplayName(item)}</span>
+                <ProcedurePriceStack item={item} mainClassName="font-medium text-black text-sm" />
               </div>
             ))}
           </div>
           <div className="flex justify-between items-center pt-3 mt-2 border-t border-gray-300">
             <span className="font-bold text-black">Price Estimate:</span>
-            <span className="font-bold text-lg text-black">{formatPrice(totalEstimate)}</span>
+            <span className="font-bold text-lg text-black">{formatClinicPriceEstimate(totalEstimate)}</span>
           </div>
         </div>
       )}

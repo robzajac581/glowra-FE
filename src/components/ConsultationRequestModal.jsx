@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
 import { cn } from "../utils/cn";
+import ProcedurePriceStack from "./ProcedurePriceStack";
+import { formatClinicPriceEstimate } from "../utils/clinicPriceDisplay";
+import { getProcedureDisplayName } from "../utils/procedureDisplayName";
 import "./ConsultationRequestModal.css";
 
 const ConsultationRequestModal = ({ 
@@ -76,16 +79,6 @@ const ConsultationRequestModal = ({
 
   // Calculate total estimate
   const totalEstimate = selectedData.reduce((sum, item) => sum + item.price, 0);
-
-  // Format price with tilde prefix
-  const formatPrice = (price) => {
-    return '~' + new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -310,15 +303,19 @@ const ConsultationRequestModal = ({
                   <h5 className="consultation-modal-estimate-title">Estimate Overview</h5>
                   <div className="consultation-modal-items">
                     {selectedData.map((item) => (
-                      <div key={item.id} className="consultation-modal-item-row">
-                        <span>{item.name}</span>
-                        <span className="consultation-modal-item-price">{formatPrice(item.price)}</span>
+                      <div key={item.id || item.procedureId} className="consultation-modal-item-row">
+                        <span className="normal-case">{getProcedureDisplayName(item)}</span>
+                        <ProcedurePriceStack
+                          item={item}
+                          className="consultation-modal-item-price"
+                          unitClassName="text-gray-500"
+                        />
                       </div>
                     ))}
                   </div>
                   <div className="consultation-modal-total-row">
                     <span>Price Estimate:</span>
-                    <span className="consultation-modal-total-price">{formatPrice(totalEstimate)}</span>
+                    <span className="consultation-modal-total-price">{formatClinicPriceEstimate(totalEstimate)}</span>
                   </div>
                 </div>
               )}

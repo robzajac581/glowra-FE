@@ -2,23 +2,14 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { procedure } from "../../../components/Icons";
 import { formatClinicLocationDisplay } from "../../../utils/addressUtils";
+import ProcedurePriceStack from "../../../components/ProcedurePriceStack";
+import { formatProcedureDisplayName } from "../../../utils/procedureDisplayName";
 
 /**
  * Clinic Card component for search results
  * Displays clinic information with relevant procedures
  */
 const SearchResultCard = ({ clinic, searchQuery }) => {
-	
-	// Format price to USD currency string
-	const formatPrice = (price) => {
-		if (!price || price === 0) return 'Price on request';
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		}).format(price);
-	};
 
 	// Normalize clinic name to title case (capitalize first letter of each word)
 	const formatClinicName = (name) => {
@@ -218,15 +209,18 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 								<Link
 									key={procId}
 									to={`${clinicUrl}?openCategory=${encodeURIComponent(proc.category)}&procedureName=${encodeURIComponent(procName)}&autoAdd=true`}
-									className="flex justify-between items-center text-xs hover:bg-gray-50 p-1.5 rounded transition-colors group/proc"
+									className="flex justify-between items-start gap-2 text-xs hover:bg-gray-50 p-1.5 rounded transition-colors group/proc"
 									onClick={(e) => e.stopPropagation()}
 								>
-									<span className="font-medium text-gray-800 group-hover/proc:text-primary truncate flex-1 pr-2">
-										{proc.procedureName}
+									<span className="font-medium text-gray-800 group-hover/proc:text-primary truncate flex-1 pr-2 normal-case">
+										{formatProcedureDisplayName(proc.procedureName || proc.name)}
 									</span>
-									<span className="text-primary font-bold whitespace-nowrap">
-										{formatPrice(proc.price)}
-									</span>
+									<ProcedurePriceStack
+										item={proc}
+										className="text-right"
+										mainClassName="text-primary font-bold"
+										unitClassName="text-primary/75 font-medium"
+									/>
 								</Link>
 							);
 							})

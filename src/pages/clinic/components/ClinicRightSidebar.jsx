@@ -2,23 +2,16 @@ import React, { useState } from "react";
 import ConsultationRequestModal from "../../../components/ConsultationRequestModal";
 import ConsultationRequestForm from "../../../components/ConsultationRequestForm";
 import useScreen from "../../../hooks/useScreen";
+import ProcedurePriceStack from "../../../components/ProcedurePriceStack";
+import { formatClinicPriceEstimate } from "../../../utils/clinicPriceDisplay";
+import { getProcedureDisplayName } from "../../../utils/procedureDisplayName";
 
 const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId, procedures }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const screenWidth = useScreen();
   const isMobile = screenWidth < 1024; // lg breakpoint
   
-  // Format price to USD currency string with tilde prefix
-  const formatPrice = (price) => {
-    return '~' + new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
-  // Calculate total price
+  // Calculate total price (numeric sum; totals omit per-unit suffixes)
   const totalPrice = selectedData.reduce((sum, item) => sum + item.price, 0);
   const hasSelectedProcedures = selectedData.length > 0;
   
@@ -52,14 +45,18 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId, procedures }) 
           <div className="container mx-auto px-4 py-2.5">
             {/* Procedures List - Compact */}
             <div className="mb-2 space-y-1 max-h-20 overflow-hidden">
-              {visibleProcedures.map((item, index) => (
-                <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="text-gray-700 truncate flex-1 min-w-0">
-                    {item.name}
+              {visibleProcedures.map((item) => (
+                <div key={item.id || item.procedureId} className="flex items-start justify-between gap-2 text-xs">
+                  <span className="text-gray-700 truncate flex-1 min-w-0 normal-case">
+                    {getProcedureDisplayName(item)}
                   </span>
-                  <span className="text-gray-900 font-semibold whitespace-nowrap flex-shrink-0">
-                    {formatPrice(item.price)}
-                  </span>
+                  <div className="text-gray-900 flex-shrink-0 text-right">
+                    <ProcedurePriceStack
+                      item={item}
+                      mainClassName="text-xs font-semibold text-gray-900"
+                      unitClassName="text-[10px] text-gray-600 font-medium"
+                    />
+                  </div>
                 </div>
               ))}
               {hasMoreProcedures && (
@@ -74,7 +71,7 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId, procedures }) 
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-500 mb-0.5 font-medium">Total Estimate</div>
                 <div className="font-bold text-lg text-primary whitespace-nowrap">
-                  {formatPrice(totalPrice)}
+                  {formatClinicPriceEstimate(totalPrice)}
                 </div>
               </div>
               <button 

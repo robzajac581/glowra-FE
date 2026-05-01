@@ -82,8 +82,8 @@ const Banner = () => {
 									type="text"
 									placeholder={
 										screen < 768
-											? "Procedure or doctor"
-											: "Procedure or doctor name"
+											? "Procedure, Clinic, etc."
+											: "Procedure, Clinic or Doctor name"
 									}
 									className="search-dual-field"
 									value={searchQuery}
