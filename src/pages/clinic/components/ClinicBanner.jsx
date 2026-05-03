@@ -105,11 +105,56 @@ const ProviderCard = ({ provider, photoURL, hasValidPhoto }) => {
 	);
 };
 
+const STOCK_CLINIC_LOGO = "/img/clinic-logo.png";
+
+/**
+ * First gallery image URL (same resolution order as Gallery.jsx).
+ */
+const getFirstGalleryPhotoUrl = (photos) => {
+	if (!photos?.length) return null;
+	const p = photos[0];
+	const raw =
+		p?.urls?.medium || p?.urls?.thumbnail || p?.urls?.large || p?.url;
+	return resolvePhotoURL(raw);
+};
+
+/**
+ * Google-hosted clinic imagery is often tiny, rate-limited, or breaks with no-referrer.
+ * Prefer curated gallery for those; still honor explicit non-Google logos (drafts, CDNs).
+ */
+const isGooglePlacesHostImage = (url) => {
+	if (!url || typeof url !== 'string') return false;
+	return (
+		url.includes('googleusercontent.com') ||
+		url.includes('streetviewpixels-pa.googleapis.com') ||
+		url.includes('maps.googleapis.com') ||
+		url.includes('ggpht.com')
+	);
+};
+const bannerImgReferrerPolicy = (src) => {
+	if (!src || src === STOCK_CLINIC_LOGO) return undefined;
+	if (src.includes('photos/proxy')) return 'no-referrer';
+	return undefined;
+};
+
+/**
+ * First provider with a headshot (same rules as ProviderCard).
+ * @returns {{ photoURL: string, provider: object } | null}
+ */
+const getFirstProviderWithPhoto = (providers) => {
+	if (!providers?.length) return null;
+	for (const item of providers) {
+		const photoURL = resolvePhotoURL(item.photoUrl);
+		if (item.hasPhoto && photoURL) return { photoURL, provider: item };
+	}
+	return null;
+};
+
 /**
  * ClinicBanner Component
  * Displays clinic header with logo, name, address, rating, verified badge, category, and open/closed status
  */
-const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMessage, logo, isOpenNow, closingTime }) => {
+const ClinicBanner = ({ clinicInfo, providers, photos = [], requiresConsultRequest, consultMessage, isOpenNow, closingTime }) => {
 	const carouselRef = useRef(null);
 	const [showLeftArrow, setShowLeftArrow] = useState(false);
 	const [showRightArrow, setShowRightArrow] = useState(true);
@@ -119,12 +164,44 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 		[clinicInfo]
 	);
 
+	const firstGalleryPhotoUrl = useMemo(() => getFirstGalleryPhotoUrl(photos), [photos]);
+	const firstProviderWithPhoto = useMemo(() => getFirstProviderWithPhoto(providers), [providers]);
+
+	const { displayLogo, bannerImageAlt } = useMemo(() => {
+		const displayName = clinicInfo ? toTitleCase(clinicInfo.clinicName) : '';
+		const placesLogoUrl = resolvePhotoURL(clinicInfo?.logo);
+		const placesPhotoUrl = resolvePhotoURL(clinicInfo?.photo);
+
+		if (placesLogoUrl && !isGooglePlacesHostImage(placesLogoUrl)) {
+			return { displayLogo: placesLogoUrl, bannerImageAlt: `${displayName} logo` };
+		}
+		if (firstGalleryPhotoUrl) {
+			return {
+				displayLogo: firstGalleryPhotoUrl,
+				bannerImageAlt: `${displayName} clinic photo`,
+			};
+		}
+		if (placesLogoUrl) {
+			return { displayLogo: placesLogoUrl, bannerImageAlt: `${displayName} logo` };
+		}
+		if (placesPhotoUrl) {
+			return { displayLogo: placesPhotoUrl, bannerImageAlt: `${displayName} logo` };
+		}
+		if (firstProviderWithPhoto) {
+			const providerLabel = normalizeDoctorName(firstProviderWithPhoto.provider.providerName);
+			return {
+				displayLogo: firstProviderWithPhoto.photoURL,
+				bannerImageAlt: `${displayName} — ${providerLabel}`,
+			};
+		}
+		return { displayLogo: STOCK_CLINIC_LOGO, bannerImageAlt: `${displayName} logo` };
+	}, [clinicInfo, firstGalleryPhotoUrl, firstProviderWithPhoto]);
+
+	const imgReferrerPolicy = bannerImgReferrerPolicy(displayLogo);
+
 	if (!clinicInfo) {
 		return <div>Loading clinic information...</div>;
 	}
-
-	// Use Google Places logo or fallback to placeholder
-	const displayLogo = logo || "/img/clinic-logo.png";
 	
 	// Normalize clinic name to title case
 	const displayName = toTitleCase(clinicInfo.clinicName);
@@ -160,11 +237,12 @@ const ClinicBanner = ({ clinicInfo, providers, requiresConsultRequest, consultMe
 					<img 
 						src={displayLogo} 
 						className="img" 
-						alt={`${clinicInfo.clinicName} logo`}
-						referrerPolicy="no-referrer"
+						alt={bannerImageAlt}
+						referrerPolicy={imgReferrerPolicy}
 						onError={(e) => {
 							e.target.onerror = null;
-							e.target.src = "/img/clinic-logo.png";
+							e.target.src = STOCK_CLINIC_LOGO;
+							e.target.alt = `${toTitleCase(clinicInfo.clinicName)} logo`;
 						}}
 					/>
 					<div className="w-0 flex-grow">

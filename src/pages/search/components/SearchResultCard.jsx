@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { procedure } from "../../../components/Icons";
 import { formatClinicLocationDisplay } from "../../../utils/addressUtils";
-import ProcedurePriceStack from "../../../components/ProcedurePriceStack";
+import { formatClinicPriceEstimate } from "../../../utils/clinicPriceDisplay";
 import { formatProcedureDisplayName } from "../../../utils/procedureDisplayName";
 
 /**
@@ -209,18 +209,15 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 								<Link
 									key={procId}
 									to={`${clinicUrl}?openCategory=${encodeURIComponent(proc.category)}&procedureName=${encodeURIComponent(procName)}&autoAdd=true`}
-									className="flex justify-between items-start gap-2 text-xs hover:bg-gray-50 p-1.5 rounded transition-colors group/proc"
+									className="flex justify-between items-center text-xs hover:bg-gray-50 p-1.5 rounded transition-colors group/proc"
 									onClick={(e) => e.stopPropagation()}
 								>
 									<span className="font-medium text-gray-800 group-hover/proc:text-primary truncate flex-1 pr-2 normal-case">
 										{formatProcedureDisplayName(proc.procedureName || proc.name)}
 									</span>
-									<ProcedurePriceStack
-										item={proc}
-										className="text-right"
-										mainClassName="text-primary font-bold"
-										unitClassName="text-primary/75 font-medium"
-									/>
+									<span className="text-primary font-bold whitespace-nowrap">
+										{formatClinicPriceEstimate(proc.price)}
+									</span>
 								</Link>
 							);
 							})

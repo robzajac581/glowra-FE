@@ -56,11 +56,7 @@ const DraftClinicPreview = ({
     workingHours,
     isOpenNow,
     closingTime,
-    logo,
   } = useClinicData(clinicInfo);
-
-  // Use logo from clinicInfo if available, otherwise fall back to hook result
-  const displayLogo = clinicInfo?.logo || logo;
 
   const isAdjustment = draft.submissionFlow === 'add_to_existing';
 
@@ -88,9 +84,9 @@ const DraftClinicPreview = ({
                 <ClinicBanner
                   clinicInfo={clinicInfo}
                   providers={providers}
+                  photos={photos}
                   requiresConsultRequest={false}
                   consultMessage={null}
-                  logo={displayLogo}
                   isOpenNow={isOpenNow}
                   closingTime={closingTime}
                 />

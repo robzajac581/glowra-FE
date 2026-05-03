@@ -55,8 +55,7 @@ const Clinic = () => {
 	const { 
 		workingHours, 
 		isOpenNow, 
-		closingTime,
-		logo 
+		closingTime
 	} = useClinicData(clinicInfo);
 
 	// Fetch clinic data on component mount
@@ -162,9 +161,9 @@ const Clinic = () => {
 							<ClinicBanner 
 								clinicInfo={clinicInfo} 
 								providers={providers}
+								photos={photos}
 								requiresConsultRequest={requiresConsultRequest}
 								consultMessage={consultMessage}
-								logo={logo}
 								isOpenNow={isOpenNow}
 								closingTime={closingTime}
 							/>
