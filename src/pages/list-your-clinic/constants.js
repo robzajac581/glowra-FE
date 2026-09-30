@@ -74,6 +74,14 @@ export const PROCEDURE_CATEGORIES = [
 ];
 
 // Price Units
+// Must stay in step with PRICE_UNITS in glowra-search-api
+// (utils/priceUnitNormalizer.js, surfaced via
+// clinic-management/schema/procedureFields.js). The API validates submitted
+// units against that list, so a value offered here but missing there is a 400.
+//
+// The last five were added in GLO-69: they were already in use on 80 live
+// procedures but had never been in the enum, so re-saving one of those
+// procedures through a validated path would have failed.
 export const PRICE_UNITS = [
   { value: '', label: '(none)' },
   { value: '/unit', label: '/unit' },
@@ -82,7 +90,12 @@ export const PRICE_UNITS = [
   { value: '/area', label: '/area' },
   { value: '/treatment', label: '/treatment' },
   { value: '/syringe', label: '/syringe' },
-  { value: '/vial', label: '/vial' }
+  { value: '/vial', label: '/vial' },
+  { value: '/procedure', label: '/procedure' },
+  { value: '/package', label: '/package' },
+  { value: '/cycle', label: '/cycle' },
+  { value: '/thread', label: '/thread' },
+  { value: '/graft', label: '/graft' }
 ];
 
 // Days of the week for working hours
