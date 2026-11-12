@@ -180,18 +180,20 @@ const SearchResultCard = ({ clinic, searchQuery }) => {
 				</div>
 				
 				{/* Location */}
-				<div className="location text-xs flex items-center mb-3">
-					<strong className="mr-1">{procedure.mapmarker2}</strong>
-					<span>
-						{locationDisplay.city || "Location unavailable"}
-						{locationDisplay.city && locationDisplay.state && `, `}
-						{locationDisplay.state && (
-							<strong className="text-primary font-black">
-								{locationDisplay.state}
-							</strong>
-						)}
-					</span>
-				</div>
+				{(locationDisplay.city || locationDisplay.state) && (
+					<div className="location text-xs flex items-center mb-3">
+						<strong className="mr-1">{procedure.mapmarker2}</strong>
+						<span>
+							{locationDisplay.city}
+							{locationDisplay.city && locationDisplay.state && `, `}
+							{locationDisplay.state && (
+								<strong className="text-primary font-black">
+									{locationDisplay.state}
+								</strong>
+							)}
+						</span>
+					</div>
+				)}
 
 				{/* Procedures List */}
 				<div className="flex-1">

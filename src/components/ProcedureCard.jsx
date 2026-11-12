@@ -62,18 +62,20 @@ const ProcedureCard = ({ item, search }) => {
 						</Link> */}
 						<span>{normalizeDoctorName(item.doctorInfo)}</span>
 					</div>
-						<div className="location">
-							<strong>{procedure.mapmarker2}</strong>
-							<span>
-								{locationDisplay.city || "Location unavailable"}
-								{locationDisplay.city && locationDisplay.state ? ", " : ""}
-								{locationDisplay.state && (
-									<strong className="text-primary font-black">
-										{locationDisplay.state}
-									</strong>
-								)}
-							</span>
-						</div>
+						{(locationDisplay.city || locationDisplay.state) && (
+							<div className="location">
+								<strong>{procedure.mapmarker2}</strong>
+								<span>
+									{locationDisplay.city}
+									{locationDisplay.city && locationDisplay.state ? ", " : ""}
+									{locationDisplay.state && (
+										<strong className="text-primary font-black">
+											{locationDisplay.state}
+										</strong>
+									)}
+								</span>
+							</div>
+						)}
 						<div className="location">
 							<strong>{procedure.dollar2}</strong>
 							<span>
