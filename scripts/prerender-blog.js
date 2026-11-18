@@ -58,15 +58,18 @@ const headTags = ({ title, description, url, ogType, extra = [] }) =>
 		`<meta data-rh="true" property="og:title" content="${escapeHtml(title)}"/>`,
 		`<meta data-rh="true" property="og:description" content="${escapeHtml(description)}"/>`,
 		`<meta data-rh="true" property="og:url" content="${escapeHtml(url)}"/>`,
+		`<meta data-rh="true" property="og:site_name" content="Glowra"/>`,
+		`<meta data-rh="true" name="twitter:card" content="summary"/>`,
 		...extra,
 	].join("");
 
 const renderPage = (template, { head, body }) => {
 	let html = template;
 
-	// Drop the template's generic title/description; ours replace them.
+	// Drop the template's site-wide defaults (title + data-rh tags); ours replace them.
 	html = html.replace(/<title>[\s\S]*?<\/title>/, "");
-	html = html.replace(/<meta name="description"[^>]*>/, "");
+	html = html.replace(/<(?:meta|link)\b[^>]*\bdata-rh="true"[^>]*>/g, "");
+	if (/data-rh="true"/.test(html)) fail("template still has data-rh tags after stripping");
 	if (!html.includes("</head>")) fail("template has no </head>");
 	html = html.replace("</head>", `${head}</head>`);
 

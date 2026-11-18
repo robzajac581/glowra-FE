@@ -18,6 +18,7 @@ import DeletedClinicsPage from "./pages/admin/DeletedClinicsPage";
 import ReviewPage from "./pages/admin/ReviewPage";
 import BlogPostsPage from "./pages/admin/BlogPostsPage";
 import BlogEditorPage from "./pages/admin/BlogEditorPage";
+import SiteMeta from "./components/SiteMeta";
 
 function App() {
 	const Wrapper = ({ children }) => {
@@ -33,6 +34,7 @@ function App() {
 		<AuthProvider>
 			<BrowserRouter>
 				<Wrapper>
+					<SiteMeta />
 					<Routes>
 						{/* Public Routes */}
 						<Route path="/" element={<Home />} />
