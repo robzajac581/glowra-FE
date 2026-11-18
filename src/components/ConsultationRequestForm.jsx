@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
 import { captureEvent } from "../config/analytics";
 import { cn } from "../utils/cn";
@@ -23,6 +23,15 @@ const ConsultationRequestForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isOptionalExpanded, setIsOptionalExpanded] = useState(false);
+  const hasTrackedStart = useRef(false);
+
+  const trackRequestFailed = (reason) => {
+    captureEvent('consultation_request_failed', {
+      clinic_id: clinicId,
+      clinic_name: clinicInfo?.clinicName,
+      reason
+    });
+  };
 
   // Calculate total estimate
   const totalEstimate = selectedData.reduce((sum, item) => sum + item.price, 0);
@@ -51,6 +60,14 @@ const ConsultationRequestForm = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (!hasTrackedStart.current) {
+      hasTrackedStart.current = true;
+      captureEvent('consultation_form_started', {
+        clinic_id: clinicId,
+        clinic_name: clinicInfo?.clinicName,
+        procedure_count: selectedData?.length
+      });
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value
@@ -129,6 +146,7 @@ const ConsultationRequestForm = ({
           setIsOptionalExpanded(false);
         }, 4000);
       } else {
+        trackRequestFailed(result.details ? 'validation' : 'server_error');
         if (result.details && typeof result.details === 'object') {
           const apiErrors = {};
           Object.keys(result.details).forEach((field) => {
@@ -143,6 +161,7 @@ const ConsultationRequestForm = ({
       }
     } catch (error) {
       console.error("Error submitting consultation request:", error);
+      trackRequestFailed('network_error');
       setErrors({
         submit: "Failed to submit your request. Please check your connection and try again."
       });

@@ -959,8 +959,25 @@ const Search = () => {
                               </div>
                             </div>
                           )}
-                          <div className="procedure-card-wrapper">
-                            <SearchResultCard 
+                          <div
+                            className="procedure-card-wrapper"
+                            onClick={(e) => {
+                              const link = e.target.closest('a');
+                              if (!link) return;
+                              captureEvent('search_result_clicked', {
+                                clinic_id: clinic.clinicId,
+                                clinic_name: clinic.clinicName,
+                                position: (page - 1) * NUMBER_OF_CARDS_PER_PAGE + index + 1,
+                                page,
+                                is_nearby: Boolean(clinic._isNearby),
+                                search_query: searchQuery || undefined,
+                                location_query: locationQuery || undefined,
+                                category: category || undefined,
+                                link_target: link.getAttribute('href')?.includes('autoAdd=true') ? 'procedure' : 'clinic',
+                              });
+                            }}
+                          >
+                            <SearchResultCard
                               clinic={clinic}
                               searchQuery={procedureQuery}
                             />

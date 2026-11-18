@@ -1,6 +1,7 @@
 // ClinicProcedures.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
+import { captureEvent } from "../../../config/analytics";
 import { clinicIcons } from "../../../components/Icons";
 import ProcedurePriceStack from "../../../components/ProcedurePriceStack";
 import { formatProcedureDisplayName, getProcedureDisplayName } from "../../../utils/procedureDisplayName";
@@ -155,8 +156,18 @@ const ClinicProcedureTable = ({
 	onToggle,
 	highlightedProcedureId,
 }) => {
+	const { id: clinicId } = useParams();
 	const [addedData, setAddedData] = useState([]);
 	const [animatingIds, setAnimatingIds] = useState([]);
+
+	const trackProcedure = (eventName, item) => {
+		captureEvent(eventName, {
+			clinic_id: clinicId,
+			procedure_name: item.name || item.procedureName,
+			category: name,
+			price: item.price,
+		});
+	};
 
 	// Sync addedData with selectedData from parent
 	// This ensures the UI reflects procedures added from external sources (like auto-add from search)
@@ -203,12 +214,14 @@ const ClinicProcedureTable = ({
 			}),
 		]);
 		setSelectedData((selectedData) => [...selectedData, arg]);
+		trackProcedure('procedure_added', arg);
 	};
 
 	const handleRemove = (itemToRemove) => {
 		// Match by name since IDs may differ between endpoints
 		const nameToRemove = itemToRemove.name || itemToRemove.procedureName;
-		
+		trackProcedure('procedure_removed', itemToRemove);
+
 		setAddedData((addedData) => addedData.filter((item) => {
 			const itemName = item.name || item.procedureName;
 			return itemName !== nameToRemove;

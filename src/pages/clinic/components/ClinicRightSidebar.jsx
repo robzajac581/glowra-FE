@@ -3,6 +3,7 @@ import ConsultationRequestModal from "../../../components/ConsultationRequestMod
 import ConsultationRequestForm from "../../../components/ConsultationRequestForm";
 import useScreen from "../../../hooks/useScreen";
 import ProcedurePriceStack from "../../../components/ProcedurePriceStack";
+import { captureEvent } from "../../../config/analytics";
 import { formatClinicPriceEstimate } from "../../../utils/clinicPriceDisplay";
 import { getProcedureDisplayName } from "../../../utils/procedureDisplayName";
 
@@ -76,7 +77,14 @@ const ClinicRightSidebar = ({ selectedData, clinicInfo, clinicId, procedures }) 
               </div>
               <button 
                 className="btn flex-shrink-0 px-4 sm:px-6 whitespace-nowrap shadow-md hover:shadow-lg transition-shadow text-sm sm:text-base"
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  setIsModalOpen(true);
+                  captureEvent('consultation_modal_opened', {
+                    clinic_id: clinicId,
+                    clinic_name: clinicInfo?.clinicName,
+                    procedure_count: selectedData.length
+                  });
+                }}
               >
                 Review inquiry
               </button>
