@@ -3,6 +3,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { icons } from "../../../components/Icons";
 import { Next, Prev } from "../../../components/Slidericons";
 import AccordionCard from "./AccordionCard";
+import { captureEvent } from "../../../config/analytics";
 
 /**
  * ReviewsForCosmetics Component
@@ -91,6 +92,7 @@ const ReviewsForCosmetics = ({ reviews, clinicName, totalReviewCount, reviewsLin
 			<div className="mt-6 text-center px-5">
 				<a 
 					href={reviewsLink}
+					onClick={() => captureEvent('google_reviews_clicked', { clinic_name: clinicName, review_count: totalReviewCount })}
 					target="_blank"
 					rel="noopener noreferrer"
 					className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-gray-50 text-black font-medium rounded-lg border border-black transition-all duration-200 shadow-sm hover:shadow-md"
