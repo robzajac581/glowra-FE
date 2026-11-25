@@ -1,4 +1,16 @@
 {
   "buildCommand": "yarn build",
-  "outputDirectory": "build"
+  "outputDirectory": "build",
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    { "handle": "filesystem" },
+    { "src": "/(search|about-us|list-your-clinic)/?", "dest": "/index.html" },
+    { "src": "/clinic/[^/]+/?", "dest": "/index.html" },
+    { "src": "/admin(/.*)?", "dest": "/index.html" },
+    { "src": "/.*", "status": 404, "dest": "/404.html" }
+  ]
 }
