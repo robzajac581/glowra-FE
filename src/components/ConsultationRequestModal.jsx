@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { CONSULTATION_REQUEST_API_URL } from "../config/api";
+import { captureEvent } from "../config/analytics";
 import { cn } from "../utils/cn";
 import ProcedurePriceStack from "./ProcedurePriceStack";
 import { formatClinicPriceEstimate } from "../utils/clinicPriceDisplay";
@@ -26,10 +27,24 @@ const ConsultationRequestModal = ({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const hasTrackedStart = useRef(false);
+
+  // Same events as the desktop ConsultationRequestForm, tagged so the two can be told apart.
+  const eventProps = () => ({
+    clinic_id: clinicId,
+    clinic_name: clinicInfo?.clinicName,
+    procedure_count: selectedData?.length,
+    surface: 'mobile_modal'
+  });
+
+  const trackRequestFailed = (reason) => {
+    captureEvent('consultation_request_failed', { ...eventProps(), reason });
+  };
 
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
+      hasTrackedStart.current = false;
       setFormData({
         firstName: "",
         lastName: "",
@@ -108,6 +123,10 @@ const ConsultationRequestModal = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (!hasTrackedStart.current) {
+      hasTrackedStart.current = true;
+      captureEvent('consultation_form_started', eventProps());
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value
@@ -169,10 +188,12 @@ const ConsultationRequestModal = ({
       }
 
       if (result.success) {
+        captureEvent('consultation_requested', eventProps());
         // Success - save requestId for potential tracking
         console.log('Consultation request submitted successfully. Request ID:', result.requestId);
         setIsSuccess(true);
       } else {
+        trackRequestFailed(result.details ? 'validation' : 'server_error');
         // Handle validation errors from API
         if (result.details && typeof result.details === 'object') {
           // Map API validation errors to form errors
@@ -190,6 +211,7 @@ const ConsultationRequestModal = ({
       }
     } catch (error) {
       console.error("Error submitting consultation request:", error);
+      trackRequestFailed('network_error');
       setErrors({
         submit: "Failed to submit your request. Please check your connection and try again."
       });
