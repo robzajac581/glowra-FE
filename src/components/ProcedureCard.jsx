@@ -102,7 +102,7 @@ const ProcedureCard = ({ item, search }) => {
 						) : ( */}
 							<Link 
 								className="btn" 
-								to={`/clinic/${item.clinicId}}`}
+								to={`/clinic/${item.clinicId}`}
 							>
 								View Details {procedure.arrowLink}
 							</Link>

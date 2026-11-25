@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Layout from "../../components/Layout";
 import About from "./components/About";
 import ClinicBanner from "./components/ClinicBanner";
@@ -132,6 +133,9 @@ const Clinic = () => {
 	if (error) {
 		return (
 			<Layout>
+				<Helmet>
+					<meta name="robots" content="noindex" />
+				</Helmet>
 				<section className="py-10">
 					<div className="container">
 						<div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">

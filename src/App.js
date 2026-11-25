@@ -19,6 +19,7 @@ import ReviewPage from "./pages/admin/ReviewPage";
 import BlogPostsPage from "./pages/admin/BlogPostsPage";
 import BlogEditorPage from "./pages/admin/BlogEditorPage";
 import SiteMeta from "./components/SiteMeta";
+import NotFound from "./pages/not-found/NotFound";
 
 function App() {
 	const Wrapper = ({ children }) => {
@@ -59,7 +60,7 @@ function App() {
 							<Route path="restore-clinic/:deletedClinicId" element={<ReviewPage />} />
 						</Route>
 						
-						<Route path="*" element={<Home />} />
+						<Route path="*" element={<NotFound />} />
 					</Routes>
 				</Wrapper>
 			</BrowserRouter>
