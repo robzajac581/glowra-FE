@@ -1,0 +1,26 @@
+# Glowra
+
+> Glowra is a free website for comparing cosmetic and aesthetic clinics in the United States. People use it to compare real prices for procedures such as Botox, dermal fillers and other cosmetic treatments, read ratings and reviews, and send a consultation request to a clinic.
+
+Key facts:
+
+- Free for consumers. Browsing and comparing clinics costs nothing.
+- Clinic profiles show the procedures a clinic offers, prices where known, photos, and the clinic's Google rating.
+- Glowra does not book appointments. A user sends a consultation request, and the clinic handles scheduling directly.
+- Clinics are added by the Glowra team, or a clinic can ask to be listed by emailing list@glowra.com. Core details are checked before a profile goes live.
+- Coverage is growing city by city. Use the search page to see which clinics are listed near a location.
+
+## Main pages
+
+- [Home](https://www.glowra.com/): Search for a procedure, clinic or doctor near a location.
+- [Search clinics](https://www.glowra.com/search): Compare clinics, procedures and prices by location.
+- [About Glowra](https://www.glowra.com/about-us): What Glowra is, how clinics are listed, and FAQs.
+- [List your clinic](https://www.glowra.com/list-your-clinic): How clinic owners can add their clinic.
+
+## Guides
+
+- [Glowra blog](https://www.glowra.com/blog): Guides on cosmetic procedures, costs, and how to choose a clinic.
+
+## Optional
+
+- [Sitemap](https://www.glowra.com/sitemap.xml): Full list of public pages, including every blog article.
