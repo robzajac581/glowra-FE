@@ -39,7 +39,7 @@
 	"scripts": {
 		"start": "node scripts/start.js",
 		"build": "node scripts/build.js",
-		"postbuild": "node scripts/prerender-blog.js && node scripts/write-404.js",
+		"postbuild": "node scripts/prerender-blog.js && node scripts/prerender-clinics.js && node scripts/write-404.js",
 		"generate:blog-content": "node scripts/generate-blog-content.js",
 		"generate:sitemap": "node scripts/generate-sitemap.js",
 		"test": "react-scripts test",
