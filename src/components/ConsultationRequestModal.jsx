@@ -162,7 +162,7 @@ const ConsultationRequestModal = ({
         patientStatus: patientStatus, // new or returning
         // Clinic context (auto-included)
         clinicId: clinicId,
-        clinicName: clinicInfo?.ClinicName || null,
+        clinicName: clinicInfo?.clinicName || null,
         selectedProcedures: selectedData.map((item) => ({
           id: item.id,
           name: item.name,
